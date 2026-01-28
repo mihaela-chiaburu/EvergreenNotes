@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EvergreenNotes.Infrastructu
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EvergreenNotes.Tests", "EvergreenNotes.Tests\EvergreenNotes.Tests.csproj", "{503F4358-ACCE-4D2B-B68C-A3F1053175B6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EvergreenNotes.Helpers", "EvergreenNotes.Helpers\EvergreenNotes.Helpers.csproj", "{C3012E5B-C67F-4976-A7ED-14718A40BB1F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{503F4358-ACCE-4D2B-B68C-A3F1053175B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{503F4358-ACCE-4D2B-B68C-A3F1053175B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{503F4358-ACCE-4D2B-B68C-A3F1053175B6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3012E5B-C67F-4976-A7ED-14718A40BB1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3012E5B-C67F-4976-A7ED-14718A40BB1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3012E5B-C67F-4976-A7ED-14718A40BB1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3012E5B-C67F-4976-A7ED-14718A40BB1F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
