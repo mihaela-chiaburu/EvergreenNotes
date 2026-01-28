@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EvergreenNotes.Application\EvergreenNotes.Application.csproj" />
+    <ProjectReference Include="..\EvergreenNotes.Domain\EvergreenNotes.Domain.csproj" />
+    <ProjectReference Include="..\EvergreenNotes.Infrastructure\EvergreenNotes.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
