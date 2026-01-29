@@ -15,6 +15,8 @@ namespace EvergreenNotes.Infrastructure.Data
         public DbSet<Tag> Tags { get; set; }
         public DbSet<NoteTag> NoteTags { get; set; }
         public DbSet<Garden> Gardens { get; set; }
+        public DbSet<Follow> Follows { get; set; }
+        public DbSet<Comment> Comments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -123,6 +125,48 @@ namespace EvergreenNotes.Infrastructure.Data
 
                 entity.HasIndex(g => g.UserId).IsUnique();
                 entity.HasIndex(g => g.Visibility);
+            });
+
+            // Follow configuration
+            modelBuilder.Entity<Follow>(entity =>
+            {
+                entity.HasKey(f => f.Id);
+
+                entity.HasOne(f => f.Follower)
+                    .WithMany()
+                    .HasForeignKey(f => f.FollowerId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(f => f.Following)
+                    .WithMany()
+                    .HasForeignKey(f => f.FollowingId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Prevent duplicate follows
+                entity.HasIndex(f => new { f.FollowerId, f.FollowingId }).IsUnique();
+                entity.HasIndex(f => f.FollowerId);
+                entity.HasIndex(f => f.FollowingId);
+            });
+
+            // Comment configuration
+            modelBuilder.Entity<Comment>(entity =>
+            {
+                entity.HasKey(c => c.Id);
+                entity.Property(c => c.Content).IsRequired().HasMaxLength(1000);
+
+                entity.HasOne(c => c.Note)
+                    .WithMany()
+                    .HasForeignKey(c => c.NoteId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(c => c.User)
+                    .WithMany()
+                    .HasForeignKey(c => c.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(c => c.NoteId);
+                entity.HasIndex(c => c.UserId);
+                entity.HasIndex(c => c.CreatedAt);
             });
         }
     }
