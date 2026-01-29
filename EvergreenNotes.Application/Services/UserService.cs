@@ -58,6 +58,11 @@ namespace EvergreenNotes.Application.Services
             };
         }
 
+        public async Task<User?> GetUserByIdAsync(Guid userId)
+        {
+            return await _db.Users.FindAsync(userId);
+        }
+
         public async Task<User?> GetMeAsync(Guid userId)
         {
             return await _db.Users.FindAsync(userId);

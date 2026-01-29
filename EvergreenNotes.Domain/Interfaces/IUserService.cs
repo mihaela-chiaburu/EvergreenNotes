@@ -13,6 +13,7 @@ namespace EvergreenNotes.Domain.Interfaces
         Task<AuthResponse> RegisterAsync(RegisterRequest request);
         Task<AuthResponse> LoginAsync(LoginRequest request);
         Task<User?> GetMeAsync(Guid userId);
+        Task<User?> GetUserByIdAsync(Guid userId);
     }
 
 }
