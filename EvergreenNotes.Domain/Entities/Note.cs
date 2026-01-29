@@ -27,6 +27,7 @@ namespace EvergreenNotes.Domain.Entities
         public DateTime LastWateredAt { get; set; } = DateTime.UtcNow;
 
         public User User { get; set; } = null!;
+        public ICollection<NoteTag> NoteTags { get; set; } = new List<NoteTag>();
     }
 
     public enum NoteStatus

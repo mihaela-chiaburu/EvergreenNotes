@@ -17,6 +17,7 @@ namespace EvergreenNotes.Infrastructure.Data
 
         public DbSet<User> Users { get; set; }
         public DbSet<Note> Notes { get; set; }
+        public DbSet<Connection> Connections { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -51,6 +52,38 @@ namespace EvergreenNotes.Infrastructure.Data
                 entity.HasIndex(n => n.UserId);
                 entity.HasIndex(n => n.CreatedAt);
                 entity.HasIndex(n => n.LastWateredAt);
+            });
+
+            // Connection configuration
+            modelBuilder.Entity<Connection>(entity =>
+            {
+                entity.HasKey(c => c.Id);
+
+                // Relationship: SourceNote -> Connections
+                entity.HasOne(c => c.SourceNote)
+                    .WithMany()
+                    .HasForeignKey(c => c.SourceNoteId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Relationship: TargetNote -> Connections
+                entity.HasOne(c => c.TargetNote)
+                    .WithMany()
+                    .HasForeignKey(c => c.TargetNoteId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Relationship: User -> Connections
+                entity.HasOne(c => c.User)
+                    .WithMany()
+                    .HasForeignKey(c => c.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Prevent duplicate connections
+                entity.HasIndex(c => new { c.SourceNoteId, c.TargetNoteId }).IsUnique();
+
+                // Indexes for performance
+                entity.HasIndex(c => c.SourceNoteId);
+                entity.HasIndex(c => c.TargetNoteId);
+                entity.HasIndex(c => c.UserId);
             });
         }
     }
