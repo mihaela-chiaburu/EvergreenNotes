@@ -20,6 +20,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<INoteService, NoteService>();
 builder.Services.AddScoped<IConnectionService, ConnectionService>();
 builder.Services.AddScoped<ITagService, TagService>();
+builder.Services.AddScoped<IGardenService, GardenService>();
 
 
 builder.Services.AddControllers();

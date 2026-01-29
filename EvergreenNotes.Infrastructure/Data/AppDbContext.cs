@@ -1,11 +1,5 @@
 ﻿using EvergreenNotes.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EvergreenNotes.Infrastructure.Data
 {
@@ -20,6 +14,7 @@ namespace EvergreenNotes.Infrastructure.Data
         public DbSet<Connection> Connections { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<NoteTag> NoteTags { get; set; }
+        public DbSet<Garden> Gardens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -91,12 +86,11 @@ namespace EvergreenNotes.Infrastructure.Data
                     .HasForeignKey(t => t.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                // Prevent duplicate tag names per user
                 entity.HasIndex(t => new { t.UserId, t.Name }).IsUnique();
                 entity.HasIndex(t => t.UserId);
             });
 
-            // NoteTag configuration (many-to-many join table)
+            // NoteTag configuration
             modelBuilder.Entity<NoteTag>(entity =>
             {
                 entity.HasKey(nt => new { nt.NoteId, nt.TagId });
@@ -113,6 +107,22 @@ namespace EvergreenNotes.Infrastructure.Data
 
                 entity.HasIndex(nt => nt.NoteId);
                 entity.HasIndex(nt => nt.TagId);
+            });
+
+            // Garden configuration
+            modelBuilder.Entity<Garden>(entity =>
+            {
+                entity.HasKey(g => g.Id);
+                entity.Property(g => g.GardenTheme).HasMaxLength(50);
+                entity.Property(g => g.Bio).HasMaxLength(500);
+
+                entity.HasOne(g => g.User)
+                    .WithOne(u => u.Garden)
+                    .HasForeignKey<Garden>(g => g.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(g => g.UserId).IsUnique();
+                entity.HasIndex(g => g.Visibility);
             });
         }
     }
