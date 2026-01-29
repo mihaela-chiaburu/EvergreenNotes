@@ -18,6 +18,8 @@ namespace EvergreenNotes.Infrastructure.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Note> Notes { get; set; }
         public DbSet<Connection> Connections { get; set; }
+        public DbSet<Tag> Tags { get; set; }
+        public DbSet<NoteTag> NoteTags { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -42,13 +44,11 @@ namespace EvergreenNotes.Infrastructure.Data
                 entity.Property(n => n.SourceType).HasMaxLength(50);
                 entity.Property(n => n.SourceThumbnail).HasMaxLength(2000);
 
-                // User -> Notes (one-to-many)
                 entity.HasOne(n => n.User)
                     .WithMany()
                     .HasForeignKey(n => n.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                // Indexes 
                 entity.HasIndex(n => n.UserId);
                 entity.HasIndex(n => n.CreatedAt);
                 entity.HasIndex(n => n.LastWateredAt);
@@ -59,31 +59,60 @@ namespace EvergreenNotes.Infrastructure.Data
             {
                 entity.HasKey(c => c.Id);
 
-                // Relationship: SourceNote -> Connections
                 entity.HasOne(c => c.SourceNote)
                     .WithMany()
                     .HasForeignKey(c => c.SourceNoteId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Relationship: TargetNote -> Connections
                 entity.HasOne(c => c.TargetNote)
                     .WithMany()
                     .HasForeignKey(c => c.TargetNoteId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Relationship: User -> Connections
                 entity.HasOne(c => c.User)
                     .WithMany()
                     .HasForeignKey(c => c.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                // Prevent duplicate connections
                 entity.HasIndex(c => new { c.SourceNoteId, c.TargetNoteId }).IsUnique();
-
-                // Indexes for performance
                 entity.HasIndex(c => c.SourceNoteId);
                 entity.HasIndex(c => c.TargetNoteId);
                 entity.HasIndex(c => c.UserId);
+            });
+
+            // Tag configuration
+            modelBuilder.Entity<Tag>(entity =>
+            {
+                entity.HasKey(t => t.Id);
+                entity.Property(t => t.Name).IsRequired().HasMaxLength(100);
+
+                entity.HasOne(t => t.User)
+                    .WithMany()
+                    .HasForeignKey(t => t.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Prevent duplicate tag names per user
+                entity.HasIndex(t => new { t.UserId, t.Name }).IsUnique();
+                entity.HasIndex(t => t.UserId);
+            });
+
+            // NoteTag configuration (many-to-many join table)
+            modelBuilder.Entity<NoteTag>(entity =>
+            {
+                entity.HasKey(nt => new { nt.NoteId, nt.TagId });
+
+                entity.HasOne(nt => nt.Note)
+                    .WithMany(n => n.NoteTags)
+                    .HasForeignKey(nt => nt.NoteId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(nt => nt.Tag)
+                    .WithMany(t => t.NoteTags)
+                    .HasForeignKey(nt => nt.TagId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(nt => nt.NoteId);
+                entity.HasIndex(nt => nt.TagId);
             });
         }
     }
