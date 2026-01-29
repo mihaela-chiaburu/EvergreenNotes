@@ -8,25 +8,31 @@ namespace EvergreenNotes.Helpers
 {
     public static class JwtHelper
     {
-        private static string SecretKey = "YourSuperSecretKeyForJWTHere";
+        private static string SecretKey = "HKxELuA1ob0B/8Er09QIDaw1WqDs1KFsYtOlI38vejo0+RsukH2MckPZyL9ZXt/R";
 
         public static string GenerateToken(User user, int expireMinutes = 60)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(SecretKey);
+            var now = DateTime.UtcNow;
+
+            var key = Encoding.UTF8.GetBytes(SecretKey);
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Name, user.Username),
-                    new Claim(ClaimTypes.Email, user.Email)
+                    new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                    new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
+                    new Claim(JwtRegisteredClaimNames.Email, user.Email)
                 }),
-                Expires = DateTime.UtcNow.AddMinutes(expireMinutes),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                Expires = now.AddMinutes(expireMinutes),
+                IssuedAt = now,
+                NotBefore = now,
+                SigningCredentials = new SigningCredentials(
+                    new SymmetricSecurityKey(key),
+                    SecurityAlgorithms.HmacSha256Signature)
             };
 
+            var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
         }
