@@ -22,6 +22,7 @@ builder.Services.AddScoped<IConnectionService, ConnectionService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<IGardenService, GardenService>();
 builder.Services.AddScoped<ISocialService, SocialService>();
+builder.Services.AddScoped<IInterestService, InterestService>();
 
 
 builder.Services.AddControllers();
