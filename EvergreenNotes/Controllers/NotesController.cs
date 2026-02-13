@@ -19,7 +19,6 @@ namespace EvergreenNotes.Controllers
             _noteService = noteService;
         }
 
-        // POST /api/notes - Create a new note
         [HttpPost]
         public async Task<IActionResult> CreateNote([FromBody] CreateNoteRequest request)
         {
@@ -35,9 +34,8 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // GET /api/notes/{noteId} - Get note by ID
         [HttpGet("{noteId}")]
-        [AllowAnonymous] // Public notes can be viewed by anyone
+        [AllowAnonymous]
         public async Task<IActionResult> GetNoteById(Guid noteId)
         {
             try
@@ -56,7 +54,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // PUT /api/notes/{noteId} - Update note
         [HttpPut("{noteId}")]
         public async Task<IActionResult> UpdateNote(Guid noteId, [FromBody] UpdateNoteRequest request)
         {
@@ -72,7 +69,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // DELETE /api/notes/{noteId} - Delete note
         [HttpDelete("{noteId}")]
         public async Task<IActionResult> DeleteNote(Guid noteId)
         {
@@ -88,7 +84,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // GET /api/notes - Get user's notes (with filters)
         [HttpGet]
         public async Task<IActionResult> GetNotes(
             [FromQuery] int? status,
@@ -121,7 +116,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // POST /api/notes/{noteId}/water - Water a note
         [HttpPost("{noteId}/water")]
         public async Task<IActionResult> WaterNote(Guid noteId)
         {
@@ -137,7 +131,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // PUT /api/notes/{noteId}/status - Change note status (rough/polished)
         [HttpPut("{noteId}/status")]
         public async Task<IActionResult> UpdateNoteStatus(Guid noteId, [FromBody] UpdateStatusRequest request)
         {
@@ -153,7 +146,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // PUT /api/notes/{noteId}/visibility - Change note visibility (private/public)
         [HttpPut("{noteId}/visibility")]
         public async Task<IActionResult> UpdateNoteVisibility(Guid noteId, [FromBody] UpdateVisibilityRequest request)
         {
@@ -169,7 +161,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // Helper methods
         private Guid GetCurrentUserId()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

@@ -18,7 +18,6 @@ namespace EvergreenNotes.Controllers
             _tagService = tagService;
         }
 
-        // POST /api/tags - Create tag
         [HttpPost("tags")]
         public async Task<IActionResult> CreateTag([FromBody] CreateTagRequest request)
         {
@@ -34,7 +33,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // GET /api/tags - Get all tags
         [HttpGet("tags")]
         public async Task<IActionResult> GetAllTags()
         {
@@ -50,7 +48,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // POST /api/notes/{noteId}/tags - Add tag to note
         [HttpPost("notes/{noteId}/tags")]
         public async Task<IActionResult> AddTagToNote(Guid noteId, [FromBody] AddTagToNoteRequest request)
         {
@@ -66,7 +63,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // DELETE /api/notes/{noteId}/tags/{tagId} - Remove tag from note
         [HttpDelete("notes/{noteId}/tags/{tagId}")]
         public async Task<IActionResult> RemoveTagFromNote(Guid noteId, Guid tagId)
         {
@@ -82,7 +78,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // GET /api/tags/{tagId}/notes - Get notes by tag
         [HttpGet("tags/{tagId}/notes")]
         public async Task<IActionResult> GetNotesByTag(Guid tagId)
         {
@@ -98,7 +93,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // Helper method
         private Guid GetCurrentUserId()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

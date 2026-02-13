@@ -17,12 +17,10 @@ namespace EvergreenNotes.Application.Services
 
         public async Task<List<InterestResponse>> GetAllInterestsAsync()
         {
-            // Get all tags with their usage statistics
             var allTags = await _db.Tags
                 .Include(t => t.NoteTags)
                 .ToListAsync();
 
-            // Group tags by normalized name (case-insensitive)
             var groupedTags = allTags
                 .GroupBy(t => t.Name.ToLower())
                 .Select(g => new
@@ -36,17 +34,14 @@ namespace EvergreenNotes.Application.Services
 
             foreach (var group in groupedTags)
             {
-                // Count unique users who have this tag
                 var usersWithTag = group.Tags
                     .Select(t => t.UserId)
                     .Distinct()
                     .Count();
 
-                // Count total notes with this tag
                 var totalNotes = group.Tags
                     .Sum(t => t.NoteTags.Count);
 
-                // Only include interests that have at least 1 note
                 if (totalNotes > 0)
                 {
                     interests.Add(new InterestResponse
@@ -59,7 +54,6 @@ namespace EvergreenNotes.Application.Services
                 }
             }
 
-            // Sort by popularity (users count, then notes count)
             return interests
                 .OrderByDescending(i => i.UsersCount)
                 .ThenByDescending(i => i.NotesCount)
@@ -73,7 +67,6 @@ namespace EvergreenNotes.Application.Services
 
             var normalizedInterest = interest.ToLower().Trim();
 
-            // Find all tags that match this interest
             var matchingTags = await _db.Tags
                 .Where(t => t.Name == normalizedInterest)
                 .Include(t => t.NoteTags)
@@ -83,7 +76,6 @@ namespace EvergreenNotes.Application.Services
             if (!matchingTags.Any())
                 return new List<InterestGardenResponse>();
 
-            // Get unique user IDs who have this interest
             var userIdsWithInterest = matchingTags
                 .Select(t => t.UserId)
                 .Distinct()
@@ -93,24 +85,19 @@ namespace EvergreenNotes.Application.Services
 
             foreach (var userId in userIdsWithInterest)
             {
-                // Skip current user's own garden
                 if (currentUserId.HasValue && userId == currentUserId.Value)
                     continue;
 
-                // Get user's garden
                 var garden = await _db.Gardens
                     .Include(g => g.User)
                     .FirstOrDefaultAsync(g => g.UserId == userId);
 
-                // Only show public gardens
                 if (garden == null || garden.Visibility != GardenVisibility.Public)
                     continue;
 
-                // Get public notes count
                 var publicNotesCount = await _db.Notes
                     .CountAsync(n => n.UserId == userId && n.Visibility == NoteVisibility.Public);
 
-                // Get notes with this specific interest (public only)
                 var userTag = matchingTags.FirstOrDefault(t => t.UserId == userId);
                 var notesWithInterest = 0;
                 if (userTag != null)
@@ -119,7 +106,6 @@ namespace EvergreenNotes.Application.Services
                         .Count(nt => nt.Note.Visibility == NoteVisibility.Public);
                 }
 
-                // Get other interests (tags) this user has
                 var otherInterests = await _db.Tags
                     .Where(t => t.UserId == userId && t.Name != normalizedInterest)
                     .Include(t => t.NoteTags)
@@ -128,7 +114,6 @@ namespace EvergreenNotes.Application.Services
                     .Select(t => t.Name)
                     .ToListAsync();
 
-                // Get last activity
                 var lastNote = await _db.Notes
                     .Where(n => n.UserId == userId)
                     .OrderByDescending(n => n.LastWateredAt)
@@ -146,7 +131,6 @@ namespace EvergreenNotes.Application.Services
                 });
             }
 
-            // Sort by most notes with this interest, then by last active
             return gardens
                 .OrderByDescending(g => g.NotesWithInterest)
                 .ThenByDescending(g => g.LastActive)

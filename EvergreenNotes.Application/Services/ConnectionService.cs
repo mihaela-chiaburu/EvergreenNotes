@@ -19,7 +19,6 @@ namespace EvergreenNotes.Application.Services
 
         public async Task<ConnectionResponse> CreateConnectionAsync(Guid userId, Guid sourceNoteId, Guid targetNoteId)
         {
-            // Validate both notes exist and belong to the user
             var sourceNote = await _db.Notes.FindAsync(sourceNoteId);
             var targetNote = await _db.Notes.FindAsync(targetNoteId);
 
@@ -29,7 +28,6 @@ namespace EvergreenNotes.Application.Services
             if (targetNote == null || targetNote.UserId != userId)
                 throw new Exception("Target note not found or access denied");
 
-            // Check if connection already exists (in either direction)
             var existingConnection = await _db.Connections
                 .FirstOrDefaultAsync(c =>
                     (c.SourceNoteId == sourceNoteId && c.TargetNoteId == targetNoteId) ||
@@ -38,11 +36,9 @@ namespace EvergreenNotes.Application.Services
             if (existingConnection != null)
                 throw new Exception("Connection already exists between these notes");
 
-            // Prevent self-connection
             if (sourceNoteId == targetNoteId)
                 throw new Exception("Cannot connect a note to itself");
 
-            // Create the connection
             var connection = new Connection
             {
                 SourceNoteId = sourceNoteId,
@@ -53,7 +49,6 @@ namespace EvergreenNotes.Application.Services
 
             _db.Connections.Add(connection);
 
-            // Creating a connection is a "watering" action for both notes
             sourceNote.LastWateredAt = DateTime.UtcNow;
             targetNote.LastWateredAt = DateTime.UtcNow;
 
@@ -81,12 +76,10 @@ namespace EvergreenNotes.Application.Services
 
         public async Task<List<ConnectedNoteResponse>> GetConnectedNotesAsync(Guid userId, Guid noteId)
         {
-            // Verify the note belongs to the user
             var note = await _db.Notes.FindAsync(noteId);
             if (note == null || note.UserId != userId)
                 throw new Exception("Note not found or access denied");
 
-            // Get all connections where this note is either source or target
             var connections = await _db.Connections
                 .Where(c => c.SourceNoteId == noteId || c.TargetNoteId == noteId)
                 .Include(c => c.SourceNote)
@@ -97,12 +90,10 @@ namespace EvergreenNotes.Application.Services
 
             foreach (var connection in connections)
             {
-                // Get the "other" note (the one that's not the current noteId)
                 var connectedNote = connection.SourceNoteId == noteId
                     ? connection.TargetNote
                     : connection.SourceNote;
 
-                // Get full note details using the note service
                 var noteResponse = await _noteService.GetNoteByIdAsync(connectedNote.Id, userId);
 
                 if (noteResponse != null)

@@ -43,7 +43,6 @@ namespace EvergreenNotes.Application.Services
             var note = await _db.Notes.FindAsync(noteId);
             if (note == null) return null;
 
-            // Check permissions: private notes only visible to owner
             if (note.Visibility == NoteVisibility.Private && note.UserId != currentUserId)
                 return null;
 
@@ -60,7 +59,6 @@ namespace EvergreenNotes.Application.Services
             if (request.Title != null) note.Title = request.Title;
             if (request.Content != null) note.Content = request.Content;
 
-            // Updating is a watering action
             note.LastWateredAt = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
@@ -83,7 +81,6 @@ namespace EvergreenNotes.Application.Services
         {
             var query = _db.Notes.Where(n => n.UserId == userId);
 
-            // Filters
             if (request.Status.HasValue)
                 query = query.Where(n => n.Status == request.Status.Value);
 
@@ -98,14 +95,12 @@ namespace EvergreenNotes.Application.Services
                     n.Content.ToLower().Contains(search));
             }
 
-            // Pagination
             var notes = await query
                 .OrderByDescending(n => n.LastWateredAt)
                 .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToListAsync();
 
-            // Update plant states and filter if needed
             foreach (var note in notes)
             {
                 UpdatePlantState(note);
@@ -139,7 +134,7 @@ namespace EvergreenNotes.Application.Services
                 throw new Exception("Note not found or access denied");
 
             note.Status = status;
-            note.LastWateredAt = DateTime.UtcNow; // Status change is a watering action
+            note.LastWateredAt = DateTime.UtcNow; 
             await _db.SaveChangesAsync();
 
             UpdatePlantState(note);
@@ -159,7 +154,6 @@ namespace EvergreenNotes.Application.Services
             return MapToResponse(note);
         }
 
-        // Helper: Calculate plant state based on last watered date
         private void UpdatePlantState(Note note)
         {
             var daysSinceWatered = (DateTime.UtcNow - note.LastWateredAt).Days;
@@ -174,7 +168,6 @@ namespace EvergreenNotes.Application.Services
                 note.PlantState = PlantState.Dry;
         }
 
-        // Helper: Map Note entity to NoteResponse DTO
         private NoteResponse MapToResponse(Note note)
         {
             var daysSinceWatered = (DateTime.UtcNow - note.LastWateredAt).Days;

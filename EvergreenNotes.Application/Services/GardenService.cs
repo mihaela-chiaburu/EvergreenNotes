@@ -17,7 +17,6 @@ namespace EvergreenNotes.Application.Services
 
         public async Task<GardenResponse> GetMyGardenAsync(Guid userId)
         {
-            // Get or create garden
             var garden = await GetOrCreateGardenAsync(userId);
             var user = await _db.Users.FindAsync(userId);
 
@@ -28,7 +27,6 @@ namespace EvergreenNotes.Application.Services
         {
             var garden = await GetOrCreateGardenAsync(userId);
 
-            // Update fields
             if (request.Visibility.HasValue)
                 garden.Visibility = request.Visibility.Value;
 
@@ -56,14 +54,12 @@ namespace EvergreenNotes.Application.Services
 
             if (garden == null)
             {
-                // Create default garden if user exists
                 var user = await _db.Users.FindAsync(targetUserId);
                 if (user == null) return null;
 
                 garden = await CreateDefaultGardenAsync(targetUserId);
             }
 
-            // Check visibility permissions
             var isOwner = currentUserId == targetUserId;
             if (!isOwner && garden.Visibility == GardenVisibility.Private)
                 return null;
@@ -73,7 +69,6 @@ namespace EvergreenNotes.Application.Services
 
         public async Task<List<ExploreGardensResponse>> ExploreGardensAsync(Guid? currentUserId, string? interest = null)
         {
-            // Get all public gardens
             var publicGardens = await _db.Gardens
                 .Include(g => g.User)
                 .Where(g => g.Visibility == GardenVisibility.Public)
@@ -83,15 +78,12 @@ namespace EvergreenNotes.Application.Services
 
             foreach (var garden in publicGardens)
             {
-                // Skip own garden
                 if (currentUserId.HasValue && garden.UserId == currentUserId.Value)
                     continue;
 
-                // Get user's notes count
                 var totalNotes = await _db.Notes.CountAsync(n => n.UserId == garden.UserId);
                 var publicNotes = await _db.Notes.CountAsync(n => n.UserId == garden.UserId && n.Visibility == NoteVisibility.Public);
 
-                // Get user's interests (tags)
                 var tags = await _db.Tags
                     .Where(t => t.UserId == garden.UserId)
                     .Include(t => t.NoteTags)
@@ -100,7 +92,6 @@ namespace EvergreenNotes.Application.Services
                     .Select(t => t.Name)
                     .ToListAsync();
 
-                // Filter by interest if provided
                 if (!string.IsNullOrWhiteSpace(interest))
                 {
                     var normalizedInterest = interest.ToLower().Trim();
@@ -108,7 +99,6 @@ namespace EvergreenNotes.Application.Services
                         continue;
                 }
 
-                // Get last activity
                 var lastNote = await _db.Notes
                     .Where(n => n.UserId == garden.UserId)
                     .OrderByDescending(n => n.LastWateredAt)
@@ -126,11 +116,9 @@ namespace EvergreenNotes.Application.Services
                 });
             }
 
-            // Sort by last active
             return results.OrderByDescending(r => r.LastActive).ToList();
         }
 
-        // Helper: Get or create garden for user
         private async Task<Garden> GetOrCreateGardenAsync(Guid userId)
         {
             var garden = await _db.Gardens.FirstOrDefaultAsync(g => g.UserId == userId);
@@ -143,7 +131,6 @@ namespace EvergreenNotes.Application.Services
             return garden;
         }
 
-        // Helper: Create default garden
         private async Task<Garden> CreateDefaultGardenAsync(Guid userId)
         {
             var garden = new Garden
@@ -161,19 +148,16 @@ namespace EvergreenNotes.Application.Services
             return garden;
         }
 
-        // Helper: Build full garden response with statistics
         private async Task<GardenResponse> BuildGardenResponseAsync(Garden garden, User user, Guid? currentUserId, bool isOwner)
         {
             var userId = garden.UserId;
 
-            // Get notes (all for owner, only public for others)
             var notesQuery = _db.Notes.Where(n => n.UserId == userId);
             if (!isOwner)
                 notesQuery = notesQuery.Where(n => n.Visibility == NoteVisibility.Public);
 
             var notes = await notesQuery.ToListAsync();
 
-            // Calculate plant health distribution
             var freshCount = 0;
             var healthyCount = 0;
             var paleCount = 0;
@@ -188,14 +172,12 @@ namespace EvergreenNotes.Application.Services
                 else dryCount++;
             }
 
-            // Get recent notes
             var recentNotes = notes
                 .OrderByDescending(n => n.LastWateredAt)
                 .Take(6)
                 .Select(n => MapNoteToResponse(n))
                 .ToList();
 
-            // Get top tags
             var topTags = await _db.Tags
                 .Where(t => t.UserId == userId)
                 .Include(t => t.NoteTags)
@@ -210,7 +192,6 @@ namespace EvergreenNotes.Application.Services
                 })
                 .ToListAsync();
 
-            // Get connections count
             var connectionsCount = await _db.Connections.CountAsync(c => c.UserId == userId);
             var tagsCount = await _db.Tags.CountAsync(t => t.UserId == userId);
 
@@ -238,7 +219,6 @@ namespace EvergreenNotes.Application.Services
             };
         }
 
-        // Helper: Map Note to NoteResponse
         private NoteResponse MapNoteToResponse(Note note)
         {
             var daysSinceWatered = (DateTime.UtcNow - note.LastWateredAt).Days;

@@ -19,20 +19,17 @@ namespace EvergreenNotes.Application.Services
 
         public async Task<TagResponse> CreateTagAsync(Guid userId, string name)
         {
-            // Normalize tag name (lowercase, trim)
             var normalizedName = name.Trim().ToLower();
 
             if (string.IsNullOrWhiteSpace(normalizedName))
                 throw new Exception("Tag name cannot be empty");
 
-            // Check if tag already exists for this user
             var existingTag = await _db.Tags
                 .FirstOrDefaultAsync(t => t.UserId == userId && t.Name == normalizedName);
 
             if (existingTag != null)
                 return MapToResponse(existingTag);
 
-            // Create new tag
             var tag = new Tag
             {
                 Name = normalizedName,
@@ -59,24 +56,20 @@ namespace EvergreenNotes.Application.Services
 
         public async Task AddTagToNoteAsync(Guid userId, Guid noteId, Guid tagId)
         {
-            // Verify note belongs to user
             var note = await _db.Notes.FindAsync(noteId);
             if (note == null || note.UserId != userId)
                 throw new Exception("Note not found or access denied");
 
-            // Verify tag belongs to user
             var tag = await _db.Tags.FindAsync(tagId);
             if (tag == null || tag.UserId != userId)
                 throw new Exception("Tag not found or access denied");
 
-            // Check if tag is already added to note
             var existingNoteTag = await _db.NoteTags
                 .FirstOrDefaultAsync(nt => nt.NoteId == noteId && nt.TagId == tagId);
 
             if (existingNoteTag != null)
                 throw new Exception("Tag is already added to this note");
 
-            // Add tag to note
             var noteTag = new NoteTag
             {
                 NoteId = noteId,
@@ -86,7 +79,6 @@ namespace EvergreenNotes.Application.Services
 
             _db.NoteTags.Add(noteTag);
 
-            // Adding a tag is a "watering" action
             note.LastWateredAt = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
@@ -94,12 +86,10 @@ namespace EvergreenNotes.Application.Services
 
         public async Task RemoveTagFromNoteAsync(Guid userId, Guid noteId, Guid tagId)
         {
-            // Verify note belongs to user
             var note = await _db.Notes.FindAsync(noteId);
             if (note == null || note.UserId != userId)
                 throw new Exception("Note not found or access denied");
 
-            // Find and remove the NoteTag relationship
             var noteTag = await _db.NoteTags
                 .FirstOrDefaultAsync(nt => nt.NoteId == noteId && nt.TagId == tagId);
 
@@ -112,12 +102,10 @@ namespace EvergreenNotes.Application.Services
 
         public async Task<List<NoteResponse>> GetNotesByTagAsync(Guid userId, Guid tagId)
         {
-            // Verify tag belongs to user
             var tag = await _db.Tags.FindAsync(tagId);
             if (tag == null || tag.UserId != userId)
                 throw new Exception("Tag not found or access denied");
 
-            // Get all notes with this tag
             var noteIds = await _db.NoteTags
                 .Where(nt => nt.TagId == tagId)
                 .Select(nt => nt.NoteId)
@@ -134,7 +122,6 @@ namespace EvergreenNotes.Application.Services
             return notes.OrderByDescending(n => n.LastWateredAt).ToList();
         }
 
-        // Helper: Map Tag to TagResponse
         private TagResponse MapToResponse(Tag tag)
         {
             return new TagResponse

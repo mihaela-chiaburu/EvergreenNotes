@@ -18,7 +18,6 @@ namespace EvergreenNotes.Controllers
             _connectionService = connectionService;
         }
 
-        // POST /api/notes/{noteId}/connections - Link two notes
         [HttpPost("notes/{noteId}/connections")]
         public async Task<IActionResult> CreateConnection(Guid noteId, [FromBody] CreateConnectionRequest request)
         {
@@ -34,7 +33,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // DELETE /api/connections/{connectionId} - Remove link
         [HttpDelete("connections/{connectionId}")]
         public async Task<IActionResult> DeleteConnection(Guid connectionId)
         {
@@ -50,7 +48,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // GET /api/notes/{noteId}/connections - Get connected notes
         [HttpGet("notes/{noteId}/connections")]
         public async Task<IActionResult> GetConnectedNotes(Guid noteId)
         {
@@ -66,7 +63,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // Helper method
         private Guid GetCurrentUserId()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

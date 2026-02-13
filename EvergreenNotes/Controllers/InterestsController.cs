@@ -16,7 +16,6 @@ namespace EvergreenNotes.Controllers
             _interestService = interestService;
         }
 
-        // GET /api/interests - Get all interests (grouped tags)
         [HttpGet]
         public async Task<IActionResult> GetAllInterests()
         {
@@ -31,7 +30,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // GET /api/interests/{interest}/gardens - Get gardens with specific interest
         [HttpGet("{interest}/gardens")]
         public async Task<IActionResult> GetGardensByInterest(string interest)
         {
@@ -47,7 +45,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // Helper method
         private Guid? GetCurrentUserIdOrNull()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

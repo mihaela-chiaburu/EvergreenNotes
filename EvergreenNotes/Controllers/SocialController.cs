@@ -18,9 +18,6 @@ namespace EvergreenNotes.Controllers
             _socialService = socialService;
         }
 
-        // ========== FOLLOW ENDPOINTS ==========
-
-        // POST /api/users/{userId}/follow - Follow user
         [HttpPost("users/{userId}/follow")]
         public async Task<IActionResult> FollowUser(Guid userId)
         {
@@ -36,7 +33,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // DELETE /api/users/{userId}/follow - Unfollow user
         [HttpDelete("users/{userId}/follow")]
         public async Task<IActionResult> UnfollowUser(Guid userId)
         {
@@ -52,7 +48,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // GET /api/users/me/following - Get followed users
         [HttpGet("users/me/following")]
         public async Task<IActionResult> GetFollowing()
         {
@@ -68,9 +63,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // ========== COMMENT ENDPOINTS ==========
-
-        // POST /api/notes/{noteId}/comments - Add comment
         [HttpPost("notes/{noteId}/comments")]
         public async Task<IActionResult> AddComment(Guid noteId, [FromBody] CreateCommentRequest request)
         {
@@ -86,7 +78,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // GET /api/notes/{noteId}/comments - Get comments
         [AllowAnonymous]
         [HttpGet("notes/{noteId}/comments")]
         public async Task<IActionResult> GetComments(Guid noteId)
@@ -103,7 +94,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // Helper methods
         private Guid GetCurrentUserId()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

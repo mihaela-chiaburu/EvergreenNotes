@@ -17,7 +17,6 @@ namespace EvergreenNotes.Controllers
             _gardenService = gardenService;
         }
 
-        // GET /api/gardens/me - Get my garden
         [Authorize]
         [HttpGet("me")]
         public async Task<IActionResult> GetMyGarden()
@@ -34,7 +33,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // PUT /api/gardens/me - Update garden settings
         [Authorize]
         [HttpPut("me")]
         public async Task<IActionResult> UpdateMyGarden([FromBody] UpdateGardenRequest request)
@@ -51,7 +49,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // GET /api/gardens/{userId} - Get public garden
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetPublicGarden(Guid userId)
         {
@@ -71,7 +68,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // GET /api/gardens/explore - Explore public gardens
         [HttpGet("explore")]
         public async Task<IActionResult> ExploreGardens([FromQuery] string? interest = null)
         {
@@ -87,7 +83,6 @@ namespace EvergreenNotes.Controllers
             }
         }
 
-        // Helper methods
         private Guid GetCurrentUserId()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

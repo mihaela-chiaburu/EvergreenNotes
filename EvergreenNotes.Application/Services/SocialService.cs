@@ -15,27 +15,22 @@ namespace EvergreenNotes.Application.Services
             _db = db;
         }
 
-        // ========== FOLLOW FEATURES ==========
 
         public async Task FollowUserAsync(Guid followerId, Guid followingId)
         {
-            // Prevent self-follow
             if (followerId == followingId)
                 throw new Exception("Cannot follow yourself");
 
-            // Check if user to follow exists
             var userToFollow = await _db.Users.FindAsync(followingId);
             if (userToFollow == null)
                 throw new Exception("User not found");
 
-            // Check if already following
             var existingFollow = await _db.Follows
                 .FirstOrDefaultAsync(f => f.FollowerId == followerId && f.FollowingId == followingId);
 
             if (existingFollow != null)
                 throw new Exception("Already following this user");
 
-            // Create follow relationship
             var follow = new Follow
             {
                 FollowerId = followerId,
@@ -71,10 +66,8 @@ namespace EvergreenNotes.Application.Services
 
             foreach (var follow in follows)
             {
-                // Get garden bio
                 var garden = await _db.Gardens.FirstOrDefaultAsync(g => g.UserId == follow.FollowingId);
 
-                // Get public notes count
                 var publicNotesCount = await _db.Notes
                     .CountAsync(n => n.UserId == follow.FollowingId && n.Visibility == NoteVisibility.Public);
 
@@ -91,14 +84,12 @@ namespace EvergreenNotes.Application.Services
             return results;
         }
 
-        // ========== COMMENT FEATURES ==========
 
         public async Task<CommentResponse> AddCommentAsync(Guid userId, Guid noteId, string content)
         {
             if (string.IsNullOrWhiteSpace(content))
                 throw new Exception("Comment content cannot be empty");
 
-            // Verify note exists and is public
             var note = await _db.Notes.FindAsync(noteId);
             if (note == null)
                 throw new Exception("Note not found");
@@ -106,7 +97,6 @@ namespace EvergreenNotes.Application.Services
             if (note.Visibility != NoteVisibility.Public)
                 throw new Exception("Can only comment on public notes");
 
-            // Create comment
             var comment = new Comment
             {
                 NoteId = noteId,
@@ -118,7 +108,6 @@ namespace EvergreenNotes.Application.Services
             _db.Comments.Add(comment);
             await _db.SaveChangesAsync();
 
-            // Get user info for response
             var user = await _db.Users.FindAsync(userId);
 
             return new CommentResponse
@@ -135,12 +124,10 @@ namespace EvergreenNotes.Application.Services
 
         public async Task<List<CommentResponse>> GetCommentsAsync(Guid noteId, Guid? currentUserId)
         {
-            // Verify note exists and check visibility
             var note = await _db.Notes.FindAsync(noteId);
             if (note == null)
                 throw new Exception("Note not found");
 
-            // Only allow viewing comments on public notes or own notes
             if (note.Visibility != NoteVisibility.Public && note.UserId != currentUserId)
                 throw new Exception("Cannot view comments on private notes");
 
