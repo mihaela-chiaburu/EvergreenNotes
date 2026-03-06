@@ -7,173 +7,176 @@
 </head>
 <body>
     <nav class="navbar">
-        <div class="navbar__element">
+        <div class="navbar__item navbar__item--brand">
             <a class="navbar__link" href="#">
-                <img class="navbar__logo" src="/images/logo.png" alt="evergreen-logo">
-                <p class="navbar__appname">EvergreenNotes</p>
+                <img class="navbar__brand-logo" src="/images/logo.png" alt="evergreen logo">
+                <p class="navbar__brand-name">EvergreenNotes</p>
             </a>
         </div>
-        <div class="navbar__element">
+        <div class="navbar__item navbar__item--explore">
             <a class="navbar__link" href="#">
-                <img src="/images/application (1).png" alt="explore icon">
-                <p>Explore</p>
+                <img class="navbar__icon" src="/images/application (1).png" alt="explore icon">
+                <p class="navbar__label">Explore</p>
             </a>
         </div>
-        <div class="navbar__element">
+        <div class="navbar__item navbar__item--new-seed">
             <a class="navbar__link" href="#">
-                <img src="/images/sprout.png" alt="sprout icon">
-                <p>New Seed</p>
+                <img class="navbar__icon" src="/images/sprout.png" alt="sprout icon">
+                <p class="navbar__label">New Seed</p>
             </a>
         </div>
-        <div class="navbar__element">
+        <div class="navbar__item navbar__item--login">
             <a class="navbar__link" href="#">
-                <p>Log In</p>
+                <p class="navbar__label">Log In</p>
             </a>
         </div>
     </nav>
-    <main>
-        <div>
-            <p>EvergreenNotes</p>
-            <p>Grow ideas that never fade</p>
-            <p>Build your digital garden with evolving notes</p>
-        </div>
 
-        <div>
-            <div>
-                <a href="#">
-                    <img src="/images/sprout.png" alt="sprout icon">
-                    <p>Start Your Garden</p>
+    <main class="landing-page">
+        <section class="hero">
+            <div class="hero__content">
+                <p class="hero__brand">EvergreenNotes</p>
+                <p class="hero__title">Grow ideas that never fade</p>
+                <p class="hero__subtitle">Build your digital garden with evolving notes</p>
+            </div>
+        </section>
+
+        <section class="hero-actions">
+            <div class="hero-actions__item hero-actions__item--primary">
+                <a class="hero-actions__link" href="#">
+                    <img class="hero-actions__icon" src="/images/sprout.png" alt="sprout icon">
+                    <p class="hero-actions__label">Start Your Garden</p>
                 </a>
             </div>
-            <div>
-                <a href="#">
-                    <img src="/images/application (1).png" alt="explore icon">
-                    <p>Explore gardens</p>
+            <div class="hero-actions__item hero-actions__item--secondary">
+                <a class="hero-actions__link" href="#">
+                    <img class="hero-actions__icon" src="/images/application (1).png" alt="explore icon">
+                    <p class="hero-actions__label">Explore gardens</p>
                 </a>
             </div>
-        </div>
+        </section>
 
-        <div>
-            <p>How it works</p>
-            <div>
-                <div>
-                    <img src="/images/leaf-from-figma.png" alt="leaf icon">
-                    <p>Plant a seed</p>
-                    <p>Start with a simple note, a seed of an idea.</p>
-                </div>
-                <div>
-                    <img src="/images/leaf-from-figma.png" alt="sprout icon">
-                    <p>Watch it grow</p>
-                    <p>As you add more notes, your garden flourishes.</p>
-                </div>
-                <div>
-                    <img src="/images/leaf-from-figma.png" alt="tree icon">
-                    <p>Harvest insights</p>
-                    <p>Discover connections and insights as your garden evolves.</p>
-                </div>
+        <section class="how-it-works">
+            <p class="how-it-works__title">How it works</p>
+            <div class="how-it-works__steps">
+                <article class="how-it-works__step how-it-works__step--seed">
+                    <img class="how-it-works__icon" src="/images/leaf-from-figma.png" alt="leaf icon">
+                    <p class="how-it-works__step-title">Plant a seed</p>
+                    <p class="how-it-works__step-description">Start with a simple note, a seed of an idea.</p>
+                </article>
+                <article class="how-it-works__step how-it-works__step--growth">
+                    <img class="how-it-works__icon" src="/images/leaf-from-figma.png" alt="sprout icon">
+                    <p class="how-it-works__step-title">Watch it grow</p>
+                    <p class="how-it-works__step-description">As you add more notes, your garden flourishes.</p>
+                </article>
+                <article class="how-it-works__step how-it-works__step--insights">
+                    <img class="how-it-works__icon" src="/images/leaf-from-figma.png" alt="tree icon">
+                    <p class="how-it-works__step-title">Harvest insights</p>
+                    <p class="how-it-works__step-description">Discover connections and insights as your garden evolves.</p>
+                </article>
             </div>
-        </div>
+        </section>
 
-        <div>
-            <div>
-                <p>See your thoughts grow</p>
-                <p>Visualize connections</p>
-                <p>Track evolution</p>
-                <p>Focus on what matters</p>
+        <section class="growth-preview">
+            <div class="growth-preview__content">
+                <p class="growth-preview__title">See your thoughts grow</p>
+                <p class="growth-preview__point">Visualize connections</p>
+                <p class="growth-preview__point">Track evolution</p>
+                <p class="growth-preview__point">Focus on what matters</p>
             </div>
-            <div>
-                <img src="/images/grafu.png" alt="graph image">
+            <div class="growth-preview__image-wrapper">
+                <img class="growth-preview__image" src="/images/grafu.png" alt="graph image">
             </div>
-        </div>
-        
-        <div>
-            <p>Popular Topics</p>
-            <div>
-                <div>
-                    <img src="/images/popular1.png" alt="popular topics">
-                    <p>Nature</p>
-                </div>
-                <div>
-                    <img src="/images/popular2.png" alt="popular topics">
-                    <p>Philosophy</p>
-                </div>
-                <div>
-                    <img src="/images/popular3.png" alt="popular topics">
-                    <p>Art</p>
-                </div>
-            </div>
-        </div>
+        </section>
 
-        <div>
-            <p>Why EvergreenNotes?</p>
-            <div>
-                <div>
-                    <p>EvergreenNotes</p>
-                    <img src="/images/green-leaf.png" alt="green leaf">
-                    <ul>
-                        <li>Networked knowledge</li>
-                        <li>Organic growth</li>
-                        <li>Visible idea evolution</li>
-                        <li>Meaningful connections</li>
+        <section class="popular-topics">
+            <p class="popular-topics__title">Popular Topics</p>
+            <div class="popular-topics__list">
+                <article class="popular-topics__item popular-topics__item--nature">
+                    <img class="popular-topics__image" src="/images/popular1.png" alt="nature topic">
+                    <p class="popular-topics__name">Nature</p>
+                </article>
+                <article class="popular-topics__item popular-topics__item--philosophy">
+                    <img class="popular-topics__image" src="/images/popular2.png" alt="philosophy topic">
+                    <p class="popular-topics__name">Philosophy</p>
+                </article>
+                <article class="popular-topics__item popular-topics__item--art">
+                    <img class="popular-topics__image" src="/images/popular3.png" alt="art topic">
+                    <p class="popular-topics__name">Art</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="comparison">
+            <p class="comparison__title">Why EvergreenNotes?</p>
+            <div class="comparison__columns">
+                <article class="comparison__column comparison__column--evergreen">
+                    <p class="comparison__column-title">EvergreenNotes</p>
+                    <img class="comparison__column-icon" src="/images/green-leaf.png" alt="green leaf">
+                    <ul class="comparison__list">
+                        <li class="comparison__list-item">Networked knowledge</li>
+                        <li class="comparison__list-item">Organic growth</li>
+                        <li class="comparison__list-item">Visible idea evolution</li>
+                        <li class="comparison__list-item">Meaningful connections</li>
                     </ul>
-                </div>
-                <div>
-                    <p>Traditional Note Apps</p>
-                    <img src="/images/dry-leaf.png" alt="dry leaf">
-                    <ul>
-                        <li>Static folders</li>
-                        <li>Linear thinking</li>
-                        <li>Forgotten drafts</li>
-                        <li>Information overload</li>
+                </article>
+                <article class="comparison__column comparison__column--traditional">
+                    <p class="comparison__column-title">Traditional Note Apps</p>
+                    <img class="comparison__column-icon" src="/images/dry-leaf.png" alt="dry leaf">
+                    <ul class="comparison__list">
+                        <li class="comparison__list-item">Static folders</li>
+                        <li class="comparison__list-item">Linear thinking</li>
+                        <li class="comparison__list-item">Forgotten drafts</li>
+                        <li class="comparison__list-item">Information overload</li>
                     </ul>
-                </div>
+                </article>
             </div>
-        </div>
+        </section>
 
-        <div>
-            <p>Features</p>
-            <div>
-                <div>
-                    <img src="/images/price-tag-white.png" alt="tag icon">
-                    <p>Smart tagging</p>
-                </div>
-                <div>
-                    <img src="/images/data-analytics-white.png" alt="graph icon">
-                    <p>Knowledge Graph</p>
-                </div>
-                <div>
-                    <img src="/images/repeat-white.png" alt="repeat icon">
-                    <p>Spaced repetition</p>
-                </div>
-                <div>
-                    <img src="/images/reading-book-white.png" alt="reading book icon">
-                    <p>Learning in public</p>
-                </div>
-                <div>
-                    <img src="/images/sprout-white.png" alt="sprout icon">
-                    <p>Discover gardens</p>
-                </div>
-                <div>
-                    <img src="/images/extension-white.png" alt="extension icon">
-                    <p>Web Extension</p>
-                </div>
+        <section class="features">
+            <p class="features__title">Features</p>
+            <div class="features__grid">
+                <article class="features__item features__item--tagging">
+                    <img class="features__icon" src="/images/price-tag-white.png" alt="tag icon">
+                    <p class="features__label">Smart tagging</p>
+                </article>
+                <article class="features__item features__item--graph">
+                    <img class="features__icon" src="/images/data-analytics-white.png" alt="graph icon">
+                    <p class="features__label">Knowledge Graph</p>
+                </article>
+                <article class="features__item features__item--repetition">
+                    <img class="features__icon" src="/images/repeat-white.png" alt="repeat icon">
+                    <p class="features__label">Spaced repetition</p>
+                </article>
+                <article class="features__item features__item--learning">
+                    <img class="features__icon" src="/images/reading-book-white.png" alt="reading book icon">
+                    <p class="features__label">Learning in public</p>
+                </article>
+                <article class="features__item features__item--discovery">
+                    <img class="features__icon" src="/images/sprout-white.png" alt="sprout icon">
+                    <p class="features__label">Discover gardens</p>
+                </article>
+                <article class="features__item features__item--extension">
+                    <img class="features__icon" src="/images/extension-white.png" alt="extension icon">
+                    <p class="features__label">Web Extension</p>
+                </article>
             </div>
-        </div>
+        </section>
 
-        <div>
-            <p>Built for those who want to reduce content consumption and improve memorization.</p>
-            <p>Your ideas deserve to grow</p>
-            <div>
-                <a href="#">
-                    <img src="/images/sprout.png" alt="sprout icon">
-                    <p>Plant your seed</p>
+        <section class="cta">
+            <p class="cta__description">Built for those who want to reduce content consumption and improve memorization.</p>
+            <p class="cta__title">Your ideas deserve to grow</p>
+            <div class="cta__action">
+                <a class="cta__link" href="#">
+                    <img class="cta__icon" src="/images/sprout.png" alt="sprout icon">
+                    <p class="cta__label">Plant your seed</p>
                 </a>
             </div>
-        </div>
+        </section>
     </main>
 
-    <footer>
-        <p>&copy; 2026 EvergreenNotes. All rights reserved.</p>
+    <footer class="site-footer">
+        <p class="site-footer__text">&copy; 2026 EvergreenNotes. All rights reserved.</p>
     </footer>
 
 </body>
