@@ -4,32 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Landing page</title>
+    <link rel="stylesheet" href="/styles/index.css">
 </head>
 <body>
+    <div class="space-sky" aria-hidden="true">
+        <div class="space-sky__stars"></div>
+
+        <div class="space-sky__halo space-sky__halo--1"></div>
+        <div class="space-sky__beam space-sky__beam--1"></div>
+
+        <div class="space-sky__halo space-sky__halo--2"></div>
+        <div class="space-sky__beam space-sky__beam--2"></div>
+
+        <div class="space-sky__halo space-sky__halo--3"></div>
+        <div class="space-sky__beam space-sky__beam--3"></div>
+    </div>
+
+    <div class="side-decor" aria-hidden="true">
+        <img class="side-decor__item side-decor__item--left side-decor__item--1" src="/images/decor1.png" alt="">
+        <img class="side-decor__item side-decor__item--left side-decor__item--2" src="/images/decor2.png" alt="">
+        <img class="side-decor__item side-decor__item--left side-decor__item--3" src="/images/decor3.png" alt="">
+        <img class="side-decor__item side-decor__item--left side-decor__item--4" src="/images/decor4.png" alt="">
+        <img class="side-decor__item side-decor__item--right side-decor__item--5" src="/images/decor5.png" alt="">
+        <img class="side-decor__item side-decor__item--right side-decor__item--6" src="/images/decor6.png" alt="">
+        <img class="side-decor__item side-decor__item--right side-decor__item--7" src="/images/decor7.png" alt="">
+        <img class="side-decor__item side-decor__item--right side-decor__item--8" src="/images/decor8.png" alt="">
+    </div>
+
     <nav class="navbar">
-        <div class="navbar__item navbar__item--brand">
-            <a class="navbar__link" href="#">
-                <img class="navbar__brand-logo" src="/images/logo.png" alt="evergreen logo">
-                <p class="navbar__brand-name">EvergreenNotes</p>
-            </a>
-        </div>
-        <div class="navbar__item navbar__item--explore">
-            <a class="navbar__link" href="#">
-                <img class="navbar__icon" src="/images/application (1).png" alt="explore icon">
-                <p class="navbar__label">Explore</p>
-            </a>
-        </div>
-        <div class="navbar__item navbar__item--new-seed">
-            <a class="navbar__link" href="#">
-                <img class="navbar__icon" src="/images/sprout.png" alt="sprout icon">
-                <p class="navbar__label">New Seed</p>
-            </a>
-        </div>
-        <div class="navbar__item navbar__item--login">
-            <a class="navbar__link" href="#">
-                <p class="navbar__label">Log In</p>
-            </a>
-        </div>
+        <a class="navbar__item navbar__item--brand" href="#">
+            <img class="navbar__brand-logo" src="/images/logo.png" alt="evergreen logo">
+            <p class="navbar__brand-name">EvergreenNotes</p>
+        </a>
+        <a class="navbar__item navbar__item--explore" href="#">
+            <img class="navbar__icon" src="/images/application (1).png" alt="explore icon">
+            <p class="navbar__label">Explore</p>
+        </a>
+        <a class="navbar__item navbar__item--new-seed" href="#">
+            <img class="navbar__icon" src="/images/sprout.png" alt="sprout icon">
+            <p class="navbar__label">New Seed</p>
+        </a>
+        <a class="navbar__item navbar__item--login" href="#">
+            <p class="navbar__label">Log In</p>
+        </a>
     </nav>
 
     <main class="landing-page">
@@ -39,17 +56,12 @@
                 <p class="hero__title">Grow ideas that never fade</p>
                 <p class="hero__subtitle">Build your digital garden with evolving notes</p>
             </div>
-        </section>
-
-        <section class="hero-actions">
-            <div class="hero-actions__item hero-actions__item--primary">
-                <a class="hero-actions__link" href="#">
+            <div class="hero-actions">
+                <a class="hero-actions__item hero-actions__item--primary" href="#">
                     <img class="hero-actions__icon" src="/images/sprout.png" alt="sprout icon">
                     <p class="hero-actions__label">Start Your Garden</p>
                 </a>
-            </div>
-            <div class="hero-actions__item hero-actions__item--secondary">
-                <a class="hero-actions__link" href="#">
+                <a class="hero-actions__item hero-actions__item--secondary" href="#">
                     <img class="hero-actions__icon" src="/images/application (1).png" alt="explore icon">
                     <p class="hero-actions__label">Explore gardens</p>
                 </a>
@@ -107,7 +119,7 @@
             </div>
         </section>
 
-        <section class="comparison">
+        <!-- <section class="comparison">
             <p class="comparison__title">Why EvergreenNotes?</p>
             <div class="comparison__columns">
                 <article class="comparison__column comparison__column--evergreen">
@@ -123,7 +135,7 @@
                 <article class="comparison__column comparison__column--traditional">
                     <p class="comparison__column-title">Traditional Note Apps</p>
                     <img class="comparison__column-icon" src="/images/dry-leaf.png" alt="dry leaf">
-                    <ul class="comparison__list">
+                    <ul class="comparison__list comparison__list--negative">
                         <li class="comparison__list-item">Static folders</li>
                         <li class="comparison__list-item">Linear thinking</li>
                         <li class="comparison__list-item">Forgotten drafts</li>
@@ -131,7 +143,7 @@
                     </ul>
                 </article>
             </div>
-        </section>
+        </section> -->
 
         <section class="features">
             <p class="features__title">Features</p>
@@ -166,12 +178,10 @@
         <section class="cta">
             <p class="cta__description">Built for those who want to reduce content consumption and improve memorization.</p>
             <p class="cta__title">Your ideas deserve to grow</p>
-            <div class="cta__action">
-                <a class="cta__link" href="#">
-                    <img class="cta__icon" src="/images/sprout.png" alt="sprout icon">
-                    <p class="cta__label">Plant your seed</p>
-                </a>
-            </div>
+            <a class="cta__action" href="#">
+                <img class="cta__icon" src="/images/sprout.png" alt="sprout icon">
+                <p class="cta__label">Plant your seed</p>
+            </a>
         </section>
     </main>
 
