@@ -1,20 +1,18 @@
-*{
+/*{
     border: red 1px solid;
-}
+}*/
 
 .garden-page {
   position: relative;
   height: 90vh;
 }
 
-/* Bio sus stanga */
 .user-bio {
   position: absolute;
   top: 20px;
   left: 20px;
 }
 
-/* Graph / List centru */
 .garden-view {
   display: flex;
   justify-content: center;
@@ -22,14 +20,12 @@
   height: 80%;
 }
 
-/* Settings panel dreapta */
 .graph-settings {
   position: absolute;
   right: 20px;
   top: 100px;
 }
 
-/* Input jos centru */
 .add-note-input {
   position: absolute;
   bottom: 8%;
