@@ -1,0 +1,210 @@
+.floating-control-panel {
+    width: min(340px, calc(100vw - 40px));
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px;
+    border: 1px solid rgba(87, 103, 96, 0.34);
+    background: rgba(252, 253, 251, 0.98);
+    box-shadow: 0 14px 30px rgba(38, 51, 45, 0.16);
+    overflow: hidden;
+    color: #1f2f2a;
+}
+
+.floating-control-panel__section + .floating-control-panel__section {
+    border-top: 1px solid rgba(118, 135, 127, 0.3);
+}
+
+.floating-control-panel__header {
+    width: 100%;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    cursor: pointer;
+    font-family: "Poppins", "Segoe UI", sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: #243730;
+}
+
+.floating-control-panel__header:hover {
+    background: rgba(218, 229, 222, 0.2);
+}
+
+.floating-control-panel__arrow {
+    width: 12px;
+    height: 12px;
+    transition: transform 0.2s ease;
+}
+
+.floating-control-panel__arrow--open {
+    transform: rotate(180deg);
+}
+
+.floating-control-panel__content {
+    padding: 0 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.floating-control-panel__option-group {
+    display: flex;
+    gap: 10px;
+}
+
+.floating-control-panel__option {
+    border: 1px solid #b4c6bc;
+    background: #f5f8f6;
+    border-radius: 999px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-family: "Poppins", "Segoe UI", sans-serif;
+    font-size: 14px;
+    color: #294136;
+    transition: all 0.2s ease;
+}
+
+.floating-control-panel__option--active {
+    background: #294136;
+    border-color: #294136;
+    color: #ffffff;
+}
+
+.floating-control-panel__filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.floating-control-panel__group-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #395248;
+}
+
+.floating-control-panel__check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #2d433a;
+}
+
+.floating-control-panel__check-item input {
+    accent-color: #2e5a48;
+}
+
+.floating-control-panel__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.floating-control-panel__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #bfd0c7;
+    border-radius: 999px;
+    padding: 4px 10px;
+    background: #edf3ef;
+    font-size: 13px;
+    color: #254036;
+}
+
+.floating-control-panel__tag-remove {
+    border: none;
+    background: transparent;
+    color: #4c665c;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    padding: 0;
+}
+
+.floating-control-panel__tag-input {
+    border: 1px solid #b8c9c0;
+    border-radius: 10px;
+    padding: 9px 11px;
+    font-size: 13px;
+    font-family: "Poppins", "Segoe UI", sans-serif;
+    outline: none;
+    color: #253c34;
+}
+
+.floating-control-panel__tag-input:focus {
+    border-color: #3e6755;
+    box-shadow: 0 0 0 3px rgba(79, 132, 107, 0.16);
+}
+
+.floating-control-panel__slider-control {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.floating-control-panel__slider-title {
+    font-size: 14px;
+    color: #2a453b;
+}
+
+.floating-control-panel__slider {
+    width: 100%;
+    accent-color: #2f5a49;
+}
+
+.floating-control-panel__switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+    color: #2a4339;
+}
+
+.floating-control-panel__switch {
+    position: relative;
+    display: inline-flex;
+    width: 48px;
+    height: 28px;
+}
+
+.floating-control-panel__switch input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.floating-control-panel__switch-track {
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    background: #bdcac4;
+    transition: background 0.2s ease;
+}
+
+.floating-control-panel__switch-track::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgba(36, 52, 46, 0.22);
+    transition: transform 0.2s ease;
+}
+
+.floating-control-panel__switch input:checked + .floating-control-panel__switch-track {
+    background: #2f5a49;
+}
+
+.floating-control-panel__switch input:checked + .floating-control-panel__switch-track::after {
+    transform: translateX(20px);
+}

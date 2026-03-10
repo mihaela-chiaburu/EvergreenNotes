@@ -1,8 +1,9 @@
-// src/components/garden/UserBio.jsx
+import "/src/styles/bio.css"
+
 function UserBio() {
   return (
     <div className="user-bio">
-      <p>"Citatul sau bio-ul userului aici"</p>
+      <p>Abandon all hope, ye who enter here</p>
     </div>
   )
 }
