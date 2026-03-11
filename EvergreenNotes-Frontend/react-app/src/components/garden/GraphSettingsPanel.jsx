@@ -126,7 +126,7 @@ function GraphSettingsPanel({ setView }) {
 
         {isFilterOpen && (
           <div className="floating-control-panel__content">
-            <div className="floating-control-panel__filter-group">
+            <div className="floating-control-panel__filter-group floating-control-panel__filter-group--visibility">
               <p className="floating-control-panel__group-title">By visibility</p>
               <label className="floating-control-panel__check-item">
                 <input

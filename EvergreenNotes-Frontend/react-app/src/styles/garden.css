@@ -1,6 +1,6 @@
-/**{
+*{
     border: red 1px solid;
-}*/
+}
 
 .garden-page {
   position: relative;
@@ -17,13 +17,13 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 80%;
+  height: 100%;
 }
 
 .graph-settings {
   position: absolute;
   right: 20px;
-  top: 100px;
+  top: 20px;
 }
 
 .add-note-input {
