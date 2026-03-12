@@ -23,7 +23,7 @@ function GardenGraphView() {
         fit: true,
         padding: 40
       },
-      wheelSensitivity: 0.2,
+      wheelSensitivity: 0.8,
       minZoom: 0.4,
       maxZoom: 2.2,
       style: [
@@ -38,22 +38,23 @@ function GardenGraphView() {
             "background-height": "100%",
             label: "data(label)",
             color: "#ffffff",
-            "font-size": 13,
+            "font-size": 15,
             "font-family": "Poppins, Segoe UI, sans-serif",
             "text-wrap": "wrap",
             "text-max-width": 110,
             "text-valign": "bottom",
             "text-halign": "center",
             "text-margin-y": 18,
-            width: 68,
-            height: 68
+            "line-height": 1.2,
+            width: 58,
+            height: 58
           }
         },
         {
           selector: "edge",
           style: {
             width: 2,
-            "line-color": "#ffffff",
+            "line-color": "#93a790",
             "target-arrow-shape": "none",
             "curve-style": "bezier"
           }
