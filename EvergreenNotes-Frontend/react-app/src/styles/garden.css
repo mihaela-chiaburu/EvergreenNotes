@@ -1,6 +1,6 @@
-*{
+/*{
     border: red 1px solid;
-}
+}*/
 
 .garden-page {
   position: relative;
@@ -28,7 +28,7 @@
 
 .add-note-input {
   position: absolute;
-  bottom: 8%;
+  bottom: 5%;
   left: 50%;
   transform: translateX(-50%);
 }

@@ -23,7 +23,7 @@ function GardenGraphView() {
         fit: true,
         padding: 40
       },
-      wheelSensitivity: 0.8,
+      wheelSensitivity: 0.6,
       minZoom: 0.4,
       maxZoom: 2.2,
       style: [
