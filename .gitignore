@@ -364,7 +364,5 @@ FodyWeavers.xsd
 
 # Ignore environment variable files containing secrets
 .env
-
-# Keep the example env file tracked
-!.env.example
+.env.example
 
