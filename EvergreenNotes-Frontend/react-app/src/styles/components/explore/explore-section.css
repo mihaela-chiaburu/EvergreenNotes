@@ -1,0 +1,12 @@
+.explore-section__header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 90%;
+    margin-bottom: 20px;
+}
+
+.explore-section__tabs{
+    display: flex;
+    gap: 20px;
+}
