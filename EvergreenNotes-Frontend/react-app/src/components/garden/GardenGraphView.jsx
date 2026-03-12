@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react"
 import cytoscape from "cytoscape"
 import { mockGardenGraph } from "../../data/mockGardenGraph"
 import leafSvg from "../../assets/images/leaf.svg"
-import "../../styles/graph-view.css"
+import "../../styles/components/garden/graph-view.css"
 
 function GardenGraphView() {
   const graphContainerRef = useRef(null)

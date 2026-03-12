@@ -1,6 +1,6 @@
 // src/components/garden/GardenListView.jsx
 import leafSvg from "../../assets/images/leaf.svg"
-import "../../styles/list-view.css"
+import "../../styles/components/garden/list-view.css"
 
 function GardenListView() {
   const demoNotes = [

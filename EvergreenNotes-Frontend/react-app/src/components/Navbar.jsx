@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import "../styles/navbar.css"
 
 import sprout from "../assets/images/sprout.png"
@@ -14,6 +14,7 @@ import logout from "../assets/images/logout.png"
 import avatar from "../assets/images/avatar.jpg"
 
 function Navbar() {
+  const location = useLocation()
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isVisibilityMenuOpen, setIsVisibilityMenuOpen] = useState(false)
   const [visibility, setVisibility] = useState("Private")
@@ -66,6 +67,11 @@ function Navbar() {
     setIsVisibilityMenuOpen(false)
   }
 
+  const currentPath = location.pathname.replace(/\/+$/, "") || "/"
+  const isGardenSelected = currentPath === "/" || currentPath === "/garden"
+  const isExploreSelected = currentPath === "/explore"
+  const isGardenCareSelected = currentPath === "/garden-care"
+
   return (
     <nav className="navbar">
       <div className="nav-links">
@@ -108,17 +114,19 @@ function Navbar() {
           )}
         </div>
 
-        <Link to="/" className="garden">
+        <Link to="/garden" className={`garden${isGardenSelected ? " garden--selected" : ""}`}>
           <img src={sprout} alt="sprout icon" className="icons-navbar"/>
           My Garden
         </Link>
 
-        <Link to="/explore" className="explore">
+        <Link to="/explore" className={`explore${isExploreSelected ? " explore--selected" : ""}`}>
           <img src={explore} alt="explore icon" className="icons-navbar"/>
           Explore
         </Link>
 
-        <Link to="/garden-care" className="garden-care" >
+        <Link
+          to="/garden-care"
+          className={`garden-care${isGardenCareSelected ? " garden-care--selected" : ""}`}>
           <img src={gardenCare} alt="garden care icon" className="icons-navbar"/>
           Garden Care
         </Link>

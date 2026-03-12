@@ -5,10 +5,10 @@ import GardenGraphView from "../components/garden/GardenGraphView"
 import GraphSettingsPanel from "../components/garden/GraphSettingsPanel"
 import AddNoteInput from "../components/garden/AddNoteInput"
 import UserBio from "../components/garden/UserBio"
-import "../styles/garden.css"
+import "../styles/pages/garden.css"
 
 function GardenPage() {
-  const [view, setView] = useState("graph") // sau "list"
+  const [view, setView] = useState("graph") 
 
   return (
     <Layout>

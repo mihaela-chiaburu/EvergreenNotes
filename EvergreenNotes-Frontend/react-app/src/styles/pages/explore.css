@@ -1,0 +1,42 @@
+/**{
+    border: red 1px solid;
+}*/
+
+.explore-page {
+  position: relative;
+  height: 90vh;
+}
+
+.explore-section{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.graph-settings {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+}
+
+/*.category-card {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}*/
+
+/*.garden-card {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+}
+
+.pagination {
+  position: absolute;
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+}*/

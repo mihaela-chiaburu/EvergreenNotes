@@ -72,6 +72,13 @@
   padding: 8px;
 }
 
+.navbar .nav-links > a.garden--selected,
+.navbar .nav-links > a.explore--selected,
+.navbar .nav-links > a.garden-care--selected {
+  background-color: rgba(41, 47, 56, 0.84);
+  border-radius: 10px;
+}
+
 .search {
   display: flex;
   align-items: center;

@@ -1,4 +1,4 @@
-import "/src/styles/add-note-input.css"
+import "/src/styles/components/garden/add-note-input.css"
 
 function AddNoteInput() {
   return (

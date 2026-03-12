@@ -10,9 +10,9 @@
   align-items: stretch;
   gap: 14px;
   min-width: 0;
-  max-height: 700px;
+  max-height: min(700px, calc(100vh - 150px));
+  max-height: min(700px, calc(100dvh - 260px));
   box-sizing: border-box;
-
 
 }
 
@@ -179,6 +179,8 @@
 @media (max-width: 1200px) {
   .garden-list-view {
     right: 320px;
+    max-height: min(680px, calc(100vh - 150px));
+    max-height: min(680px, calc(100dvh - 260px));
   }
 }
 
@@ -188,6 +190,8 @@
     right: 20px;
     top: 96px;
     bottom: 20%;
+    max-height: calc(100vh - 200px);
+    max-height: calc(100dvh - 200px);
   }
 
   .garden-list-view__item-title {
@@ -202,6 +206,8 @@
     top: 90px;
     bottom: 8%;
     gap: 10px;
+    max-height: calc(100vh - 150px);
+    max-height: calc(100dvh - 150px);
   }
 
   .garden-list-view__item {
@@ -227,5 +233,14 @@
 
   .garden-list-view__item-meta {
     gap: 6px;
+  }
+}
+
+@media (max-height: 760px) {
+  .garden-list-view {
+    top: 82px;
+    bottom: 6%;
+    max-height: calc(100vh - 130px);
+    max-height: calc(100dvh - 130px);
   }
 }
