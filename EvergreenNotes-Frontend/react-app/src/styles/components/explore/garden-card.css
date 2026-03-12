@@ -1,0 +1,54 @@
+.garden-card__content{
+    width: 290px;
+    background-color: #425856;
+    border: 1px solid #719F86;
+    border-radius: 35px;
+}
+
+.garden-card__image-content{
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+}
+
+.garden-card__notes-image{
+    width: 77px;
+}
+
+.garden-card__user-wrapper{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.garden-card__tags{
+    display: flex;
+    gap: 10px;
+}
+
+.garden-card__garden-info{
+    display: flex;
+    gap: 20px;
+}
+
+.garden-card__notes{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.garden-card__title p{
+    margin: 0;
+}
+
+.garden-card__tag{
+    padding: 2px 10px;
+    border-radius: 20px;
+    color: #ffffff;
+    font-size: 12px;
+    border: 1px solid white;
+}
+
+.garden-card__notes-content p{
+    margin: 0;
+}
