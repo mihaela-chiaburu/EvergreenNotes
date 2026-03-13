@@ -1,0 +1,26 @@
+/**{
+    border: 1px solid red;
+}*/
+
+.garden-care-page{
+    width: 70%;
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, 0);
+}
+
+.garden-care-title{
+    font-size: 28px;
+    margin: 0;
+    margin-top: 20px;
+    margin-bottom: 14px;
+    font-weight: 600;
+}
+
+.garden-care-subtitle{
+    font-size: 24px;
+    margin: 0;
+    margin-top: 32px;
+    margin-bottom: 12px;
+    font-weight: 500;
+}

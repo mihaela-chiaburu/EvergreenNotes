@@ -1,0 +1,36 @@
+.green-leaf-icon {
+  width: 55px;
+}
+
+.growing-card-info p, .growing-card-status p {
+    margin: 0;
+}
+
+.growing-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.growing-card-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.growing-card-info-reviewed{
+    font-size: 14px;
+    opacity: 0.6;
+    margin: 0;
+    margin-top: 12px;
+}
+
+.growing-card{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px;
+    background-color: #425856;
+    border: 1px solid #719F86;
+    border-radius: 15px;
+}

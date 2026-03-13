@@ -1,0 +1,14 @@
+.stats-bar{
+    display: flex;
+    justify-content: space-between;
+    background-color: #425856;
+    border: 1px solid #719F86;
+    padding: 15px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
+
+.stats-bar p {
+    margin: 0;
+    font-weight: 500;
+}
