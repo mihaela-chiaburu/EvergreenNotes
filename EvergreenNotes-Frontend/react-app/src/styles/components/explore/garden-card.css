@@ -1,18 +1,37 @@
 .garden-card__content{
-    width: 290px;
+    width: 100%;
     background-color: #425856;
     border: 1px solid #719F86;
     border-radius: 35px;
+    display: grid;
+    grid-template-rows: auto auto;
+    overflow: hidden;
+}
+
+.garden-card__image{
+    padding: 10px 20px;
 }
 
 .garden-card__image-content{
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
 }
 
+.garden-card__user-wrapper{
+    margin-bottom: 15px;
+    display: flex;
+    align-content: flex-end;
+    gap: 10px;
+}
+
+.garden-card__user-bio{
+    font-size: 14px;
+    opacity: 0.8;
+}
+
 .garden-card__notes-image{
-    width: 77px;
+    width: 68px;
 }
 
 .garden-card__user-wrapper{
@@ -24,17 +43,23 @@
 .garden-card__tags{
     display: flex;
     gap: 10px;
+    margin-bottom: 10px;
 }
 
 .garden-card__garden-info{
     display: flex;
     gap: 20px;
+    margin-bottom: 10px;
+    margin: 0;
 }
 
 .garden-card__notes{
+    background-color: rgba(242, 255, 233, 0.35);
     display: flex;
     align-items: center;
     gap: 10px;
+    padding: 15px 20px;
+    min-height: 110px;
 }
 
 .garden-card__title p{
@@ -49,6 +74,22 @@
     border: 1px solid white;
 }
 
+.garden-card__notes-content{
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
 .garden-card__notes-content p{
     margin: 0;
+}
+
+.garden-card__notes-text{
+    font-weight: 200;
+    font-size: 15px;
+}
+
+.garden-card__notes-title{
+    font-weight: 600;
+    font-size: 16px;
 }

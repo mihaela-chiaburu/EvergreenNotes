@@ -1,5 +1,5 @@
 import "/src/styles/components/explore/garden-card.css"
-import avatar from "../../assets/images/garden-card-avatar.jpg"
+import avatar from "../../assets/images/avatar-user3.jpg"
 import flower from "../../assets/images/stage-flower.png"
 
 function GardenCard() {
@@ -11,7 +11,7 @@ function GardenCard() {
             <img src={avatar} alt="avatar-garden" className="garden-card__image-content" />
             <div className="garden-card__title">
               <p>User's Garden</p>
-              <p>Blablabla Blebleble</p>
+              <p className="garden-card__user-bio">User's bio</p>
             </div>
           </div>
           <div className="garden-card__tags">
@@ -27,9 +27,9 @@ function GardenCard() {
         </div>
         <div className="garden-card__notes">
           <img src={flower} alt="flower" className="garden-card__notes-image"/>
-          <div>
-            <p>Recent note</p>
-            <p>Dante Alighieri Divina comedie personaje</p>
+          <div className="garden-card__notes-content">
+            <p className="garden-card__notes-title">Recent note</p>
+            <p className="garden-card__notes-text">Dante Alighieri Divina comedie personaje</p>
           </div>
         </div>
       </div>
