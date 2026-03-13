@@ -3,7 +3,17 @@
     align-items: center;
     justify-content: space-between;
     width: 90%;
-    margin-bottom: 20px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.explore-section__title{
+    margin: 0;
+}
+
+.explore-section__subtitle{
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 .explore-section__tabs{
@@ -40,6 +50,13 @@
     justify-content: center;
     gap: 10px;
     width: 100%;
+}
+
+.explore-section__tab{
+    border: 1px solid #ffffff;
+    border-radius: 15px;
+    cursor: pointer;
+    padding: 8px 8px;
 }
 
 @media (max-width: 700px) {

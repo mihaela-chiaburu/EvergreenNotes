@@ -11,9 +11,9 @@ function ExploreSection() {
       <div className="explore-section__header">
         <h2 className="explore-section__title">Explore</h2>
         <div className="explore-section__tabs">
-          <div>Trending</div>
-          <div>New</div>
-          <div>Following</div>
+          <div className="explore-section__tab">Trending</div>
+          <div className="explore-section__tab">New</div>
+          <div className="explore-section__tab">Following</div>
         </div>
       </div>
       <div className="explore-section__content-block">
