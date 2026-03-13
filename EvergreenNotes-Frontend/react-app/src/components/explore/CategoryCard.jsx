@@ -4,8 +4,16 @@ import topic1 from "../../assets/images/popular1.png"
 import topic2 from "../../assets/images/popular2.png"
 import topic3 from "../../assets/images/popular3.png"
 
-function CategoryCard() {
+function CategoryCard({ onTopicSelect }) {
   const cardsRef = useRef(null)
+  const topics = [
+    { image: topic1, alt: "Nature topic", name: "Nature" },
+    { image: topic2, alt: "Philosophy topic", name: "Philosophy" },
+    { image: topic3, alt: "Art topic", name: "Art" },
+    { image: topic3, alt: "Art topic", name: "Art" },
+    { image: topic3, alt: "Art topic", name: "Art" },
+    { image: topic3, alt: "Art topic", name: "Art" },
+  ]
 
   const handleScroll = (direction) => {
     if (!cardsRef.current) {
@@ -30,30 +38,18 @@ function CategoryCard() {
       </button>
 
       <div className="category-card" ref={cardsRef}>
-        <div className="category-card__content">
-          <img src={topic1} alt="Topic 1" className="category-card__image" />
-          <p>Nature</p>
-        </div>
-        <div className="category-card__content">
-          <img src={topic2} alt="Topic 2" className="category-card__image" />
-          <p>Philosophy</p>
-        </div>
-        <div className="category-card__content">
-          <img src={topic3} alt="Topic 3" className="category-card__image" />
-          <p>Art</p>
-        </div>
-        <div className="category-card__content">
-          <img src={topic3} alt="Topic 3" className="category-card__image" />
-          <p>Art</p>
-        </div>
-        <div className="category-card__content">
-          <img src={topic3} alt="Topic 3" className="category-card__image" />
-          <p>Art</p>
-        </div>
-        <div className="category-card__content">
-          <img src={topic3} alt="Topic 3" className="category-card__image" />
-          <p>Art</p>
-        </div>
+        {topics.map((topic, index) => (
+          <button
+            key={`${topic.name}-${index}`}
+            type="button"
+            className="category-card__content"
+            onClick={() => onTopicSelect?.(topic.name)}
+            aria-label={`Explore ${topic.name}`}
+          >
+            <img src={topic.image} alt={topic.alt} className="category-card__image" />
+            <p>{topic.name}</p>
+          </button>
+        ))}
       </div>
 
       <button

@@ -55,6 +55,11 @@
     height: 250px;
     border-radius: 20px;
     overflow: hidden;
+    border: none;
+    padding: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
 }
 
 .category-card__content::after {
