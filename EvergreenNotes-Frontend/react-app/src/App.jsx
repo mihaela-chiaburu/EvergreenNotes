@@ -7,6 +7,7 @@ import GardenCarePage from "./pages/GardenCarePage"
 import TrashPage from "./pages/TrashPage"
 import UserGarden from "./pages/UserGarden"
 import NotePage from "./pages/NotePage"
+import HelpPage from "./pages/HelpPage"
 
 function App() {
   return (
@@ -47,6 +48,11 @@ function App() {
         {/* Trash */}
         <Route path="/trash" element={
             <TrashPage />
+        } />
+
+        {/* Help */}
+        <Route path="/help" element={
+          <HelpPage />
         } />
 
         {/* User 

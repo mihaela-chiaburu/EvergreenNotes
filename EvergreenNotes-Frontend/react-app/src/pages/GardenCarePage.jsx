@@ -1,4 +1,3 @@
-import { useState } from "react"
 import Layout from "../components/Layout"
 import StatsBar from "../components/garden-care/StatsBar"
 import GrowingCard from "../components/garden-care/GrowingCard"
