@@ -4,6 +4,7 @@ import LandingPage from "./pages/LandingPage"
 import GardenPage from "./pages/GardenPage"
 import ExplorePage from "./pages/ExplorePage"
 import GardenCarePage from "./pages/GardenCarePage"
+import TrashPage from "./pages/TrashPage"
 import UserGarden from "./pages/UserGarden"
 
 function App() {
@@ -36,12 +37,10 @@ function App() {
         <Route path="/garden-care" element={
             <GardenCarePage />
         } />
-        {/* Trash 
+        {/* Trash */}
         <Route path="/trash" element={
-          <Layout>
             <TrashPage />
-          </Layout>
-        } />*/}
+        } />
 
         {/* User 
         <Route path="/user" element={

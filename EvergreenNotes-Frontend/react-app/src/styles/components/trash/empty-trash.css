@@ -1,0 +1,20 @@
+.trash-empty-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid #719f86;
+  background-color: #425856;
+  color: white;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.trash-empty-button__icon {
+  width: 18px;
+  height: 18px;
+  filter: invert(1);
+}
