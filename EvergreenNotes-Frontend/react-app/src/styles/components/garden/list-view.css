@@ -1,8 +1,8 @@
 .garden-list-view {
   position: absolute;
-  top: 90px;
-  left: 50px;
-  right: 380px;
+  top: clamp(82px, 11vh, 96px);
+  left: clamp(12px, 3vw, 50px);
+  right: clamp(260px, 28vw, 380px);
   bottom: 8%;
   display: flex;
   flex-direction: column;

@@ -1,5 +1,5 @@
 import { useRef } from "react"
-import "/src/styles/components/explore/category-card.css"
+import "../../styles/components/explore/category-card.css"
 import topic1 from "../../assets/images/popular1.png"
 import topic2 from "../../assets/images/popular2.png"
 import topic3 from "../../assets/images/popular3.png"
@@ -9,9 +9,6 @@ function CategoryCard({ onTopicSelect }) {
   const topics = [
     { image: topic1, alt: "Nature topic", name: "Nature" },
     { image: topic2, alt: "Philosophy topic", name: "Philosophy" },
-    { image: topic3, alt: "Art topic", name: "Art" },
-    { image: topic3, alt: "Art topic", name: "Art" },
-    { image: topic3, alt: "Art topic", name: "Art" },
     { image: topic3, alt: "Art topic", name: "Art" },
   ]
 

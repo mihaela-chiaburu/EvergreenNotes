@@ -1,4 +1,4 @@
-import "/src/styles/components/garden/bio.css"
+import "../../styles/components/garden/bio.css"
 
 function UserBio() {
   return (

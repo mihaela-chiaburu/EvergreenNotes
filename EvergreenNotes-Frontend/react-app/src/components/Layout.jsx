@@ -1,6 +1,7 @@
 import { useState } from "react"
 import Navbar from "./Navbar"
 import SettingsModal from "./modals/SettingsModal"
+import "../styles/layout.css"
 
 function Layout({ children }) {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)

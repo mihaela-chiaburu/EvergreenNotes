@@ -1,16 +1,16 @@
-import "/src/styles/components/garden-care/growing-card.css"
+import "../../styles/components/garden-care/growing-card.css"
 import greenleaf from "../../assets/images/green-leaf.png"
 
-function GrowingCard() {
+function GrowingCard({ title, nextReviewInDays, lastReviewed }) {
   return (
     <div className="growing-card">
-      <div className="growing-card-info">
-        <p>Dante Alighieri Divina comedie personaje </p>
-        <p className="growing-card-info-reviewed">Last reviewed: 04.02.2026</p>
+      <div className="growing-card__info">
+        <p>{title}</p>
+        <p className="growing-card__reviewed">Last reviewed: {lastReviewed}</p>
       </div>
-      <div className="growing-card-status">
-        <p>In 3 days</p>
-        <img src={greenleaf} alt="Green Leaf" className="green-leaf-icon"/>
+      <div className="growing-card__status">
+        <p>In {nextReviewInDays} days</p>
+        <img src={greenleaf} alt="Green leaf" className="growing-card__leaf-icon"/>
       </div>
     </div>
   )

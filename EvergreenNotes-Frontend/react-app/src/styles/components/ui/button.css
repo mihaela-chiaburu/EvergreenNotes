@@ -1,0 +1,39 @@
+.ui-button {
+  font: inherit;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.ui-button:hover {
+  transform: translateY(-1px);
+}
+
+.ui-button--md {
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+.ui-button--sm {
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+.ui-button--primary {
+  background: var(--color-accent, #719f86);
+  border-color: var(--color-accent, #719f86);
+  color: var(--color-text, #f5f8fc);
+}
+
+.ui-button--secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text, #f5f8fc);
+}
+
+.ui-button--danger {
+  background: rgba(177, 56, 56, 0.22);
+  border-color: rgba(255, 170, 170, 0.8);
+  color: #ffd5d5;
+}

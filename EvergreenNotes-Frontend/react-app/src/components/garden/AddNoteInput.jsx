@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import "/src/styles/components/garden/add-note-input.css"
+import "../../styles/components/garden/add-note-input.css"
+import Button from "../ui/Button"
+import Input from "../ui/Input"
 
 function AddNoteInput() {
   const [noteTitle, setNoteTitle] = useState("")
@@ -25,13 +27,14 @@ function AddNoteInput() {
 
   return (
     <div className="add-note-input">
-      <button type="button" className="add-note-input__icon" onClick={handleCreateNote}>
+      <Button type="button" className="add-note-input__icon" onClick={handleCreateNote}>
         +
-      </button>
-      <input 
+      </Button>
+      <Input
         type="text" 
         placeholder="New Seed..." 
         className="add-note-input__input"
+        inputClassName="input--unstyled"
         value={noteTitle}
         onChange={(event) => setNoteTitle(event.target.value)}
         onKeyDown={(event) => {

@@ -1,13 +1,20 @@
-import "/src/styles/components/explore/pagination.css"
+import "../../styles/components/explore/pagination.css"
 
-function Pagination() {
+function Pagination({ currentPage, totalPages, onPageChange }) {
+  const pages = Array.from({ length: totalPages }, (_, index) => index + 1)
+
   return (
     <div className="pagination">
-      <p className="selected">1</p>
-      <p>2</p>
-      <p>3</p>
-      <p className="points">...</p>
-      <p>10</p>
+      {pages.map((page) => (
+        <button
+          key={page}
+          type="button"
+          className={`pagination__page ${page === currentPage ? "pagination__page--selected" : ""}`}
+          onClick={() => onPageChange(page)}
+        >
+          {page}
+        </button>
+      ))}
     </div>
   )
 }

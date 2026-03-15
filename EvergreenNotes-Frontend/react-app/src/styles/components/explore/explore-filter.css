@@ -1,7 +1,6 @@
 .explore-filter-panel {
-	position: absolute;
-	left: 20px;
-	top: 20px;
+	position: sticky;
+	top: 92px;
 	width: min(340px, calc(100vw - 40px));
 	padding: 18px;
 	border-radius: 16px;
@@ -136,7 +135,7 @@
 @media (max-width: 900px) {
 	.explore-filter-panel {
 		position: static;
-		width: min(520px, 92%);
-		margin: 20px auto 0;
+		width: 100%;
+		margin: 0;
 	}
 }

@@ -1,0 +1,26 @@
+.ui-input {
+  width: 100%;
+}
+
+.ui-input__field {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text, #f5f8fc);
+  font: inherit;
+  padding: 8px 12px;
+}
+
+.ui-input__field:focus {
+  outline: 2px solid rgba(183, 241, 124, 0.35);
+  outline-offset: 1px;
+}
+
+.input--unstyled {
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  outline: none;
+}

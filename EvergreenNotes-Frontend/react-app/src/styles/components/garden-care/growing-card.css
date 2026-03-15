@@ -1,31 +1,32 @@
-.green-leaf-icon {
+.growing-card__leaf-icon {
   width: 55px;
 }
 
-.growing-card-info p, .growing-card-status p {
+.growing-card__info p,
+.growing-card__status p {
     margin: 0;
 }
 
-.growing-card-info {
+.growing-card__info {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-.growing-card-status {
+.growing-card__status {
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
-.growing-card-info-reviewed{
+.growing-card__reviewed {
     font-size: 14px;
     opacity: 0.6;
     margin: 0;
     margin-top: 12px;
 }
 
-.growing-card{
+.growing-card {
     display: flex;
     justify-content: space-between;
     align-items: center;

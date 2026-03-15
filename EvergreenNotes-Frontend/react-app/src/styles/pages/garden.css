@@ -4,7 +4,8 @@
 
 .garden-page {
   position: relative;
-  height: 90vh;
+  min-height: calc(100vh - 110px);
+  min-height: calc(100dvh - 110px);
 }
 
 .user-bio {
@@ -22,8 +23,8 @@
 
 .graph-settings {
   position: absolute;
-  right: 20px;
-  top: 20px;
+  right: clamp(12px, 2vw, 20px);
+  top: clamp(12px, 2vw, 20px);
 }
 
 .add-note-input {

@@ -1,25 +1,21 @@
-.pagination{
+.pagination {
     display: flex;
     justify-content: center;
-    gap: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
     margin-top: 20px;
 }
 
-.pagination p{
+.pagination__page {
     font-size: 16px;
     color: white;
     cursor: pointer;
     border: 1px solid white;
     border-radius: 8px;
     padding: 6px 12px;
+    background: transparent;
 }
 
-.selected{
+.pagination__page--selected {
     background-color: rgba(135, 166, 150, 0.56);
-}
-
-.pagination .points{
-    border: none;
-    cursor: default;
-    font-size: 18px;
 }

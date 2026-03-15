@@ -1,14 +1,13 @@
-.idea-icon {
+.reflection-card__idea-icon {
     width: 24px;
 }
 
-.dry-leaf-icon{
+.reflection-card__dry-leaf-icon {
     width: 60px;
-    /*height: 50px;*/
     transform: rotateY(180deg);
 }
 
-.reflection-card{
+.reflection-card {
     width: 100%;
     display: flex;
     flex-direction: row;
@@ -18,38 +17,37 @@
     padding: 12px 16px;
     background-color: #425856;
     border-radius: 15px;
-    border: 1px solid #719F86;
+    border: 1px solid #719f86;
     margin-bottom: 18px;
 }
 
-.reflection-idea{
+.reflection-card__idea {
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: #AFC1AD;
+    background-color: #afc1ad;
     border-radius: 18px;
     padding: 8px 12px;
 }
 
-.reflection-idea p{
+.reflection-card__idea p {
     margin: 0;
     font-size: 14px;
     color: black;
 }
 
-.reflecion-card__last-review{
+.reflection-card__last-review {
     font-size: 14px;
     opacity: 0.6;
     margin: 0;
     margin-top: 12px;
 }
 
-.reflecion-card__title{
+.reflection-card__title {
     margin: 0;
     margin-bottom: 12px;
 }
 
-
-.reflecion-card__content{
-    width: 600px;
+.reflection-card__content {
+    width: min(100%, 600px);
 }

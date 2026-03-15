@@ -5,8 +5,23 @@
 
     --color-bg: #060e19;
     --color-bg-warm-green: #0d2218;
+    --color-surface: #425856;
+    --color-accent: #719f86;
+    --color-border-strong: #2c3440;
     --color-text: #f5f8fc;
     --color-text-muted: #bfccdc;
+
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 20px;
+
+    --radius-md: 10px;
+    --radius-lg: 15px;
+    --radius-pill: 999px;
+
+    --z-dropdown: 100;
+    --z-navbar: 200;
+    --z-modal: 1000;
     
 }
 

@@ -1,96 +1,50 @@
-import { useEffect, useMemo, useRef, useState } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
+import { useEffect, useRef, useState } from "react"
 import Layout from "../components/Layout"
+import Button from "../components/ui/Button"
+import NoteHeader from "../components/notes/NoteHeader"
+import NoteMeta from "../components/notes/NoteMeta"
+import NoteEditor from "../components/notes/NoteEditor"
+import { useDismiss } from "../hooks/useDismiss"
+import { useNotePageState } from "../hooks/useNotePageState"
 import "../styles/pages/note.css"
 
-function getIsoDate(value) {
-	if (!value) {
-		return ""
-	}
-
-	const parsedDate = new Date(value)
-	if (Number.isNaN(parsedDate.getTime())) {
-		return ""
-	}
-
-	return parsedDate.toISOString().slice(0, 10)
-}
-
-function getRandomRecentDateIso() {
-	const now = new Date()
-	const randomDaysAgo = Math.floor(Math.random() * 30)
-	now.setDate(now.getDate() - randomDaysAgo)
-	return now.toISOString().slice(0, 10)
-}
-
 function NotePage() {
-	const location = useLocation()
-	const navigate = useNavigate()
+	const {
+		initialTagName,
+		title,
+		setTitle,
+		source,
+		setSource,
+		body,
+		setBody,
+		createdOn,
+		setCreatedOn,
+		lastWatered,
+		setLastWatered,
+		status,
+		setStatus,
+		visibility,
+		setVisibility,
+		handleTagNavigation,
+		tags,
+		tagInput,
+		setTagInput,
+		handleTagKeyDown,
+		removeTag,
+	} = useNotePageState()
 
-	const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search])
-	const statePayload = location.state ?? {}
-
-	const initialTitle =
-		statePayload.noteTitle?.trim() ||
-		queryParams.get("title")?.trim() ||
-		"Untitled note"
-
-	const initialTagName =
-		statePayload.tagName?.trim() ||
-		queryParams.get("tag")?.trim() ||
-		"Garden"
-
-	const initialSource =
-		statePayload.source?.trim() ||
-		""
-
-	const fallbackDateIso = getRandomRecentDateIso()
-	const initialCreatedOn = getIsoDate(statePayload.createdOn || queryParams.get("createdOn")) || fallbackDateIso
-	const initialLastWatered = getIsoDate(statePayload.lastWatered || queryParams.get("lastWatered")) || initialCreatedOn
-
-	const initialTags =
-		Array.isArray(statePayload.tags) && statePayload.tags.length > 0
-			? statePayload.tags
-			: [initialTagName]
-
-	const [title, setTitle] = useState(initialTitle)
-	const [source, setSource] = useState(initialSource)
-	const [body, setBody] = useState(statePayload.body ?? "")
-	const [createdOn, setCreatedOn] = useState(initialCreatedOn)
-	const [lastWatered, setLastWatered] = useState(initialLastWatered)
-	const [tags, setTags] = useState(initialTags)
-	const [tagInput, setTagInput] = useState("")
-	const [status, setStatus] = useState("Rough")
-	const [visibility, setVisibility] = useState("Private")
 	const [isOptionsOpen, setIsOptionsOpen] = useState(false)
 	const [isVisibilityMenuOpen, setIsVisibilityMenuOpen] = useState(false)
 	const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false)
+
+	const optionsMenuRef = useRef(null)
+	const visibilityMenuRef = useRef(null)
+	const statusMenuRef = useRef(null)
 	const bodyTextareaRef = useRef(null)
 
-	const handleTagNavigation = () => {
-		navigate("/garden")
-	}
-
-	const handleAddTag = () => {
-		const normalizedTag = tagInput.trim()
-
-		if (!normalizedTag) {
-			return
-		}
-
-		setTags((previousTags) => {
-			if (previousTags.some((tag) => tag.toLowerCase() === normalizedTag.toLowerCase())) {
-				return previousTags
-			}
-
-			return [...previousTags, normalizedTag]
-		})
-		setTagInput("")
-	}
-
-	const handleRemoveTag = (tagToRemove) => {
-		setTags((previousTags) => previousTags.filter((tag) => tag !== tagToRemove))
-	}
+	useDismiss({ refs: [optionsMenuRef], isOpen: isOptionsOpen, onDismiss: () => setIsOptionsOpen(false) })
+	useDismiss({ refs: [visibilityMenuRef], isOpen: isVisibilityMenuOpen, onDismiss: () => setIsVisibilityMenuOpen(false) })
+	useDismiss({ refs: [statusMenuRef], isOpen: isStatusMenuOpen, onDismiss: () => setIsStatusMenuOpen(false) })
 
 	useEffect(() => {
 		if (!bodyTextareaRef.current) {
@@ -104,41 +58,15 @@ function NotePage() {
 	return (
 		<Layout>
 			<div className="note-page">
-				<header className="note-page__top-nav" aria-label="Note navigation">
-					<div className="note-page__breadcrumb" role="navigation" aria-label="Note path">
-						<button
-							type="button"
-							className="note-page__tag-link"
-							onClick={handleTagNavigation}
-						>
-							{initialTagName}
-						</button>
-						<span className="note-page__breadcrumb-separator" aria-hidden="true">/</span>
-						<span className="note-page__note-name">{title || "Untitled note"}</span>
-					</div>
-
-					<div className="note-page__options-wrap">
-						<button
-							type="button"
-							className="note-page__options-button"
-							aria-label="Open note options"
-							aria-expanded={isOptionsOpen}
-							onClick={() => setIsOptionsOpen((isOpen) => !isOpen)}
-						>
-							<span className="note-page__options-dot" />
-							<span className="note-page__options-dot" />
-							<span className="note-page__options-dot" />
-						</button>
-
-						{isOptionsOpen && (
-							<div className="note-page__options-menu" role="menu">
-								<button type="button" className="note-page__options-item" role="menuitem">Duplicate note</button>
-								<button type="button" className="note-page__options-item" role="menuitem">Move to another tag</button>
-								<button type="button" className="note-page__options-item" role="menuitem">View note history</button>
-							</div>
-						)}
-					</div>
-				</header>
+				<div ref={optionsMenuRef}>
+					<NoteHeader
+						initialTagName={initialTagName}
+						title={title}
+						isOptionsOpen={isOptionsOpen}
+						onToggleOptions={() => setIsOptionsOpen((isOpen) => !isOpen)}
+						onNavigateToTag={handleTagNavigation}
+					/>
+				</div>
 
 				<section className="note-page__content" aria-label="Note content">
 					<div className="note-page__line-field">
@@ -151,90 +79,33 @@ function NotePage() {
 							aria-label="Note title"
 						/>
 					</div>
-
-					<div className="note-page__line-field note-page__line-field--source">
-						<span className="note-page__line-label">Source:</span>
-						<input
-							type="text"
-							className="note-page__line-input"
-							value={source}
-							onChange={(event) => setSource(event.target.value)}
-							aria-label="Source"
-						/>
-					</div>
-
-					<div className="note-page__line-field note-page__line-field--meta">
-						<label className="note-page__meta-group" htmlFor="note-page-created-on">
-							<span>Created on:</span>
-							<input
-								id="note-page-created-on"
-								type="date"
-								className="note-page__meta-input"
-								value={createdOn}
-								onChange={(event) => setCreatedOn(event.target.value)}
-							/>
-						</label>
-						<span className="note-page__meta-divider" aria-hidden="true">|</span>
-						<label className="note-page__meta-group" htmlFor="note-page-last-watered">
-							<span>Last watered:</span>
-							<input
-								id="note-page-last-watered"
-								type="date"
-								className="note-page__meta-input"
-								value={lastWatered}
-								onChange={(event) => setLastWatered(event.target.value)}
-							/>
-						</label>
-					</div>
-
-					<div className="note-page__tags-row" aria-label="Note tags">
-						<span className="note-page__line-label">Tags:</span>
-						<div className="note-page__tags-list">
-							{tags.map((tag) => (
-								<span key={tag} className="note-page__tag-pill">
-									{tag}
-									<button
-										type="button"
-										className="note-page__tag-remove"
-										onClick={() => handleRemoveTag(tag)}
-										aria-label={`Remove tag ${tag}`}
-									>
-										x
-									</button>
-								</span>
-							))}
-							<input
-								type="text"
-								className="note-page__tag-input"
-								placeholder="Add tag"
-								value={tagInput}
-								onChange={(event) => setTagInput(event.target.value)}
-								onKeyDown={(event) => {
-									if (event.key === "Enter") {
-										event.preventDefault()
-										handleAddTag()
-									}
-								}}
-							/>
-						</div>
-					</div>
-
-					<textarea
-						id="note-page-body"
-						ref={bodyTextareaRef}
-						className="note-page__body-input"
-						value={body}
-						onChange={(event) => setBody(event.target.value)}
-						placeholder="Start writing your note..."
+					<NoteMeta
+						source={source}
+						onSourceChange={(event) => setSource(event.target.value)}
+						createdOn={createdOn}
+						onCreatedOnChange={(event) => setCreatedOn(event.target.value)}
+						lastWatered={lastWatered}
+						onLastWateredChange={(event) => setLastWatered(event.target.value)}
+						tags={tags}
+						tagInput={tagInput}
+						onTagInputChange={(event) => setTagInput(event.target.value)}
+						onTagInputKeyDown={handleTagKeyDown}
+						onRemoveTag={removeTag}
+					/>
+					<NoteEditor
+						body={body}
+						onBodyChange={(event) => setBody(event.target.value)}
+						bodyRef={bodyTextareaRef}
 					/>
 				</section>
 
 				<footer className="note-page__actions" aria-label="Note actions">
-					<button type="button" className="note-page__action-btn note-page__action-btn--danger">Delete note</button>
+					<Button type="button" variant="danger" className="note-page__action-btn note-page__action-btn--danger">Delete note</Button>
 
-					<div className="note-page__dropdown-wrap">
-						<button
+					<div className="note-page__dropdown-wrap" ref={visibilityMenuRef}>
+						<Button
 							type="button"
+							variant="secondary"
 							className="note-page__action-btn"
 							onClick={() => {
 								setIsVisibilityMenuOpen((isOpen) => !isOpen)
@@ -242,11 +113,12 @@ function NotePage() {
 							}}
 						>
 							Visibility: {visibility.toLowerCase()}
-						</button>
+						</Button>
 						{isVisibilityMenuOpen && (
 							<div className="note-page__action-menu" role="menu">
-								<button
+								<Button
 									type="button"
+									variant="secondary"
 									className="note-page__action-menu-item"
 									onClick={() => {
 										setVisibility("Public")
@@ -254,9 +126,10 @@ function NotePage() {
 									}}
 								>
 									Public
-								</button>
-								<button
+								</Button>
+								<Button
 									type="button"
+									variant="secondary"
 									className="note-page__action-menu-item"
 									onClick={() => {
 										setVisibility("Private")
@@ -264,14 +137,15 @@ function NotePage() {
 									}}
 								>
 									Private
-								</button>
+								</Button>
 							</div>
 						)}
 					</div>
 
-					<div className="note-page__dropdown-wrap">
-						<button
+					<div className="note-page__dropdown-wrap" ref={statusMenuRef}>
+						<Button
 							type="button"
+							variant="secondary"
 							className="note-page__action-btn"
 							onClick={() => {
 								setIsStatusMenuOpen((isOpen) => !isOpen)
@@ -279,11 +153,12 @@ function NotePage() {
 							}}
 						>
 							Status: {status.toLowerCase()}
-						</button>
+						</Button>
 						{isStatusMenuOpen && (
 							<div className="note-page__action-menu" role="menu">
-								<button
+								<Button
 									type="button"
+									variant="secondary"
 									className="note-page__action-menu-item"
 									onClick={() => {
 										setStatus("Rough")
@@ -291,9 +166,10 @@ function NotePage() {
 									}}
 								>
 									Rough
-								</button>
-								<button
+								</Button>
+								<Button
 									type="button"
+									variant="secondary"
 									className="note-page__action-menu-item"
 									onClick={() => {
 										setStatus("Polished")
@@ -301,7 +177,7 @@ function NotePage() {
 									}}
 								>
 									Polished
-								</button>
+								</Button>
 							</div>
 						)}
 					</div>

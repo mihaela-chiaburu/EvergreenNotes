@@ -1,57 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import Layout from "../components/Layout"
 import EmptyTrash from "../components/trash/EmptyTrash"
 import TrashList from "../components/trash/TrashList"
 import "../styles/pages/trash.css"
 import arrowIcon from "../assets/images/arrow-down.png"
-
-const deletedNotes = [
-	{
-		id: "deleted-note-1",
-		title: "Dante Alighieri Divina comedie personaje",
-		deletedOn: "04.02.2026"
-	},
-	{
-		id: "deleted-note-2",
-		title: "Ecosystem interactions in evergreen forests",
-		deletedOn: "12.01.2026"
-	},
-	{
-		id: "deleted-note-3",
-		title: "Metaphors in modern poetry",
-		deletedOn: "25.02.2026"
-	}
-]
+import { useDismiss } from "../hooks/useDismiss"
+import { mockTrashNotes } from "../data/mockTrashNotes"
 
 function TrashPage() {
 	const [sortOrder, setSortOrder] = useState("descending")
 	const [isSortMenuOpen, setIsSortMenuOpen] = useState(false)
 	const sortDropdownRef = useRef(null)
 
-	useEffect(() => {
-		function handleClickOutside(event) {
-			if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target)) {
-				setIsSortMenuOpen(false)
-			}
-		}
-
-		function handleEscapeKey(event) {
-			if (event.key === "Escape") {
-				setIsSortMenuOpen(false)
-			}
-		}
-
-		document.addEventListener("mousedown", handleClickOutside)
-		document.addEventListener("keydown", handleEscapeKey)
-
-		return () => {
-			document.removeEventListener("mousedown", handleClickOutside)
-			document.removeEventListener("keydown", handleEscapeKey)
-		}
-	}, [])
+	useDismiss({ refs: [sortDropdownRef], isOpen: isSortMenuOpen, onDismiss: () => setIsSortMenuOpen(false) })
 
 	const sortedDeletedNotes = useMemo(() => {
-		const notesCopy = [...deletedNotes]
+		const notesCopy = [...mockTrashNotes]
 
 		notesCopy.sort((firstNote, secondNote) => {
 			const [firstDay, firstMonth, firstYear] = firstNote.deletedOn.split(".")

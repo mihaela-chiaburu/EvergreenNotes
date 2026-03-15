@@ -1,6 +1,6 @@
 .garden-graph-view {
 	width: 100%;
-	padding: 28px 220px 120px 240px;
+	padding: clamp(12px, 2vw, 28px) clamp(16px, 22vw, 220px) 120px clamp(16px, 24vw, 240px);
 	box-sizing: border-box;
 }
 

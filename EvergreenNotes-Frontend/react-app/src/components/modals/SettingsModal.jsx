@@ -1,5 +1,8 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import "../../styles/components/settings/settings.css"
+import ModalShell from "./ModalShell"
+import Input from "../ui/Input"
+import Button from "../ui/Button"
 
 import avatarImage from "../../assets/images/avatar.jpg"
 import googleLogo from "../../assets/images/Logo-google.png"
@@ -12,191 +15,168 @@ function SettingsModal({ isOpen, onClose, userName = "Mihaela" }) {
 	const [oldPassword, setOldPassword] = useState("")
 	const [newPassword, setNewPassword] = useState("")
 
-	useEffect(() => {
-		if (!isOpen) {
-			return undefined
-		}
-
-		const originalOverflow = document.body.style.overflow
-		document.body.style.overflow = "hidden"
-
-		function handleEscape(event) {
-			if (event.key === "Escape") {
-				onClose()
-			}
-		}
-
-		document.addEventListener("keydown", handleEscape)
-
-		return () => {
-			document.body.style.overflow = originalOverflow
-			document.removeEventListener("keydown", handleEscape)
-		}
-	}, [isOpen, onClose])
-
-	if (!isOpen) {
-		return null
-	}
-
 	return (
-		<div className="settings-modal-overlay" onClick={onClose}>
-			<div
-				className="settings-modal"
-				role="dialog"
-				aria-modal="true"
-				aria-labelledby="settings-modal-title"
-				onClick={(event) => event.stopPropagation()}
+		<ModalShell
+			isOpen={isOpen}
+			onClose={onClose}
+			overlayClassName="settings-modal-overlay"
+			className="settings-modal"
+			labelledBy="settings-modal-title"
+		>
+			<button
+				type="button"
+				className="settings-modal__close"
+				aria-label="Close settings"
+				onClick={onClose}
 			>
-				<button
-					type="button"
-					className="settings-modal__close"
-					aria-label="Close settings"
-					onClick={onClose}
-				>
-					x
-				</button>
+				x
+			</button>
 
-				<aside className="settings-modal__sidebar">
-					<p id="settings-modal-title" className="settings-modal__sidebar-title">Settings</p>
+			<aside className="settings-modal__sidebar">
+				<p id="settings-modal-title" className="settings-modal__sidebar-title">Settings</p>
 
-					<div className="settings-modal__profile">
-						<img
-							src={avatarImage}
-							alt="User avatar"
-							className="settings-modal__profile-image"
-						/>
-						<p className="settings-modal__profile-name">{userName}</p>
-					</div>
+				<div className="settings-modal__profile">
+					<img
+						src={avatarImage}
+						alt="User avatar"
+						className="settings-modal__profile-image"
+					/>
+					<p className="settings-modal__profile-name">{userName}</p>
+				</div>
 
-					<div className="settings-modal__tabs" role="tablist" aria-label="Settings sections">
-						<button
-							type="button"
-							role="tab"
-							aria-selected={activeTab === "general"}
-							className={`settings-modal__tab ${
-								activeTab === "general" ? "settings-modal__tab--active" : ""
-							}`}
-							onClick={() => setActiveTab("general")}
-						>
-							General
-						</button>
+				<div className="settings-modal__tabs" role="tablist" aria-label="Settings sections">
+					<button
+						type="button"
+						role="tab"
+						aria-selected={activeTab === "general"}
+						className={`settings-modal__tab ${
+							activeTab === "general" ? "settings-modal__tab--active" : ""
+						}`}
+						onClick={() => setActiveTab("general")}
+					>
+						General
+					</button>
 
-						<button
-							type="button"
-							role="tab"
-							aria-selected={activeTab === "account"}
-							className={`settings-modal__tab ${
-								activeTab === "account" ? "settings-modal__tab--active" : ""
-							}`}
-							onClick={() => setActiveTab("account")}
-						>
-							Account
-						</button>
-					</div>
-				</aside>
+					<button
+						type="button"
+						role="tab"
+						aria-selected={activeTab === "account"}
+						className={`settings-modal__tab ${
+							activeTab === "account" ? "settings-modal__tab--active" : ""
+						}`}
+						onClick={() => setActiveTab("account")}
+					>
+						Account
+					</button>
+				</div>
+			</aside>
 
-				<section className="settings-modal__content">
-					{activeTab === "general" && (
-						<div className="settings-modal__panel" role="tabpanel">
-							<div className="settings-modal__field">
-								<p className="settings-modal__label">Name</p>
-								<p className="settings-modal__hint">Change your name</p>
-								<input
-									type="text"
-									className="settings-modal__input"
-									value={name}
-									onChange={(event) => setName(event.target.value)}
+			<section className="settings-modal__content">
+				{activeTab === "general" && (
+					<div className="settings-modal__panel" role="tabpanel">
+						<div className="settings-modal__field">
+							<p className="settings-modal__label">Name</p>
+							<p className="settings-modal__hint">Change your name</p>
+							<Input
+								type="text"
+								className="settings-modal__input"
+								inputClassName="input--unstyled"
+								value={name}
+								onChange={(event) => setName(event.target.value)}
+							/>
+						</div>
+
+						<div className="settings-modal__field">
+							<p className="settings-modal__label">Bio</p>
+							<p className="settings-modal__hint">Change your signature</p>
+							<Input
+								type="text"
+								className="settings-modal__input"
+								inputClassName="input--unstyled"
+								value={bio}
+								onChange={(event) => setBio(event.target.value)}
+							/>
+						</div>
+
+						<div className="settings-modal__field settings-modal__field--avatar">
+							<p className="settings-modal__label">Profile picture</p>
+							<p className="settings-modal__hint">Upload an image or pick an avatar</p>
+							<div className="settings-modal__avatar-placeholder" aria-hidden="true">
+								<img
+									src={avatarImage}
+									alt="Profile placeholder"
+									className="settings-modal__avatar-placeholder-image"
 								/>
 							</div>
+						</div>
+					</div>
+				)}
 
-							<div className="settings-modal__field">
-								<p className="settings-modal__label">Bio</p>
-								<p className="settings-modal__hint">Change your signature</p>
-								<input
-									type="text"
-									className="settings-modal__input"
-									value={bio}
-									onChange={(event) => setBio(event.target.value)}
-								/>
+				{activeTab === "account" && (
+					<div className="settings-modal__panel" role="tabpanel">
+						<div className="settings-modal__field">
+							<p className="settings-modal__label">Email</p>
+							<p className="settings-modal__hint">Change your email address</p>
+							<Input
+								type="email"
+								className="settings-modal__input"
+								inputClassName="input--unstyled"
+								value={email}
+								onChange={(event) => setEmail(event.target.value)}
+							/>
+						</div>
+
+						<div className="settings-modal__field">
+							<div className="settings-modal__password-labels">
+								<p className="settings-modal__label">Password</p>
 							</div>
-
-							<div className="settings-modal__field settings-modal__field--avatar">
-								<p className="settings-modal__label">Profile picture</p>
-								<p className="settings-modal__hint">Upload an image or pick an avatar</p>
-								<div className="settings-modal__avatar-placeholder" aria-hidden="true">
-									<img
-										src={avatarImage}
-										alt="Profile placeholder"
-										className="settings-modal__avatar-placeholder-image"
+							<div className="settings-modal__password-inputs">
+								<div className="settings-modal__password-group">
+									<p className="settings-modal__hint">Enter your old password</p>
+									<Input
+										type="password"
+										className="settings-modal__input settings-modal__input--half"
+										inputClassName="input--unstyled"
+										value={oldPassword}
+										onChange={(event) => setOldPassword(event.target.value)}
+									/>
+								</div>
+								<div className="settings-modal__password-group">
+									<p className="settings-modal__hint">Enter your new password</p>
+									<Input
+										type="password"
+										className="settings-modal__input settings-modal__input--half"
+										inputClassName="input--unstyled"
+										value={newPassword}
+										onChange={(event) => setNewPassword(event.target.value)}
 									/>
 								</div>
 							</div>
 						</div>
-					)}
 
-					{activeTab === "account" && (
-						<div className="settings-modal__panel" role="tabpanel">
-							<div className="settings-modal__field">
-								<p className="settings-modal__label">Email</p>
-								<p className="settings-modal__hint">Change your email address</p>
-								<input
-									type="email"
-									className="settings-modal__input"
-									value={email}
-									onChange={(event) => setEmail(event.target.value)}
+						<div className="settings-modal__field">
+							<p className="settings-modal__label">Connected Accounts</p>
+							<div className="settings-modal__connected-account">
+								<img
+									src={googleLogo}
+									alt="Google logo"
+									className="settings-modal__google-logo"
 								/>
-							</div>
-
-							<div className="settings-modal__field">
-								<div className="settings-modal__password-labels">
-                                    <p className="settings-modal__label">Password</p>
+								<div className="settings-modal__connected-copy">
+									<p className="settings-modal__connected-title">Google</p>
+									<p className="settings-modal__connected-subtitle">
+										Connected as user@gmail.com
+									</p>
 								</div>
-								<div className="settings-modal__password-inputs">
-									<div className="settings-modal__password-group">
-                                        <p className="settings-modal__hint">Enter your old password</p>
-                                        <input
-                                            type="password"
-                                            className="settings-modal__input settings-modal__input--half"
-                                            value={oldPassword}
-                                            onChange={(event) => setOldPassword(event.target.value)}
-                                        />
-                                    </div>
-									<div className="settings-modal__password-group">
-                                        <p className="settings-modal__hint">Enter your new password</p>
-                                        <input
-                                            type="password"
-                                            className="settings-modal__input settings-modal__input--half"
-                                            value={newPassword}
-                                            onChange={(event) => setNewPassword(event.target.value)}
-                                        />
-                                    </div>
-								</div>
-							</div>
-
-							<div className="settings-modal__field">
-								<p className="settings-modal__label">Connected Accounts</p>
-								<div className="settings-modal__connected-account">
-									<img
-										src={googleLogo}
-										alt="Google logo"
-										className="settings-modal__google-logo"
-									/>
-									<div className="settings-modal__connected-copy">
-										<p className="settings-modal__connected-title">Google</p>
-										<p className="settings-modal__connected-subtitle">
-											Connected as user@gmail.com
-										</p>
-									</div>
-									<button type="button" className="settings-modal__disconnect-button">
-										Disconnect
-									</button>
-								</div>
+								<Button type="button" variant="secondary" className="settings-modal__disconnect-button">
+									Disconnect
+								</Button>
 							</div>
 						</div>
-					)}
-				</section>
-			</div>
-		</div>
+					</div>
+				)}
+			</section>
+		</ModalShell>
 	)
 }
 

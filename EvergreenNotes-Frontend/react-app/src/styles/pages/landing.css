@@ -243,7 +243,7 @@ body {
     transform: rotate(-6deg);
 }
 
-.navbar,
+.landing-navbar,
 .landing-page,
 .site-footer {
     position: relative;
@@ -285,7 +285,7 @@ img {
     text-align: center;
 }
 
-.navbar {
+.landing-navbar {
     position: sticky;
     top: 0;
     z-index: 20;
@@ -298,7 +298,7 @@ img {
     border-bottom: 1px solid var(--color-border);
 }
 
-.navbar__item {
+.landing-navbar__item {
     display: inline-flex;
     align-items: center;
     gap: var(--space-xs);
@@ -313,41 +313,41 @@ img {
     transition: transform var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
-.navbar__item:hover {
+.landing-navbar__item:hover {
     transform: translateY(-1px);
     background-color: var(--color-surface);
 }
 
-.navbar__item--brand {
+.landing-navbar__item--brand {
     margin-right: auto;
     padding-left: 0;
 }
 
-.navbar__brand-logo,
-.navbar__icon {
+.landing-navbar__brand-logo,
+.landing-navbar__icon {
     width: 1.25rem;
     height: 1.25rem;
 }
 
-.navbar__icon {
+.landing-navbar__icon {
     filter: invert(1);
 }
 
-.navbar__brand-name {
+.landing-navbar__brand-name {
     font-weight: 700;
     letter-spacing: 0.01em;
 }
 
-.navbar__item--new-seed {
+.landing-navbar__item--new-seed {
     background-color: var(--color-primary);
     border: 1px solid transparent;
 }
 
-.navbar__item--new-seed:hover {
+.landing-navbar__item--new-seed:hover {
     background-color: var(--color-primary-hover);
 }
 
-.navbar__item--login {
+.landing-navbar__item--login {
     border: 1px solid var(--color-border);
 }
 
@@ -726,12 +726,12 @@ img {
 }
 
 @media (max-width: 768px) {
-    .navbar {
+    .landing-navbar {
         flex-wrap: wrap;
         justify-content: center;
     }
 
-    .navbar__item--brand {
+    .landing-navbar__item--brand {
         width: 100%;
         margin-right: 0;
         justify-content: center;
@@ -780,7 +780,7 @@ img {
 
     .hero-actions__item,
     .cta__action,
-    .navbar__item {
+    .landing-navbar__item {
         width: 100%;
         justify-content: center;
     }
@@ -806,3 +806,4 @@ img {
         filter: blur(66px);
     }
 }
+

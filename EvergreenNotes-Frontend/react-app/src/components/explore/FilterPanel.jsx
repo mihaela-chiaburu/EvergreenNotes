@@ -1,12 +1,12 @@
 import { useState } from "react"
-import "/src/styles/components/explore/explore-filter.css"
+import "../../styles/components/explore/explore-filter.css"
+import { useTagInput } from "../../hooks/useTagInput"
 
 function FilterPanel() {
   const [minNotes, setMinNotes] = useState("")
   const [maxNotes, setMaxNotes] = useState("")
   const [stateFilters, setStateFilters] = useState([])
-  const [tags, setTags] = useState([])
-  const [tagInput, setTagInput] = useState("")
+  const { tags, tagInput, setTagInput, handleTagKeyDown, removeTag } = useTagInput([])
 
   const toggleCheckboxValue = (value, setter) => {
     setter((previousValues) => {
@@ -16,32 +16,6 @@ function FilterPanel() {
 
       return [...previousValues, value]
     })
-  }
-
-  const handleTagKeyDown = (event) => {
-    if (event.key !== "Enter") {
-      return
-    }
-
-    event.preventDefault()
-    const normalizedTag = tagInput.trim()
-
-    if (!normalizedTag) {
-      return
-    }
-
-    setTags((previousTags) => {
-      if (previousTags.some((tag) => tag.toLowerCase() === normalizedTag.toLowerCase())) {
-        return previousTags
-      }
-
-      return [...previousTags, normalizedTag]
-    })
-    setTagInput("")
-  }
-
-  const removeTag = (tagToRemove) => {
-    setTags((previousTags) => previousTags.filter((tag) => tag !== tagToRemove))
   }
 
   return (

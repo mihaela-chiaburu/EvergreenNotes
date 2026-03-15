@@ -1,4 +1,4 @@
-import "/src/styles/components/explore/garden-card.css"
+import "../../styles/components/explore/garden-card.css"
 import flower from "../../assets/images/stage-flower.png"
 
 function GardenCard({ garden, onClick }) {

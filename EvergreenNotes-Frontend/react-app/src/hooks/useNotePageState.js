@@ -1,0 +1,55 @@
+import { useMemo, useState } from "react"
+import { useLocation, useNavigate } from "react-router-dom"
+import { getIsoDate, getRandomRecentDateIso } from "../utils/date"
+import { useTagInput } from "./useTagInput"
+
+export function useNotePageState() {
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search])
+  const statePayload = location.state ?? {}
+
+  const initialTitle = statePayload.noteTitle?.trim() || queryParams.get("title")?.trim() || "Untitled note"
+  const initialTagName = statePayload.tagName?.trim() || queryParams.get("tag")?.trim() || "Garden"
+  const initialSource = statePayload.source?.trim() || ""
+
+  const fallbackDateIso = getRandomRecentDateIso()
+  const initialCreatedOn = getIsoDate(statePayload.createdOn || queryParams.get("createdOn")) || fallbackDateIso
+  const initialLastWatered = getIsoDate(statePayload.lastWatered || queryParams.get("lastWatered")) || initialCreatedOn
+  const initialTags = Array.isArray(statePayload.tags) && statePayload.tags.length > 0 ? statePayload.tags : [initialTagName]
+
+  const [title, setTitle] = useState(initialTitle)
+  const [source, setSource] = useState(initialSource)
+  const [body, setBody] = useState(statePayload.body ?? "")
+  const [createdOn, setCreatedOn] = useState(initialCreatedOn)
+  const [lastWatered, setLastWatered] = useState(initialLastWatered)
+  const [status, setStatus] = useState("Rough")
+  const [visibility, setVisibility] = useState("Private")
+
+  const tagState = useTagInput(initialTags)
+
+  const handleTagNavigation = () => {
+    navigate("/garden")
+  }
+
+  return {
+    initialTagName,
+    title,
+    setTitle,
+    source,
+    setSource,
+    body,
+    setBody,
+    createdOn,
+    setCreatedOn,
+    lastWatered,
+    setLastWatered,
+    status,
+    setStatus,
+    visibility,
+    setVisibility,
+    handleTagNavigation,
+    ...tagState,
+  }
+}

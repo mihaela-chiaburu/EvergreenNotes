@@ -75,21 +75,21 @@ function LandingPage() {
         <img className="side-decor__item side-decor__item--right side-decor__item--8" src={decor8} alt="" />
       </div>
 
-      <nav className="navbar">
-        <Link className="navbar__item navbar__item--brand" to="/">
-          <img className="navbar__brand-logo" src={logo} alt="evergreen logo" />
-          <p className="navbar__brand-name">EvergreenNotes</p>
+      <nav className="landing-navbar">
+        <Link className="landing-navbar__item landing-navbar__item--brand" to="/">
+          <img className="landing-navbar__brand-logo" src={logo} alt="evergreen logo" />
+          <p className="landing-navbar__brand-name">EvergreenNotes</p>
         </Link>
-        <Link className="navbar__item navbar__item--explore" to="/explore">
-          <img className="navbar__icon" src={exploreIcon} alt="explore icon" />
-          <p className="navbar__label">Explore</p>
+        <Link className="landing-navbar__item landing-navbar__item--explore" to="/explore">
+          <img className="landing-navbar__icon" src={exploreIcon} alt="explore icon" />
+          <p className="landing-navbar__label">Explore</p>
         </Link>
-        <button type="button" className="navbar__item navbar__item--new-seed" onClick={handleOpenRegister}>
-          <img className="navbar__icon" src={sproutIcon} alt="sprout icon" />
-          <p className="navbar__label">New Seed</p>
+        <button type="button" className="landing-navbar__item landing-navbar__item--new-seed" onClick={handleOpenRegister}>
+          <img className="landing-navbar__icon" src={sproutIcon} alt="sprout icon" />
+          <p className="landing-navbar__label">New Seed</p>
         </button>
-        <button type="button" className="navbar__item navbar__item--login" onClick={handleOpenLogin}>
-          <p className="navbar__label">Log In</p>
+        <button type="button" className="landing-navbar__item landing-navbar__item--login" onClick={handleOpenLogin}>
+          <p className="landing-navbar__label">Log In</p>
         </button>
       </nav>
 

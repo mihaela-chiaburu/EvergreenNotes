@@ -1,6 +1,6 @@
 import { useState } from "react"
-import arrowIcon from "/src/assets/images/arrow-down.png"
-import "/src/styles/components/garden/another-user-card-dropdown.css"
+import arrowIcon from "../../assets/images/arrow-down.png"
+import "../../styles/components/garden/another-user-card-dropdown.css"
 
 function AnotherUserCardDropdown({ user }) {
   const [isExpanded, setIsExpanded] = useState(false)

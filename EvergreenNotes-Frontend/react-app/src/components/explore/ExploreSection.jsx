@@ -4,12 +4,34 @@ import CategoryCard from "./CategoryCard"
 import GardenCard from "./GardenCard"
 import Pagination from "./Pagination"
 import { mockExploreGardens } from "../../data/mockExploreGardens"
-import "/src/styles/components/explore/explore-section.css"
+import "../../styles/components/explore/explore-section.css"
+
+const TAB_OPTIONS = ["Trending", "New", "Following"]
+const PAGE_SIZE = 6
 
 function ExploreSection() {
   const navigate = useNavigate()
   const [selectedTopic, setSelectedTopic] = useState("")
+  const [activeTab, setActiveTab] = useState("Trending")
+  const [currentPage, setCurrentPage] = useState(1)
   const isTopicSelected = Boolean(selectedTopic)
+
+  const gardensByTab = {
+    Trending: mockExploreGardens,
+    New: [...mockExploreGardens].reverse(),
+    Following: mockExploreGardens.filter((_, index) => index % 2 === 0),
+  }
+
+  const filteredByTopic = selectedTopic
+    ? gardensByTab[activeTab].filter((garden) =>
+        garden.tags.some((tag) => tag.toLowerCase() === selectedTopic.toLowerCase())
+      )
+    : gardensByTab[activeTab]
+
+  const totalPages = Math.max(1, Math.ceil(filteredByTopic.length / PAGE_SIZE))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+  const startIndex = (safeCurrentPage - 1) * PAGE_SIZE
+  const paginatedGardens = filteredByTopic.slice(startIndex, startIndex + PAGE_SIZE)
 
   const handleOpenUserGarden = (garden) => {
     navigate(`/garden/${garden.id}`, { state: { userGarden: garden } })
@@ -25,7 +47,10 @@ function ExploreSection() {
               <button
                 type="button"
                 className="explore-section__crumb explore-section__crumb--parent"
-                onClick={() => setSelectedTopic("")}
+                onClick={() => {
+                  setSelectedTopic("")
+                  setCurrentPage(1)
+                }}
               >
                 Explore
               </button>
@@ -37,9 +62,19 @@ function ExploreSection() {
           )}
         </div>
         <div className="explore-section__tabs">
-          <div className="explore-section__tab">Trending</div>
-          <div className="explore-section__tab">New</div>
-          <div className="explore-section__tab">Following</div>
+          {TAB_OPTIONS.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              className={`explore-section__tab ${activeTab === tab ? "explore-section__tab--active" : ""}`}
+              onClick={() => {
+                setActiveTab(tab)
+                setCurrentPage(1)
+              }}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
       </div>
       <div className="explore-section__content-block">
@@ -55,7 +90,7 @@ function ExploreSection() {
               <h3 className="explore-section__subtitle">Discover something new</h3>
             )}
             <div className="explore-section__garden-grid">
-              {mockExploreGardens.map((garden) => (
+              {paginatedGardens.map((garden) => (
                 <GardenCard
                   key={garden.id}
                   garden={garden}
@@ -66,7 +101,11 @@ function ExploreSection() {
           </div>
         </div>
         <div className="explore-section__pagination">
-          <Pagination />
+          <Pagination
+            currentPage={safeCurrentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </div>
       </div>
     </div>

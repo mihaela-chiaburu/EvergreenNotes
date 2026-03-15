@@ -1,6 +1,7 @@
 import { useState } from "react"
-import "/src/styles/components/garden/filter-panel.css"
-import arrow from "/src/assets/images/arrow-down.png"
+import "../../styles/components/garden/filter-panel.css"
+import arrow from "../../assets/images/arrow-down.png"
+import { useTagInput } from "../../hooks/useTagInput"
 
 function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
   const [isViewOpen, setIsViewOpen] = useState(true)
@@ -12,9 +13,7 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
   const [visibilityFilters, setVisibilityFilters] = useState([])
   const [noteStatusFilters, setNoteStatusFilters] = useState([])
   const [careStatusFilters, setCareStatusFilters] = useState([])
-
-  const [tags, setTags] = useState([])
-  const [tagInput, setTagInput] = useState("")
+  const { tags, tagInput, setTagInput, handleTagKeyDown, removeTag } = useTagInput([])
 
   const [nodeSize, setNodeSize] = useState(50)
   const [labelFontSize, setLabelFontSize] = useState(16)
@@ -36,32 +35,6 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
     if (typeof setView === "function") {
       setView(viewValue)
     }
-  }
-
-  const handleTagKeyDown = (event) => {
-    if (event.key !== "Enter") {
-      return
-    }
-
-    event.preventDefault()
-    const normalizedTag = tagInput.trim()
-
-    if (!normalizedTag) {
-      return
-    }
-
-    setTags((previousTags) => {
-      if (previousTags.some((tag) => tag.toLowerCase() === normalizedTag.toLowerCase())) {
-        return previousTags
-      }
-
-      return [...previousTags, normalizedTag]
-    })
-    setTagInput("")
-  }
-
-  const removeTag = (tagToRemove) => {
-    setTags((previousTags) => previousTags.filter((tag) => tag !== tagToRemove))
   }
 
   return (

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import "../styles/navbar.css"
+import { useDismiss } from "../hooks/useDismiss"
 
 import sprout from "../assets/images/sprout.png"
 import explore from "../assets/images/application (1).png"
@@ -22,35 +23,8 @@ function Navbar({ onOpenSettingsModal }) {
   const userDropdownRef = useRef(null)
   const visibilityDropdownRef = useRef(null)
 
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
-        setIsUserMenuOpen(false)
-      }
-
-      if (
-        visibilityDropdownRef.current &&
-        !visibilityDropdownRef.current.contains(event.target)
-      ) {
-        setIsVisibilityMenuOpen(false)
-      }
-    }
-
-    function handleEscapeKey(event) {
-      if (event.key === "Escape") {
-        setIsUserMenuOpen(false)
-        setIsVisibilityMenuOpen(false)
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside)
-    document.addEventListener("keydown", handleEscapeKey)
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-      document.removeEventListener("keydown", handleEscapeKey)
-    }
-  }, [])
+  useDismiss({ refs: [userDropdownRef], isOpen: isUserMenuOpen, onDismiss: () => setIsUserMenuOpen(false) })
+  useDismiss({ refs: [visibilityDropdownRef], isOpen: isVisibilityMenuOpen, onDismiss: () => setIsVisibilityMenuOpen(false) })
 
   const handleToggleUserMenu = () => {
     setIsUserMenuOpen((prev) => !prev)
@@ -80,17 +54,17 @@ function Navbar({ onOpenSettingsModal }) {
 
   return (
     <nav className="navbar">
-      <div className="nav-links">
+      <div className="navbar__links">
         <div className="dropdown dropdown--user" ref={userDropdownRef}>
           <button
             type="button"
-            className="user"
+            className="navbar__user-button"
             onClick={handleToggleUserMenu}
             aria-expanded={isUserMenuOpen}
             aria-haspopup="menu"
           >
-            <img src={avatar} alt="user avatar" className="profile-image" />
-            <p className="username">Mihaela</p>
+            <img src={avatar} alt="user avatar" className="navbar__profile-image" />
+            <p className="navbar__username">Mihaela</p>
             <img
               src={arrow}
               alt="arrow icon"
@@ -106,60 +80,60 @@ function Navbar({ onOpenSettingsModal }) {
                 role="menuitem"
                 onClick={handleOpenSettingsModal}
               >
-                <img src={settings} alt="settings icon" className="icons-navbar"/>
+                <img src={settings} alt="settings icon" className="navbar__icon"/>
                 Settings
               </button>
               <Link to="/help" className="dropdown-menu__item" role="menuitem">
-              <img src={help} alt="settings icon" className="icons-navbar"/>
+              <img src={help} alt="help icon" className="navbar__icon"/>
                 Help
               </Link>
               <Link to="/trash" className="dropdown-menu__item" role="menuitem">
-              <img src={trash} alt="settings icon" className="icons-navbar"/>
+              <img src={trash} alt="trash icon" className="navbar__icon"/>
                 Trash
               </Link>
               <Link to="/" className="dropdown-menu__item" role="menuitem">
-              <img src={logout} alt="settings icon" className="icons-navbar"/>
+              <img src={logout} alt="log out icon" className="navbar__icon"/>
                 Log out
               </Link>
             </div>
           )}
         </div>
 
-        <Link to="/garden" className={`garden${isGardenSelected ? " garden--selected" : ""}`}>
-          <img src={sprout} alt="sprout icon" className="icons-navbar"/>
+        <Link to="/garden" className={`navbar__link navbar__link--garden${isGardenSelected ? " navbar__link--selected" : ""}`}>
+          <img src={sprout} alt="sprout icon" className="navbar__icon"/>
           My Garden
         </Link>
 
-        <Link to="/explore" className={`explore${isExploreSelected ? " explore--selected" : ""}`}>
-          <img src={explore} alt="explore icon" className="icons-navbar"/>
+        <Link to="/explore" className={`navbar__link navbar__link--explore${isExploreSelected ? " navbar__link--selected" : ""}`}>
+          <img src={explore} alt="explore icon" className="navbar__icon"/>
           Explore
         </Link>
 
         <Link
           to="/garden-care"
-          className={`garden-care${isGardenCareSelected ? " garden-care--selected" : ""}`}>
-          <img src={gardenCare} alt="garden care icon" className="icons-navbar"/>
+          className={`navbar__link navbar__link--garden-care${isGardenCareSelected ? " navbar__link--selected" : ""}`}>
+          <img src={gardenCare} alt="garden care icon" className="navbar__icon"/>
           Garden Care
         </Link>
       </div>
-      <div className="search-wrapper">
-        <div className="search search-notes">
-          <img src={search} alt="search icon" className="search-icon" />
+      <div className="navbar__search-wrapper">
+        <div className="navbar__search">
+          <img src={search} alt="search icon" className="navbar__search-icon" />
           <input 
             type="text" 
             placeholder={searchPlaceholder}
-            className="search-input" 
+            className="navbar__search-input" 
           />
         </div>
         <div className="dropdown dropdown--visibility" ref={visibilityDropdownRef}>
           <button
             type="button"
-            className="visibility-togle"
+            className="navbar__visibility-toggle"
             onClick={handleToggleVisibilityMenu}
             aria-expanded={isVisibilityMenuOpen}
             aria-haspopup="menu"
           >
-            <p className="visibility--private">{visibility}</p>
+            <p className="navbar__visibility-label">{visibility}</p>
             <img
               src={arrow}
               alt="arrow icon"
