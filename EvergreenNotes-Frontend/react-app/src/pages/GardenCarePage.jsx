@@ -13,8 +13,12 @@ function GardenCarePage() {
         <StatsBar />
         <p className="garden-care-subtitle">Ready for reflection</p>
         <ReflectionCard />
+        <ReflectionCard />
         <p className="garden-care-subtitle">Growing</p>
         <GrowingCard />
+        <GrowingCard />
+        <GrowingCard />
+        
       </div>
     </Layout>
   )
