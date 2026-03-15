@@ -13,7 +13,7 @@ import trash from "../assets/images/trash.png"
 import logout from "../assets/images/logout.png"
 import avatar from "../assets/images/avatar.jpg"
 
-function Navbar() {
+function Navbar({ onOpenSettingsModal }) {
   const location = useLocation()
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isVisibilityMenuOpen, setIsVisibilityMenuOpen] = useState(false)
@@ -67,6 +67,11 @@ function Navbar() {
     setIsVisibilityMenuOpen(false)
   }
 
+  const handleOpenSettingsModal = () => {
+    onOpenSettingsModal()
+    setIsUserMenuOpen(false)
+  }
+
   const currentPath = location.pathname.replace(/\/+$/, "") || "/"
   const isGardenSelected = currentPath === "/" || currentPath === "/garden"
   const isExploreSelected = currentPath === "/explore"
@@ -94,10 +99,15 @@ function Navbar() {
 
           {isUserMenuOpen && (
             <div className="dropdown-menu" role="menu">
-              <Link to="/settings" className="dropdown-menu__item" role="menuitem">
+              <button
+                type="button"
+                className="dropdown-menu__item"
+                role="menuitem"
+                onClick={handleOpenSettingsModal}
+              >
                 <img src={settings} alt="settings icon" className="icons-navbar"/>
                 Settings
-              </Link>
+              </button>
               <Link to="/help" className="dropdown-menu__item" role="menuitem">
               <img src={help} alt="settings icon" className="icons-navbar"/>
                 Help

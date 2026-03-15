@@ -1,0 +1,266 @@
+.settings-modal-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 1000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(8, 14, 18, 0.35);
+	backdrop-filter: blur(8px);
+	padding: 24px;
+}
+
+.settings-modal {
+	position: relative;
+	width: min(920px, 100%);
+	min-height: 560px;
+	background: #425856;
+	border: 1px solid #719f86;
+	border-radius: 15px;
+	display: flex;
+	overflow: hidden;
+	color: #ffffff;
+}
+
+.settings-modal__close {
+	position: absolute;
+	top: 14px;
+	right: 16px;
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+	border: 1px solid rgba(255, 255, 255, 0.65);
+	background: rgba(255, 255, 255, 0.05);
+	color: #ffffff;
+	font-size: 18px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.settings-modal__close:hover {
+	background: rgba(255, 255, 255, 0.14);
+}
+
+.settings-modal__sidebar {
+	width: 280px;
+	flex-shrink: 0;
+	background: #809289;
+	padding: 24px 24px;
+	display: flex;
+	flex-direction: column;
+	gap: 22px;
+}
+
+.settings-modal__sidebar-title {
+	margin: 0;
+	color: rgba(255, 255, 255, 0.6);
+	font-size: 16px;
+	line-height: 1;
+}
+
+.settings-modal__profile {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.settings-modal__profile-image {
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	object-fit: cover;
+	border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.settings-modal__profile-name {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 500;
+}
+
+.settings-modal__tabs {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.settings-modal__tab {
+	border: none;
+	background: transparent;
+	color: #ffffff;
+	text-align: left;
+	font: inherit;
+	font-size: 20px;
+	cursor: pointer;
+	padding: 6px 12px;
+	border-radius: 999px;
+	width: fit-content;
+}
+
+.settings-modal__tab--active {
+	background: #b0cb9b;
+	color: #ffffff;
+}
+
+.settings-modal__content {
+	width: 100%;
+	padding: 56px 48px 42px;
+}
+
+.settings-modal__panel {
+	display: flex;
+	flex-direction: column;
+	gap: 28px;
+}
+
+.settings-modal__field {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.settings-modal__label {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 600;
+}
+
+.settings-modal__hint {
+	margin: 0;
+	color: rgba(255, 255, 255, 0.5);
+	font-size: 14px;
+}
+
+.settings-modal__input {
+	width: 100%;
+	height: 44px;
+	border-radius: 9px;
+	border: 1px solid #ffffff;
+	background: rgba(0, 0, 0, 0.08);
+	color: #ffffff;
+	padding: 10px 14px;
+	font: inherit;
+}
+
+.settings-modal__input:focus {
+	outline: 2px solid rgba(176, 203, 155, 0.65);
+	outline-offset: 1px;
+}
+
+.settings-modal__field--avatar {
+	margin-top: 2px;
+}
+
+.settings-modal__avatar-placeholder {
+	width: 64px;
+	height: 64px;
+	border-radius: 50%;
+	border: 1px solid rgba(255, 255, 255, 0.85);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	background: rgba(0, 0, 0, 0.15);
+}
+
+.settings-modal__avatar-placeholder-image {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.settings-modal__password-inputs {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+}
+
+.settings-modal__password-labels {
+	display: block;
+}
+
+.settings-modal__password-group {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+}
+
+.settings-modal__password-group .settings-modal__hint {
+	display: block;
+}
+
+.settings-modal__input--half {
+	min-width: 0;
+}
+
+.settings-modal__connected-account {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 12px;
+	border-radius: 10px;
+	border: 1px solid rgba(255, 255, 255, 0.3);
+	background: rgba(0, 0, 0, 0.12);
+}
+
+.settings-modal__google-logo {
+	width: 28px;
+	height: 28px;
+	object-fit: contain;
+}
+
+.settings-modal__connected-copy {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin-right: auto;
+}
+
+.settings-modal__connected-title,
+.settings-modal__connected-subtitle {
+	margin: 0;
+}
+
+.settings-modal__connected-subtitle {
+	color: rgba(255, 255, 255, 0.75);
+	font-size: 13px;
+}
+
+.settings-modal__disconnect-button {
+	height: 36px;
+	border-radius: 9px;
+	border: 1px solid #ffffff;
+	background: transparent;
+	color: #ffffff;
+	font: inherit;
+	padding: 0 14px;
+	cursor: pointer;
+}
+
+.settings-modal__disconnect-button:hover {
+	background: rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 860px) {
+	.settings-modal {
+		min-height: auto;
+		flex-direction: column;
+		max-height: calc(100vh - 40px);
+		overflow-y: auto;
+	}
+
+	.settings-modal__sidebar {
+		width: 100%;
+		gap: 18px;
+	}
+
+	.settings-modal__content {
+		padding: 26px 20px 24px;
+	}
+
+	.settings-modal__password-labels,
+	.settings-modal__password-inputs {
+		grid-template-columns: 1fr;
+	}
+}

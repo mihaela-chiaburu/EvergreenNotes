@@ -1,5 +1,6 @@
 // src/App.jsx
 import { BrowserRouter, Routes, Route } from "react-router-dom"
+import LandingPage from "./pages/LandingPage"
 import GardenPage from "./pages/GardenPage"
 import ExplorePage from "./pages/ExplorePage"
 import GardenCarePage from "./pages/GardenCarePage"
@@ -10,7 +11,11 @@ function App() {
       <Routes>
         {/* Garden */}
         <Route path="/" element={
-          <GardenPage />
+          <LandingPage />
+        } />
+
+        <Route path="/landing" element={
+          <LandingPage />
         } />
 
         <Route path="/garden" element={
