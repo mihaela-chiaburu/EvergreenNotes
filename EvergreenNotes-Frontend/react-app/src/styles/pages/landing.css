@@ -304,6 +304,10 @@ img {
     gap: var(--space-xs);
     padding: var(--space-sm) var(--space-md);
     border-radius: var(--radius-pill);
+    border: none;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
     color: var(--color-text);
     text-decoration: none;
     transition: transform var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
@@ -390,6 +394,10 @@ img {
     gap: var(--space-xs);
     padding: var(--space-sm) var(--space-lg);
     border-radius: var(--radius-pill);
+    border: none;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
     font-weight: 600;
     color: var(--color-text);
     text-decoration: none;

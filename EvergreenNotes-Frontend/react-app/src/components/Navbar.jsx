@@ -116,7 +116,7 @@ function Navbar({ onOpenSettingsModal }) {
               <img src={trash} alt="settings icon" className="icons-navbar"/>
                 Trash
               </Link>
-              <Link to="/login" className="dropdown-menu__item" role="menuitem">
+              <Link to="/" className="dropdown-menu__item" role="menuitem">
               <img src={logout} alt="settings icon" className="icons-navbar"/>
                 Log out
               </Link>

@@ -1,4 +1,7 @@
+import { useState } from "react"
 import { Link } from "react-router-dom"
+import LoginModal from "../components/modals/LoginModal"
+import RegisterModal from "../components/modals/RegisterModal"
 import logo from "../assets/images/logo.png"
 import exploreIcon from "../assets/images/application (1).png"
 import sproutIcon from "../assets/images/sprout.png"
@@ -24,6 +27,28 @@ import featureExtension from "../assets/images/extension-white.png"
 import "../styles/pages/landing.css"
 
 function LandingPage() {
+  const [authModal, setAuthModal] = useState(null)
+
+  const handleOpenLogin = () => {
+    setAuthModal("login")
+  }
+
+  const handleOpenRegister = () => {
+    setAuthModal("register")
+  }
+
+  const handleCloseAuthModal = () => {
+    setAuthModal(null)
+  }
+
+  const handleSwitchToRegister = () => {
+    setAuthModal("register")
+  }
+
+  const handleSwitchToLogin = () => {
+    setAuthModal("login")
+  }
+
   return (
     <>
       <div className="space-sky" aria-hidden="true">
@@ -59,13 +84,13 @@ function LandingPage() {
           <img className="navbar__icon" src={exploreIcon} alt="explore icon" />
           <p className="navbar__label">Explore</p>
         </Link>
-        <Link className="navbar__item navbar__item--new-seed" to="/garden">
+        <button type="button" className="navbar__item navbar__item--new-seed" onClick={handleOpenRegister}>
           <img className="navbar__icon" src={sproutIcon} alt="sprout icon" />
           <p className="navbar__label">New Seed</p>
-        </Link>
-        <Link className="navbar__item navbar__item--login" to="/garden">
+        </button>
+        <button type="button" className="navbar__item navbar__item--login" onClick={handleOpenLogin}>
           <p className="navbar__label">Log In</p>
-        </Link>
+        </button>
       </nav>
 
       <main className="landing-page">
@@ -76,10 +101,10 @@ function LandingPage() {
             <p className="hero__subtitle">Build your digital garden with evolving notes</p>
           </div>
           <div className="hero-actions">
-            <Link className="hero-actions__item hero-actions__item--primary" to="/garden">
+            <button type="button" className="hero-actions__item hero-actions__item--primary" onClick={handleOpenRegister}>
               <img className="hero-actions__icon" src={sproutIcon} alt="sprout icon" />
               <p className="hero-actions__label">Start Your Garden</p>
-            </Link>
+            </button>
             <Link className="hero-actions__item hero-actions__item--secondary" to="/explore">
               <img className="hero-actions__icon" src={exploreIcon} alt="explore icon" />
               <p className="hero-actions__label">Explore gardens</p>
@@ -171,16 +196,28 @@ function LandingPage() {
         <section className="cta">
           <p className="cta__description">Built for those who want to reduce content consumption and improve memorization.</p>
           <p className="cta__title">Your ideas deserve to grow</p>
-          <Link className="cta__action" to="/garden">
+          <button type="button" className="cta__action" onClick={handleOpenRegister}>
             <img className="cta__icon" src={sproutIcon} alt="sprout icon" />
             <p className="cta__label">Plant your seed</p>
-          </Link>
+          </button>
         </section>
       </main>
 
       <footer className="site-footer">
         <p className="site-footer__text">&copy; 2026 EvergreenNotes. All rights reserved.</p>
       </footer>
+
+    <LoginModal
+      isOpen={authModal === "login"}
+      onClose={handleCloseAuthModal}
+      onSwitchToRegister={handleSwitchToRegister}
+    />
+
+    <RegisterModal
+      isOpen={authModal === "register"}
+      onClose={handleCloseAuthModal}
+      onSwitchToLogin={handleSwitchToLogin}
+    />
     </>
   )
 }
