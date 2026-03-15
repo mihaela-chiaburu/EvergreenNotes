@@ -4,6 +4,7 @@ import LandingPage from "./pages/LandingPage"
 import GardenPage from "./pages/GardenPage"
 import ExplorePage from "./pages/ExplorePage"
 import GardenCarePage from "./pages/GardenCarePage"
+import UserGarden from "./pages/UserGarden"
 
 function App() {
   return (
@@ -20,6 +21,10 @@ function App() {
 
         <Route path="/garden" element={
           <GardenPage />
+        } />
+
+        <Route path="/garden/:userId" element={
+          <UserGarden />
         } />
 
         {/* Explore */}

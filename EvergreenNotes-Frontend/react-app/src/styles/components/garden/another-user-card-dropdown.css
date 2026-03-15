@@ -1,0 +1,107 @@
+.another-user-card {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 5;
+  width: min(520px, calc(100vw - 40px));
+  appearance: none;
+  border: 1px solid #ffffff;
+  border-radius: 15px;
+  background: rgba(66, 88, 86, 0.84);
+  color: #ffffff;
+  padding: 15px 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  pointer-events: auto;
+  cursor: pointer;
+  text-align: left;
+}
+
+.another-user-card__main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.another-user-card__avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.another-user-card__user {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.another-user-card__name {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.another-user-card__bio {
+  font-size: 14px;
+  opacity: 0.9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.another-user-card__arrow {
+  margin-left: auto;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  filter: invert(1);
+  transition: transform 0.2s ease;
+}
+
+.another-user-card__arrow--open {
+  transform: rotate(180deg);
+}
+
+.another-user-card__stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 16px;
+}
+
+.another-user-card__stat-item {
+  font-weight: 700;
+}
+
+.another-user-card__follow {
+  background: #8ebf84;
+  border-radius: 12px;
+  color: #ffffff;
+  padding: 6px 14px;
+  font-weight: 600;
+}
+
+@media (max-width: 700px) {
+  .another-user-card {
+    left: 12px;
+    top: 12px;
+    width: calc(100vw - 24px);
+    padding: 12px;
+  }
+
+  .another-user-card__name {
+    font-size: 16px;
+  }
+
+  .another-user-card__bio {
+    font-size: 13px;
+  }
+
+  .another-user-card__stats {
+    font-size: 13px;
+    flex-wrap: wrap;
+  }
+}

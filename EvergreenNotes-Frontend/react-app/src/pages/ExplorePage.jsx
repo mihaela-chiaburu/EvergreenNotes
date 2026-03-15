@@ -1,4 +1,3 @@
-import { useState } from "react"
 import Layout from "../components/Layout"
 import FilterPanel from "../components/explore/FilterPanel"
 import ExploreSection from "../components/explore/ExploreSection"

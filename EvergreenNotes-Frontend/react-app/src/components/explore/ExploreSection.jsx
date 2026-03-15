@@ -1,13 +1,19 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import CategoryCard from "./CategoryCard"
 import GardenCard from "./GardenCard"
 import Pagination from "./Pagination"
+import { mockExploreGardens } from "../../data/mockExploreGardens"
 import "/src/styles/components/explore/explore-section.css"
 
 function ExploreSection() {
-  const gardenCards = Array.from({ length: 6 })
+  const navigate = useNavigate()
   const [selectedTopic, setSelectedTopic] = useState("")
   const isTopicSelected = Boolean(selectedTopic)
+
+  const handleOpenUserGarden = (garden) => {
+    navigate(`/garden/${garden.id}`, { state: { userGarden: garden } })
+  }
 
   return (
     <div className="explore-section">
@@ -49,8 +55,12 @@ function ExploreSection() {
               <h3 className="explore-section__subtitle">Discover something new</h3>
             )}
             <div className="explore-section__garden-grid">
-              {gardenCards.map((_, index) => (
-                <GardenCard key={index} />
+              {mockExploreGardens.map((garden) => (
+                <GardenCard
+                  key={garden.id}
+                  garden={garden}
+                  onClick={() => handleOpenUserGarden(garden)}
+                />
               ))}
             </div>
           </div>

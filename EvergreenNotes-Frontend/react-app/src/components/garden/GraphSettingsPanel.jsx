@@ -2,7 +2,7 @@ import { useState } from "react"
 import "/src/styles/components/garden/filter-panel.css"
 import arrow from "/src/assets/images/arrow-down.png"
 
-function GraphSettingsPanel({ setView }) {
+function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
   const [isViewOpen, setIsViewOpen] = useState(true)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
@@ -126,56 +126,60 @@ function GraphSettingsPanel({ setView }) {
 
         {isFilterOpen && (
           <div className="floating-control-panel__content">
-            <div className="floating-control-panel__filter-group floating-control-panel__filter-group--visibility">
-              <p className="floating-control-panel__group-title">By visibility</p>
-              <label className="floating-control-panel__check-item">
-                <input
-                  type="checkbox"
-                  checked={visibilityFilters.includes("public")}
-                  onChange={() => toggleCheckboxValue("public", setVisibilityFilters)}
-                />
-                <span>Public</span>
-              </label>
-              <label className="floating-control-panel__check-item">
-                <input
-                  type="checkbox"
-                  checked={visibilityFilters.includes("private")}
-                  onChange={() => toggleCheckboxValue("private", setVisibilityFilters)}
-                />
-                <span>Private</span>
-              </label>
-            </div>
+            {!isAnotherUserGarden && (
+              <div className="floating-control-panel__filter-group floating-control-panel__filter-group--visibility">
+                <p className="floating-control-panel__group-title">By visibility</p>
+                <label className="floating-control-panel__check-item">
+                  <input
+                    type="checkbox"
+                    checked={visibilityFilters.includes("public")}
+                    onChange={() => toggleCheckboxValue("public", setVisibilityFilters)}
+                  />
+                  <span>Public</span>
+                </label>
+                <label className="floating-control-panel__check-item">
+                  <input
+                    type="checkbox"
+                    checked={visibilityFilters.includes("private")}
+                    onChange={() => toggleCheckboxValue("private", setVisibilityFilters)}
+                  />
+                  <span>Private</span>
+                </label>
+              </div>
+            )}
+
+            {!isAnotherUserGarden && (
+              <div className="floating-control-panel__filter-group">
+                <p className="floating-control-panel__group-title">By note status</p>
+                <label className="floating-control-panel__check-item">
+                  <input
+                    type="checkbox"
+                    checked={noteStatusFilters.includes("rough")}
+                    onChange={() => toggleCheckboxValue("rough", setNoteStatusFilters)}
+                  />
+                  <span>Rough</span>
+                </label>
+                <label className="floating-control-panel__check-item">
+                  <input
+                    type="checkbox"
+                    checked={noteStatusFilters.includes("polished")}
+                    onChange={() => toggleCheckboxValue("polished", setNoteStatusFilters)}
+                  />
+                  <span>Polished</span>
+                </label>
+                <label className="floating-control-panel__check-item">
+                  <input
+                    type="checkbox"
+                    checked={noteStatusFilters.includes("needs-care")}
+                    onChange={() => toggleCheckboxValue("needs-care", setNoteStatusFilters)}
+                  />
+                  <span>Needs care</span>
+                </label>
+              </div>
+            )}
 
             <div className="floating-control-panel__filter-group">
-              <p className="floating-control-panel__group-title">By note status</p>
-              <label className="floating-control-panel__check-item">
-                <input
-                  type="checkbox"
-                  checked={noteStatusFilters.includes("rough")}
-                  onChange={() => toggleCheckboxValue("rough", setNoteStatusFilters)}
-                />
-                <span>Rough</span>
-              </label>
-              <label className="floating-control-panel__check-item">
-                <input
-                  type="checkbox"
-                  checked={noteStatusFilters.includes("polished")}
-                  onChange={() => toggleCheckboxValue("polished", setNoteStatusFilters)}
-                />
-                <span>Polished</span>
-              </label>
-              <label className="floating-control-panel__check-item">
-                <input
-                  type="checkbox"
-                  checked={noteStatusFilters.includes("needs-care")}
-                  onChange={() => toggleCheckboxValue("needs-care", setNoteStatusFilters)}
-                />
-                <span>Needs care</span>
-              </label>
-            </div>
-
-            <div className="floating-control-panel__filter-group">
-              <p className="floating-control-panel__group-title">By care status</p>
+              <p className="floating-control-panel__group-title">By Care State</p>
               <label className="floating-control-panel__check-item">
                 <input
                   type="checkbox"
@@ -203,7 +207,7 @@ function GraphSettingsPanel({ setView }) {
             </div>
 
             <div className="floating-control-panel__filter-group">
-              <p className="floating-control-panel__group-title">By tags</p>
+              <p className="floating-control-panel__group-title">By Tags</p>
               <div className="floating-control-panel__tags" aria-live="polite">
                 {tags.map((tag) => (
                   <span key={tag} className="floating-control-panel__tag">

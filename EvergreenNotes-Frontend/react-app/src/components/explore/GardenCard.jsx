@@ -1,39 +1,49 @@
 import "/src/styles/components/explore/garden-card.css"
-import avatar from "../../assets/images/avatar-user3.jpg"
 import flower from "../../assets/images/stage-flower.png"
 
-function GardenCard() {
+function GardenCard({ garden, onClick }) {
+  const {
+    userName,
+    userBio,
+    avatar,
+    tags,
+    noteCount,
+    gardenState,
+    recentNoteTitle,
+    recentNoteText,
+  } = garden
+
   return (
-    <div className="garden-card">
+    <button type="button" className="garden-card" onClick={onClick}>
       <div className="garden-card__content">
         <div className="garden-card__image">
           <div className="garden-card__user-wrapper">
             <img src={avatar} alt="avatar-garden" className="garden-card__image-content" />
             <div className="garden-card__title">
-              <p>User's Garden</p>
-              <p className="garden-card__user-bio">User's bio</p>
+              <p className="garden-card__user-name">{userName}</p>
+              <p className="garden-card__user-bio">{userBio}</p>
             </div>
           </div>
           <div className="garden-card__tags">
-            <div className="garden-card__tag">tag1</div>
-            <div className="garden-card__tag">tag2</div>
-            <div className="garden-card__tag">tag3</div>
+            {tags.map((tag) => (
+              <div key={tag} className="garden-card__tag">{tag}</div>
+            ))}
           </div>
           <div className="garden-card__garden-info">
-            <div className="garden-card__info">100 notes</div>
+            <div className="garden-card__info">{noteCount} notes</div>
             <div> | </div>
-            <div className="garden-card__info">Growing Garden</div>
+            <div className="garden-card__info">{gardenState}</div>
           </div>
         </div>
         <div className="garden-card__notes">
           <img src={flower} alt="flower" className="garden-card__notes-image"/>
           <div className="garden-card__notes-content">
-            <p className="garden-card__notes-title">Recent note</p>
-            <p className="garden-card__notes-text">Dante Alighieri Divina comedie personaje</p>
+            <p className="garden-card__notes-title">{recentNoteTitle}</p>
+            <p className="garden-card__notes-text">{recentNoteText}</p>
           </div>
         </div>
       </div>
-    </div>
+    </button>
   )
 }
 

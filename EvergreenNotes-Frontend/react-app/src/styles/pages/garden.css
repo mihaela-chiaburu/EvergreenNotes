@@ -32,3 +32,13 @@
   left: 50%;
   transform: translateX(-50%);
 }
+
+.garden-page--another-user .garden-list-view {
+  top: 125px;
+}
+
+@media (max-width: 960px) {
+  .garden-page--another-user .garden-list-view {
+    top: 132px;
+  }
+}

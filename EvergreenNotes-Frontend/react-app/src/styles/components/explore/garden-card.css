@@ -1,3 +1,13 @@
+.garden-card {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 0;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+}
+
 .garden-card__content{
     width: 100%;
     background-color: #425856;
@@ -13,9 +23,28 @@
 }
 
 .garden-card__image-content{
-    width: 50px;
-    height: 50px;
+    width: 100%;
+    max-width: 50px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    flex-shrink: 0;
     border-radius: 50%;
+    object-fit: cover;
+    display: block;
+}
+
+.garden-card__title {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.garden-card__user-name {
+    font-size: 19px;
+    font-weight: 700;
 }
 
 .garden-card__user-wrapper{
@@ -23,11 +52,20 @@
     display: flex;
     align-content: flex-end;
     gap: 10px;
+    width: 100%;
+    min-width: 0;
 }
 
 .garden-card__user-bio{
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     font-size: 14px;
     opacity: 0.8;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .garden-card__notes-image{
@@ -92,4 +130,10 @@
 .garden-card__notes-title{
     font-weight: 600;
     font-size: 16px;
+}
+
+.garden-card:hover .garden-card__content,
+.garden-card:focus-visible .garden-card__content {
+    border-color: #9ad5a1;
+    box-shadow: 0 0 0 2px rgba(154, 213, 161, 0.22);
 }
