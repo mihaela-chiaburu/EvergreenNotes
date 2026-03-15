@@ -13,15 +13,20 @@
   width: 38px;
   height: 38px;
   border-radius: 50%;
+  border: none;
   background-color: #15703e;
   color: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 28px;
-  /*font-weight: 700;*/
+  cursor: pointer;
   line-height: 1;
   flex-shrink: 0;
+}
+
+.add-note-input__icon:hover {
+  background-color: #1a8148;
 }
 
 .add-note-input__input {

@@ -74,6 +74,19 @@
   border-radius: 15px;
   padding: 12px;
   box-sizing: border-box;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.garden-list-view__item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(163, 211, 183, 0.9);
+  background-color: #4a6361;
+}
+
+.garden-list-view__item:focus-visible {
+  outline: 2px solid rgba(200, 240, 220, 0.9);
+  outline-offset: 2px;
 }
 
 .garden-list-view__item p,

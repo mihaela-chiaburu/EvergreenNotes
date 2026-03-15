@@ -1,5 +1,6 @@
 // src/components/garden/GardenGraphView.jsx
 import { useEffect, useRef } from "react"
+import { useNavigate } from "react-router-dom"
 import cytoscape from "cytoscape"
 import { mockGardenGraph } from "../../data/mockGardenGraph"
 import leafSvg from "../../assets/images/leaf.svg"
@@ -7,6 +8,7 @@ import "../../styles/components/garden/graph-view.css"
 
 function GardenGraphView() {
   const graphContainerRef = useRef(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!graphContainerRef.current) {
@@ -67,13 +69,29 @@ function GardenGraphView() {
       cy.fit(undefined, 40)
     }
 
+    cy.on("tap", "node", (event) => {
+      const nodeData = event.target.data()
+      const noteTitle = nodeData.label || "Untitled note"
+
+      navigate(
+        `/note?title=${encodeURIComponent(noteTitle)}&tag=${encodeURIComponent(nodeData.label || "Garden")}`,
+        {
+          state: {
+            noteTitle,
+            tagName: nodeData.label || "Garden",
+            tags: [nodeData.label || "Garden"]
+          }
+        }
+      )
+    })
+
     window.addEventListener("resize", handleResize)
 
     return () => {
       window.removeEventListener("resize", handleResize)
       cy.destroy()
     }
-  }, [])
+  }, [navigate])
 
   return (
     <div className="garden-view garden-graph-view" aria-label="Garden graph view">

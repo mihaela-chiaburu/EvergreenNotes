@@ -1,8 +1,11 @@
 // src/components/garden/GardenListView.jsx
+import { useNavigate } from "react-router-dom"
 import leafSvg from "../../assets/images/leaf.svg"
 import "../../styles/components/garden/list-view.css"
 
 function GardenListView() {
+  const navigate = useNavigate()
+
   const demoNotes = [
     {
       id: 1,
@@ -11,6 +14,9 @@ function GardenListView() {
       status: "Polished",
       tags: ["Planning", "Research", "Roadmap"],
       text: "Drafted the main milestones and linked each idea to one concrete next action.",
+      source: "Project Planning Sync",
+      createdOn: "2026-12-03",
+      lastWatered: "2026-12-09"
     },
     {
       id: 2,
@@ -19,6 +25,9 @@ function GardenListView() {
       status: "Needs care",
       tags: ["React", "Auth"],
       text: "The login flow works, but error handling and reset states still need cleanup.",
+      source: "Auth cleanup board",
+      createdOn: "2026-11-27",
+      lastWatered: "2026-12-02"
     },
     {
       id: 3,
@@ -27,6 +36,9 @@ function GardenListView() {
       status: "Rough",
       tags: ["UX", "Graph", "Nodes"],
       text: "Users understand connections quickly when labels are short and high-contrast.",
+      source: "UX experiment notes",
+      createdOn: "2026-11-16",
+      lastWatered: "2026-11-19"
     },
     {
       id: 4,
@@ -35,6 +47,9 @@ function GardenListView() {
       status: "Polished",
       tags: ["Writing", "Templates"],
       text: "Created a reusable note structure with context, insight, and action sections.",
+      source: "Writing session",
+      createdOn: "2026-11-08",
+      lastWatered: "2026-11-14"
     },
     {
       id: 5,
@@ -43,6 +58,9 @@ function GardenListView() {
       status: "Healthy",
       tags: ["Taxonomy", "Tags"],
       text: "Reduced redundant tags and grouped similar concepts under a shared parent label.",
+      source: "Taxonomy workshop",
+      createdOn: "2026-10-28",
+      lastWatered: "2026-11-01"
     },
     {
       id: 6,
@@ -51,8 +69,31 @@ function GardenListView() {
       status: "Needs care",
       tags: ["Backlog", "Priority"],
       text: "Several old notes are still valuable, but they need updated links and examples.",
+      source: "Weekly review",
+      createdOn: "2026-10-15",
+      lastWatered: "2026-10-20"
     },
   ]
+
+  const handleOpenNote = (note) => {
+    const primaryTag = note.tags[0] || "Garden"
+
+    navigate(
+      `/note?title=${encodeURIComponent(note.title)}&tag=${encodeURIComponent(primaryTag)}`,
+      {
+        state: {
+          noteTitle: note.title,
+          tagName: primaryTag,
+          tags: note.tags,
+          status: note.status === "Polished" ? "Polished" : "Rough",
+          source: note.source,
+          body: note.text,
+          createdOn: note.createdOn,
+          lastWatered: note.lastWatered
+        }
+      }
+    )
+  }
 
   return (
     <div className="garden-view garden-list-view">
@@ -70,7 +111,20 @@ function GardenListView() {
 
       <div className="garden-list-view__list garden-list-view__canvas">
         {demoNotes.map((note) => (
-          <article key={note.id} className="garden-list-view__item">
+          <article
+            key={note.id}
+            className="garden-list-view__item"
+            onClick={() => handleOpenNote(note)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault()
+                handleOpenNote(note)
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label={`Open note ${note.title}`}
+          >
             <div className="garden-list-view__item-media" aria-hidden="true">
               <img src={leafSvg} alt="" className="garden-list-view__item-image" />
             </div>
