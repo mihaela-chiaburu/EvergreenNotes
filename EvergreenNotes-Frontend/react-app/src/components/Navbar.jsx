@@ -76,6 +76,7 @@ function Navbar({ onOpenSettingsModal }) {
   const isGardenSelected = currentPath === "/" || currentPath === "/garden"
   const isExploreSelected = currentPath === "/explore"
   const isGardenCareSelected = currentPath === "/garden-care"
+  const searchPlaceholder = isExploreSelected ? "Search users..." : "Search notes..."
 
   return (
     <nav className="navbar">
@@ -146,7 +147,7 @@ function Navbar({ onOpenSettingsModal }) {
           <img src={search} alt="search icon" className="search-icon" />
           <input 
             type="text" 
-            placeholder="Search notes..." 
+            placeholder={searchPlaceholder}
             className="search-input" 
           />
         </div>
