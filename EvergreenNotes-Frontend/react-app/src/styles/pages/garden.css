@@ -4,8 +4,11 @@
 
 .garden-page {
   position: relative;
+  height: calc(100vh - 110px);
+  height: calc(100dvh - 110px);
   min-height: calc(100vh - 110px);
   min-height: calc(100dvh - 110px);
+  overflow: hidden;
 }
 
 .user-bio {
@@ -19,6 +22,7 @@
   justify-content: center;
   align-items: stretch;
   height: 100%;
+  min-height: 100%;
 }
 
 .graph-settings {

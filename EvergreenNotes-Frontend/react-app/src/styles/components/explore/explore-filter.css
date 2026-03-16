@@ -4,9 +4,11 @@
 	width: min(340px, calc(100vw - 40px));
 	padding: 18px;
 	border-radius: 16px;
-	border: 1px solid rgba(167, 180, 174, 0.34);
-	background: #4B6364;
-	box-shadow: 0 14px 30px rgba(38, 51, 45, 0.16);
+	border: 1px solid rgba(255, 255, 255, 0.42);
+	background: linear-gradient(160deg, rgba(255, 255, 255, 0.22) 0%, rgba(232, 245, 238, 0.14) 55%, rgba(215, 233, 224, 0.1) 100%);
+	box-shadow: 0 14px 34px rgba(8, 18, 14, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+	backdrop-filter: blur(18px) saturate(128%);
+	-webkit-backdrop-filter: blur(18px) saturate(128%);
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
@@ -53,15 +55,19 @@
 	width: 100%;
 	padding: 9px 11px;
 	border-radius: 10px;
-	border: 1px solid #b8c9c0;
-	background: #ffffff;
+	border: 1px solid rgba(255, 255, 255, 0.46);
+	background: rgba(255, 255, 255, 0.14);
 	font-size: 13px;
-	color: #253c34;
+	color: #eef6f1;
+}
+
+.explore-filter-panel__range-input::placeholder {
+	color: rgba(236, 245, 240, 0.72);
 }
 
 .explore-filter-panel__range-input:focus {
-	border-color: #3e6755;
-	box-shadow: 0 0 0 3px rgba(79, 132, 107, 0.16);
+	border-color: rgba(255, 255, 255, 0.68);
+	box-shadow: 0 0 0 3px rgba(236, 247, 241, 0.2);
 	outline: none;
 }
 
@@ -82,16 +88,16 @@
 	gap: 6px;
 	padding: 4px 10px;
 	border-radius: 999px;
-	border: 1px solid #bfd0c7;
-	background: #edf3ef;
-	color: #254036;
+	border: 1px solid rgba(255, 255, 255, 0.46);
+	background: rgba(255, 255, 255, 0.2);
+	color: #f5faf7;
 	font-size: 13px;
 }
 
 .explore-filter-panel__tag-remove {
 	border: none;
 	background: transparent;
-	color: #4c665c;
+	color: rgba(245, 250, 247, 0.9);
 	font-size: 13px;
 	cursor: pointer;
 	padding: 0;
@@ -102,15 +108,19 @@
 	width: 100%;
 	padding: 9px 11px;
 	border-radius: 10px;
-	border: 1px solid #b8c9c0;
-	background: #ffffff;
+	border: 1px solid rgba(255, 255, 255, 0.46);
+	background: rgba(255, 255, 255, 0.1);
 	font-size: 13px;
-	color: #253c34;
+	color: #eef6f1;
+}
+
+.explore-filter-panel__tag-input::placeholder {
+	color: rgba(236, 245, 240, 0.72);
 }
 
 .explore-filter-panel__tag-input:focus {
-	border-color: #3e6755;
-	box-shadow: 0 0 0 3px rgba(79, 132, 107, 0.16);
+	border-color: rgba(255, 255, 255, 0.68);
+	box-shadow: 0 0 0 3px rgba(236, 247, 241, 0.2);
 	outline: none;
 }
 
@@ -125,7 +135,7 @@
 	align-items: center;
 	gap: 8px;
 	font-size: 14px;
-	color: #afb9b1;
+	color: rgba(247, 252, 249, 0.9);
 }
 
 .explore-filter-panel__check-item input {

@@ -2,7 +2,11 @@
 .add-note-input {
   display: flex;
   align-items: center;
-  background-color: rgba(41, 47, 56, 0.84);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.22) 0%, rgba(232, 245, 238, 0.14) 55%, rgba(215, 233, 224, 0.1) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(18px) saturate(128%);
+  -webkit-backdrop-filter: blur(18px) saturate(128%);
+  box-shadow: 0 10px 26px rgba(8, 18, 14, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   border-radius: 50px;
   padding: 10px;
   gap: 10px;
@@ -13,8 +17,8 @@
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  border: none;
-  background-color: #15703e;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: linear-gradient(180deg, rgba(118, 202, 149, 0.95) 0%, rgba(52, 144, 89, 0.95) 100%);
   color: #ffffff;
   display: inline-flex;
   align-items: center;
@@ -26,13 +30,13 @@
 }
 
 .add-note-input__icon:hover {
-  background-color: #1a8148;
+  background: linear-gradient(180deg, rgba(132, 215, 163, 0.95) 0%, rgba(57, 154, 96, 0.95) 100%);
 }
 
 .add-note-input__input {
   border: none;
   background: transparent;
-  color: white;
+  color: #f4faf6;
   outline: none;
   flex: 1;
   min-width: 0;
@@ -42,5 +46,5 @@
 .add-note-input__input::placeholder {
   font-family: "Poppins", "Segoe UI", sans-serif;
   font-size: 18px;
-  color: rgba(255,255,255,0.6);
+  color: rgba(236, 245, 240, 0.72);
 }

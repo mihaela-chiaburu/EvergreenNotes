@@ -1,5 +1,6 @@
 import { useState } from "react"
 import Navbar from "./Navbar"
+import BackgroundDecor from "./BackgroundDecor"
 import SettingsModal from "./modals/SettingsModal"
 import "../styles/layout.css"
 
@@ -16,6 +17,7 @@ function Layout({ children }) {
 
   return (
     <div className="layout">
+      <BackgroundDecor />
       <Navbar onOpenSettingsModal={handleOpenSettingsModal} />
       <main className="content">
         {children}

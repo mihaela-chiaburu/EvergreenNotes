@@ -1,0 +1,237 @@
+.space-sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      120% 86% at 100% 0%,
+      rgba(127, 226, 160, 0.34) 0%,
+      rgba(75, 160, 109, 0.24) 38%,
+      rgba(18, 50, 85, 0.16) 58%,
+      rgba(6, 14, 25, 0) 100%
+    ),
+    radial-gradient(
+      120% 86% at 0% 100%,
+      rgba(18, 50, 85, 0.52) 0%,
+      rgba(46, 139, 87, 0.22) 42%,
+      rgba(6, 14, 25, 0) 100%
+    );
+  background-blend-mode: screen, screen;
+}
+
+.space-sky__stars {
+  position: absolute;
+  inset: 0;
+  opacity: 0.66;
+  background-image:
+    radial-gradient(1px 1px at 6% 10%, rgba(255, 255, 255, 0.85) 55%, transparent 62%),
+    radial-gradient(1px 1px at 13% 34%, rgba(220, 238, 255, 0.75) 55%, transparent 62%),
+    radial-gradient(1px 1px at 22% 62%, rgba(255, 255, 255, 0.7) 55%, transparent 62%),
+    radial-gradient(1px 1px at 35% 18%, rgba(200, 230, 255, 0.68) 55%, transparent 62%),
+    radial-gradient(1px 1px at 48% 42%, rgba(255, 255, 255, 0.75) 55%, transparent 62%),
+    radial-gradient(1px 1px at 55% 78%, rgba(220, 242, 255, 0.64) 55%, transparent 62%),
+    radial-gradient(1px 1px at 62% 12%, rgba(255, 255, 255, 0.72) 55%, transparent 62%),
+    radial-gradient(1px 1px at 74% 32%, rgba(213, 234, 255, 0.66) 55%, transparent 62%),
+    radial-gradient(1px 1px at 88% 26%, rgba(255, 255, 255, 0.74) 55%, transparent 62%),
+    radial-gradient(1px 1px at 93% 67%, rgba(214, 239, 255, 0.68) 55%, transparent 62%),
+    radial-gradient(1px 1px at 28% 86%, rgba(255, 255, 255, 0.7) 55%, transparent 62%),
+    radial-gradient(1px 1px at 79% 86%, rgba(210, 233, 255, 0.64) 55%, transparent 62%),
+    radial-gradient(1.4px 1.4px at 18% 22%, rgba(255, 255, 255, 0.78) 55%, transparent 63%),
+    radial-gradient(1.5px 1.5px at 68% 58%, rgba(214, 240, 255, 0.72) 55%, transparent 64%),
+    radial-gradient(1.4px 1.4px at 44% 70%, rgba(255, 255, 255, 0.68) 55%, transparent 64%),
+    radial-gradient(1.3px 1.3px at 84% 9%, rgba(196, 224, 255, 0.62) 55%, transparent 63%),
+    radial-gradient(1px 2px at 75% 28%, rgba(220, 242, 255, 0.64) 55%, transparent 62%),
+    radial-gradient(1px 1px at 12% 22%, rgba(255, 255, 255, 0.72) 55%, transparent 72%),
+    radial-gradient(1px 1px at 34% 42%, rgba(213, 234, 255, 0.66) 55%, transparent 52%),
+    radial-gradient(2px 1px at 78% 46%, rgba(255, 255, 255, 0.74) 55%, transparent 52%),
+    radial-gradient(1px 1px at 23% 47%, rgba(214, 239, 255, 0.68) 55%, transparent 72%),
+    radial-gradient(1px 1px at 68% 26%, rgba(255, 255, 255, 0.7) 55%, transparent 42%),
+    radial-gradient(1px 1px at 39% 96%, rgba(210, 233, 255, 0.64) 55%, transparent 62%),
+    radial-gradient(1.4px 1.4px at 78% 62%, rgba(255, 255, 255, 0.78) 55%, transparent 63%),
+    radial-gradient(1.5px 1.5px at 58% 88%, rgba(214, 240, 255, 0.72) 55%, transparent 64%),
+    radial-gradient(1.4px 1.4px at 44% 10%, rgba(255, 255, 255, 0.68) 55%, transparent 44%),
+    radial-gradient(1.3px 1.3px at 44% 6%, rgba(196, 224, 255, 0.62) 55%, transparent 63%);
+}
+
+.space-sky__beam {
+  position: absolute;
+  width: 4px;
+  height: 120vh;
+  border-radius: 999px;
+  background: linear-gradient(to bottom, rgba(46, 139, 87, 0) 0%, rgba(46, 139, 87, 0.52) 15%, rgba(127, 226, 160, 0.58) 50%, rgba(127, 226, 160, 0) 100%);
+  filter: blur(40px);
+  mix-blend-mode: screen;
+  opacity: 0.82;
+}
+
+.space-sky__beam--1 {
+  top: -22vh;
+  left: 16%;
+  transform: rotate(-35deg);
+}
+
+.space-sky__beam--2 {
+  top: -24vh;
+  right: 18%;
+  transform: rotate(25deg);
+}
+
+.space-sky__beam--3 {
+  bottom: -26vh;
+  right: 11%;
+  transform: rotate(-30deg);
+}
+
+.space-sky__halo {
+  position: absolute;
+  width: clamp(220px, 28vw, 460px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(80px);
+  background: radial-gradient(circle, rgba(127, 226, 160, 0.2) 0%, rgba(75, 160, 109, 0.15) 28%, rgba(255, 255, 255, 0.08) 48%, rgba(18, 50, 85, 0.08) 65%, transparent 100%);
+  mix-blend-mode: screen;
+  opacity: 0.85;
+}
+
+.space-sky__halo--1 {
+  top: -12%;
+  left: -8%;
+}
+
+.space-sky__halo--2 {
+  top: -10%;
+  right: -9%;
+}
+
+.space-sky__halo--3 {
+  bottom: -14%;
+  right: -6%;
+}
+
+.side-decor {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.side-decor__item {
+  position: fixed;
+  width: clamp(64px, 8vw, 118px);
+  filter: drop-shadow(0 0 14px rgba(127, 206, 160, 0.35));
+}
+
+.side-decor__item--left {
+  left: clamp(8px, 1vw, 18px);
+}
+
+.side-decor__item--right {
+  right: clamp(8px, 1vw, 18px);
+}
+
+.side-decor__item--1 {
+  top: 10%;
+  left: -10px;
+  transform: rotate(10deg);
+}
+
+.side-decor__item--2 {
+  top: 28%;
+  left: -10px;
+  transform: rotate(90deg);
+}
+
+.side-decor__item--3 {
+  top: 48%;
+  left: -10px;
+  transform: rotate(100deg);
+}
+
+.side-decor__item--4 {
+  top: 72%;
+  left: -10px;
+  width: 50px;
+  transform: rotate(100deg);
+}
+
+.side-decor__item--5 {
+  top: 10%;
+  transform: rotate(5deg);
+}
+
+.side-decor__item--6 {
+  top: 31%;
+  transform: rotate(-7deg);
+}
+
+.side-decor__item--7 {
+  top: 54%;
+  transform: rotate(8deg);
+}
+
+.side-decor__item--8 {
+  top: 77%;
+  transform: rotate(-6deg);
+}
+
+@media (max-width: 1024px) {
+  .side-decor__item {
+    width: clamp(52px, 7vw, 88px);
+    opacity: 0.28;
+  }
+
+  .space-sky__halo {
+    filter: blur(42px);
+    opacity: 0.52;
+  }
+
+  .space-sky__beam--1 {
+    left: 10%;
+  }
+
+  .space-sky__beam--2 {
+    right: 12%;
+  }
+}
+
+@media (max-width: 768px) {
+  .side-decor__item {
+    opacity: 0.2;
+  }
+
+  .side-decor__item--4,
+  .side-decor__item--8 {
+    display: none;
+  }
+
+  .space-sky__beam {
+    height: 110vh;
+    filter: blur(34px);
+  }
+
+  .space-sky__beam--3,
+  .space-sky__halo--3 {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .side-decor {
+    display: none;
+  }
+
+  .space-sky {
+    opacity: 0.9;
+  }
+
+  .space-sky__beam {
+    width: 3px;
+    filter: blur(30px);
+  }
+
+  .space-sky__halo {
+    filter: blur(66px);
+  }
+}
