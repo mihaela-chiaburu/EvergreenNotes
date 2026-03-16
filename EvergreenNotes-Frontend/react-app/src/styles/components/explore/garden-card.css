@@ -45,6 +45,9 @@
 .garden-card__user-name {
     font-size: 19px;
     font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .garden-card__user-wrapper{
@@ -98,6 +101,7 @@
     gap: 10px;
     padding: 15px 20px;
     min-height: 110px;
+    min-width: 0;
 }
 
 .garden-card__title p{
@@ -116,6 +120,9 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
 }
 
 .garden-card__notes-content p{
@@ -125,11 +132,20 @@
 .garden-card__notes-text{
     font-weight: 200;
     font-size: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /*white-space: nowrap;*/
 }
 
 .garden-card__notes-title{
     font-weight: 600;
     font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
 }
 
 .garden-card:hover .garden-card__content,

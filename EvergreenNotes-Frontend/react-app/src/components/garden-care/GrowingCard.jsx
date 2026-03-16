@@ -1,9 +1,9 @@
 import "../../styles/components/garden-care/growing-card.css"
 import greenleaf from "../../assets/images/green-leaf.png"
 
-function GrowingCard({ title, nextReviewInDays, lastReviewed }) {
+function GrowingCard({ title, nextReviewInDays, lastReviewed, onOpen }) {
   return (
-    <div className="growing-card">
+    <button type="button" className="growing-card" onClick={onOpen}>
       <div className="growing-card__info">
         <p>{title}</p>
         <p className="growing-card__reviewed">Last reviewed: {lastReviewed}</p>
@@ -12,7 +12,7 @@ function GrowingCard({ title, nextReviewInDays, lastReviewed }) {
         <p>In {nextReviewInDays} days</p>
         <img src={greenleaf} alt="Green leaf" className="growing-card__leaf-icon"/>
       </div>
-    </div>
+    </button>
   )
 }
 

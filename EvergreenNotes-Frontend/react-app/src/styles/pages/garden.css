@@ -17,7 +17,7 @@
 .garden-view {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: stretch;
   height: 100%;
 }
 
@@ -29,7 +29,7 @@
 
 .add-note-input {
   position: absolute;
-  bottom: 5%;
+  bottom: max(8px, calc(5% - 10px));
   left: 50%;
   transform: translateX(-50%);
 }

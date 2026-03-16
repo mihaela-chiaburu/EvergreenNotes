@@ -72,10 +72,12 @@ function NoteMeta({
           <Input
             type="text"
             className="note-page__tag-input"
+            wrapperClassName="note-page__tag-input-wrap"
             placeholder="Add tag"
             value={tagInput}
             onChange={onTagInputChange}
             onKeyDown={onTagInputKeyDown}
+            size={Math.max(8, tagInput.length + 1)}
             inputClassName="input--unstyled"
           />
         </div>

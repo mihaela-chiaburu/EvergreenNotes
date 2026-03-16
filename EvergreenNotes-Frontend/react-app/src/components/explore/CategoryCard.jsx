@@ -8,7 +8,7 @@ function CategoryCard({ onTopicSelect }) {
   const cardsRef = useRef(null)
   const topics = [
     { image: topic1, alt: "Nature topic", name: "Nature" },
-    { image: topic2, alt: "Philosophy topic", name: "Philosophy" },
+    { image: topic2, alt: "Psychology topic", name: "Psychology" },
     { image: topic3, alt: "Art topic", name: "Art" },
   ]
 

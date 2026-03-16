@@ -1,4 +1,5 @@
 import Layout from "../components/Layout"
+import { useNavigate } from "react-router-dom"
 import StatsBar from "../components/garden-care/StatsBar"
 import GrowingCard from "../components/garden-care/GrowingCard"
 import ReflectionCard from "../components/garden-care/ReflectionCard"
@@ -6,6 +7,18 @@ import { mockGrowingCards, mockReflectionCards, mockStats } from "../data/mockGa
 import "../styles/pages/garden-care.css"
 
 function GardenCarePage() {
+  const navigate = useNavigate()
+
+  const handleOpenCareNote = (title) => {
+    navigate(`/note?title=${encodeURIComponent(title)}&tag=Garden%20Care`, {
+      state: {
+        noteTitle: title,
+        tagName: "Garden Care",
+        tags: ["Garden Care"],
+      },
+    })
+  }
+
   return (
     <Layout>
       <div className="garden-care-page">
@@ -18,6 +31,7 @@ function GardenCarePage() {
             title={card.title}
             prompt={card.prompt}
             lastReviewed={card.lastReviewed}
+            onOpen={() => handleOpenCareNote(card.title)}
           />
         ))}
         <p className="garden-care-subtitle">Growing</p>
@@ -27,6 +41,7 @@ function GardenCarePage() {
             title={card.title}
             nextReviewInDays={card.nextReviewInDays}
             lastReviewed={card.lastReviewed}
+            onOpen={() => handleOpenCareNote(card.title)}
           />
         ))}
       </div>

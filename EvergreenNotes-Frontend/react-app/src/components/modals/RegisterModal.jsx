@@ -37,7 +37,6 @@ function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
 					<Input
 						type="email"
 						className="auth-modal__input"
-						inputClassName="input--unstyled"
 						value={email}
 						onChange={(event) => setEmail(event.target.value)}
 					/>
@@ -48,7 +47,6 @@ function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
 					<Input
 						type="text"
 						className="auth-modal__input"
-						inputClassName="input--unstyled"
 						value={username}
 						onChange={(event) => setUsername(event.target.value)}
 					/>
@@ -60,7 +58,6 @@ function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
 						<Input
 							type={showPassword ? "text" : "password"}
 							className="auth-modal__input auth-modal__input--password"
-							inputClassName="input--unstyled"
 							value={password}
 							onChange={(event) => setPassword(event.target.value)}
 						/>

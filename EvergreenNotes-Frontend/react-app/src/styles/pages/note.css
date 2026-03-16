@@ -138,6 +138,10 @@
   gap: 8px;
 }
 
+.note-page__meta-group span {
+  white-space: nowrap;
+}
+
 .note-page__meta-input {
   border: none;
   border-radius: 8px;
@@ -183,8 +187,14 @@
 
 .note-page__tags-list {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.note-page__tag-input-wrap {
+  width: auto;
+  flex: 0 1 auto;
 }
 
 .note-page__tag-pill {
@@ -216,6 +226,17 @@
   font-size: 13px;
   padding: 5px 12px;
   outline: none;
+  min-width: 90px;
+  max-width: 220px;
+}
+
+.note-page .note-page__line-input:focus,
+.note-page .note-page__meta-input:focus,
+.note-page .note-page__tag-input:focus,
+.note-page .note-page__body-input:focus,
+.note-page .ui-input__field:focus {
+  outline: none;
+  box-shadow: none;
 }
 
 .note-page__body-wrap {
@@ -327,8 +348,12 @@
   }
 
   .note-page__tags-row {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: center;
+    flex-direction: row;
     gap: 8px;
+  }
+
+  .note-page__tags-list {
+    width: 100%;
   }
 }

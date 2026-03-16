@@ -2,9 +2,9 @@ import "../../styles/components/garden-care/reflection-card.css"
 import idea from "../../assets/images/idea.png"
 import dryleaf from "../../assets/images/dry-leaf.png"
 
-function ReflectionCard({ title, prompt, lastReviewed }) {
+function ReflectionCard({ title, prompt, lastReviewed, onOpen }) {
   return (
-    <div className="reflection-card">
+    <button type="button" className="reflection-card" onClick={onOpen}>
       <div className="reflection-card__content">
         <p className="reflection-card__title">{title}</p>
         <div className="reflection-card__idea">
@@ -14,7 +14,7 @@ function ReflectionCard({ title, prompt, lastReviewed }) {
         <p className="reflection-card__last-review">Last reviewed: {lastReviewed}</p>
       </div>
       <img src={dryleaf} alt="Dry leaf" className="reflection-card__dry-leaf-icon"/>
-    </div>
+    </button>
   )
 }
 

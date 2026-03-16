@@ -3,7 +3,7 @@
   top: clamp(82px, 11vh, 96px);
   left: clamp(12px, 3vw, 50px);
   right: clamp(260px, 28vw, 380px);
-  bottom: 8%;
+  bottom: calc(8% + 56px);
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -202,7 +202,7 @@
     left: 20px;
     right: 20px;
     top: 96px;
-    bottom: 20%;
+    bottom: calc(20% + 32px);
     max-height: calc(100vh - 200px);
     max-height: calc(100dvh - 200px);
   }
@@ -217,7 +217,7 @@
     left: 12px;
     right: 12px;
     top: 90px;
-    bottom: 8%;
+    bottom: calc(8% + 56px);
     gap: 10px;
     max-height: calc(100vh - 150px);
     max-height: calc(100dvh - 150px);
@@ -252,7 +252,7 @@
 @media (max-height: 760px) {
   .garden-list-view {
     top: 82px;
-    bottom: 6%;
+    bottom: calc(6% + 56px);
     max-height: calc(100vh - 130px);
     max-height: calc(100dvh - 130px);
   }

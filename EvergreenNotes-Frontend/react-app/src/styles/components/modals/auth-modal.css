@@ -61,7 +61,7 @@
 	font-weight: 500;
 }
 
-.auth-modal__input {
+.auth-modal .auth-modal__input {
 	width: 100%;
 	height: 46px;
 	border: 1px solid #ffffff;
