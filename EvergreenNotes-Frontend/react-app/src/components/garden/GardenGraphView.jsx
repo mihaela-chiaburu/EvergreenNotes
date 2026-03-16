@@ -9,6 +9,14 @@ import "../../styles/components/garden/graph-view.css"
 const NOTE_NODE_SIZE = 38
 const TAG_NODE_MIN_SIZE = 52
 const TAG_NODE_MAX_SIZE = 88
+const GRAPH_EDGE_LENGTH = 100
+const GRAPH_NODE_REPULSION = 5000
+const PHYSICS_SPRING_STRENGTH = 0.0038
+const PHYSICS_REPULSION_RADIUS = 220
+const PHYSICS_REPULSION_STRENGTH = 0.0142
+const PHYSICS_DAMPING = 0.86
+const PHYSICS_MAX_SPEED = 8
+const PHYSICS_SETTLE_MS = 260
 
 const nodeById = new Map(mockGardenGraph.nodes.map((node) => [node.id, node]))
 
@@ -116,78 +124,6 @@ function buildElementsForFocus(focusStack) {
   return [...nodes, ...edgeMap.values()]
 }
 
-function applyNeighborPull(node, deltaX, deltaY) {
-  const clampedDeltaMagnitude = 16
-  const deltaMagnitude = Math.hypot(deltaX, deltaY)
-  const clampedDeltaScale = deltaMagnitude > clampedDeltaMagnitude ? clampedDeltaMagnitude / deltaMagnitude : 1
-  const smoothDeltaX = deltaX * clampedDeltaScale
-  const smoothDeltaY = deltaY * clampedDeltaScale
-
-  const firstHopNeighbors = node.neighborhood("node")
-  const movedSecondHopNodeIds = new Set()
-
-  firstHopNeighbors.forEach((neighbor) => {
-    if (neighbor.grabbed()) {
-      return
-    }
-
-    const neighborPosition = neighbor.position()
-    neighbor.position({
-      x: neighborPosition.x + smoothDeltaX * 0.3,
-      y: neighborPosition.y + smoothDeltaY * 0.3
-    })
-  })
-
-  firstHopNeighbors.forEach((neighbor) => {
-    neighbor.neighborhood("node").forEach((secondHopNeighbor) => {
-      if (
-        secondHopNeighbor.id() === node.id() ||
-        secondHopNeighbor.grabbed() ||
-        movedSecondHopNodeIds.has(secondHopNeighbor.id())
-      ) {
-        return
-      }
-
-      movedSecondHopNodeIds.add(secondHopNeighbor.id())
-
-      const position = secondHopNeighbor.position()
-      secondHopNeighbor.position({
-        x: position.x + smoothDeltaX * 0.14,
-        y: position.y + smoothDeltaY * 0.14
-      })
-    })
-  })
-}
-
-function applyLocalRepulsion(cy, movedNode) {
-  const movedPosition = movedNode.position()
-  const minimumDistance = 100
-
-  cy.nodes().forEach((node) => {
-    if (node.id() === movedNode.id() || node.grabbed()) {
-      return
-    }
-
-    const nodePosition = node.position()
-    const deltaX = nodePosition.x - movedPosition.x
-    const deltaY = nodePosition.y - movedPosition.y
-    const distance = Math.hypot(deltaX, deltaY)
-
-    if (distance >= minimumDistance || distance === 0) {
-      return
-    }
-
-    const pushDistance = minimumDistance - distance
-    const normalizedX = deltaX / distance
-    const normalizedY = deltaY / distance
-
-    node.position({
-      x: nodePosition.x + normalizedX * pushDistance * 0.18,
-      y: nodePosition.y + normalizedY * pushDistance * 0.18
-    })
-  })
-}
-
 function sanitizeFocusStack(candidateFocusStack) {
   if (!Array.isArray(candidateFocusStack)) {
     return []
@@ -235,7 +171,10 @@ function GardenGraphView({ initialFocusStack = [] }) {
   const graphContainerRef = useRef(null)
   const focusStackRef = useRef([])
   const rerenderFocusGraphRef = useRef(null)
-  const lastDragPositionRef = useRef({})
+  const velocityByNodeIdRef = useRef(new Map())
+  const physicsRafRef = useRef(null)
+  const settleTimeoutRef = useRef(null)
+  const physicsRunningRef = useRef(false)
   const [focusPath, setFocusPath] = useState([])
   const navigate = useNavigate()
 
@@ -276,14 +215,14 @@ function GardenGraphView({ initialFocusStack = [] }) {
         animationDuration: 500,
         fit: true,
         randomize: true,
-        idealEdgeLength: 150,
-        nodeRepulsion: 6200,
+        idealEdgeLength: GRAPH_EDGE_LENGTH,
+        nodeRepulsion: GRAPH_NODE_REPULSION,
         gravity: 0.08,
         padding: 40
       },
       wheelSensitivity: 0.6,
       minZoom: 0.25,
-      maxZoom: 1.7,
+      maxZoom: 1.2,
       style: [
         {
           selector: "node",
@@ -331,8 +270,143 @@ function GardenGraphView({ initialFocusStack = [] }) {
       ]
     })
 
+    const clearVelocities = () => {
+      velocityByNodeIdRef.current = new Map()
+    }
+
+    const stopPhysicsLoop = () => {
+      physicsRunningRef.current = false
+
+      if (physicsRafRef.current !== null) {
+        cancelAnimationFrame(physicsRafRef.current)
+        physicsRafRef.current = null
+      }
+    }
+
+    const runPhysicsStep = () => {
+      if (!physicsRunningRef.current) {
+        return
+      }
+
+      const nodes = cy.nodes().toArray()
+      const edges = cy.edges().toArray()
+      const forcesByNodeId = new Map(nodes.map((node) => [node.id(), { x: 0, y: 0 }]))
+
+      edges.forEach((edge) => {
+        const sourceNode = edge.source()
+        const targetNode = edge.target()
+        const sourcePosition = sourceNode.position()
+        const targetPosition = targetNode.position()
+        const deltaX = targetPosition.x - sourcePosition.x
+        const deltaY = targetPosition.y - sourcePosition.y
+        const distance = Math.max(1, Math.hypot(deltaX, deltaY))
+        const normalizedX = deltaX / distance
+        const normalizedY = deltaY / distance
+        const stretch = distance - GRAPH_EDGE_LENGTH
+        const springForce = stretch * PHYSICS_SPRING_STRENGTH
+
+        const sourceForces = forcesByNodeId.get(sourceNode.id())
+        const targetForces = forcesByNodeId.get(targetNode.id())
+
+        sourceForces.x += normalizedX * springForce
+        sourceForces.y += normalizedY * springForce
+        targetForces.x -= normalizedX * springForce
+        targetForces.y -= normalizedY * springForce
+      })
+
+      for (let index = 0; index < nodes.length; index += 1) {
+        const nodeA = nodes[index]
+        const positionA = nodeA.position()
+
+        for (let innerIndex = index + 1; innerIndex < nodes.length; innerIndex += 1) {
+          const nodeB = nodes[innerIndex]
+          const positionB = nodeB.position()
+          const deltaX = positionB.x - positionA.x
+          const deltaY = positionB.y - positionA.y
+          const distance = Math.hypot(deltaX, deltaY)
+
+          if (distance === 0 || distance > PHYSICS_REPULSION_RADIUS) {
+            continue
+          }
+
+          const normalizedX = deltaX / distance
+          const normalizedY = deltaY / distance
+          const repulsionForce = (PHYSICS_REPULSION_RADIUS - distance) * PHYSICS_REPULSION_STRENGTH
+
+          const nodeAForces = forcesByNodeId.get(nodeA.id())
+          const nodeBForces = forcesByNodeId.get(nodeB.id())
+
+          nodeAForces.x -= normalizedX * repulsionForce
+          nodeAForces.y -= normalizedY * repulsionForce
+          nodeBForces.x += normalizedX * repulsionForce
+          nodeBForces.y += normalizedY * repulsionForce
+        }
+      }
+
+      cy.batch(() => {
+        nodes.forEach((node) => {
+          const nodeId = node.id()
+          const forces = forcesByNodeId.get(nodeId)
+
+          if (node.grabbed()) {
+            velocityByNodeIdRef.current.set(nodeId, { x: 0, y: 0 })
+            return
+          }
+
+          const previousVelocity = velocityByNodeIdRef.current.get(nodeId) || { x: 0, y: 0 }
+          let velocityX = (previousVelocity.x + forces.x) * PHYSICS_DAMPING
+          let velocityY = (previousVelocity.y + forces.y) * PHYSICS_DAMPING
+          const velocityMagnitude = Math.hypot(velocityX, velocityY)
+
+          if (velocityMagnitude > PHYSICS_MAX_SPEED) {
+            const clampScale = PHYSICS_MAX_SPEED / velocityMagnitude
+            velocityX *= clampScale
+            velocityY *= clampScale
+          }
+
+          velocityByNodeIdRef.current.set(nodeId, { x: velocityX, y: velocityY })
+
+          const position = node.position()
+          node.position({
+            x: position.x + velocityX,
+            y: position.y + velocityY
+          })
+        })
+      })
+
+      physicsRafRef.current = requestAnimationFrame(runPhysicsStep)
+    }
+
+    const startPhysicsLoop = () => {
+      if (settleTimeoutRef.current !== null) {
+        clearTimeout(settleTimeoutRef.current)
+        settleTimeoutRef.current = null
+      }
+
+      if (physicsRunningRef.current) {
+        return
+      }
+
+      physicsRunningRef.current = true
+      physicsRafRef.current = requestAnimationFrame(runPhysicsStep)
+    }
+
+    const schedulePhysicsStop = () => {
+      if (settleTimeoutRef.current !== null) {
+        clearTimeout(settleTimeoutRef.current)
+      }
+
+      settleTimeoutRef.current = setTimeout(() => {
+        settleTimeoutRef.current = null
+        stopPhysicsLoop()
+      }, PHYSICS_SETTLE_MS)
+    }
+
     const rerenderFocusGraph = ({ shouldFit = true } = {}) => {
       const nextElements = buildElementsForFocus(focusStackRef.current)
+
+      stopPhysicsLoop()
+      clearVelocities()
 
       cy.batch(() => {
         cy.elements().remove()
@@ -345,8 +419,8 @@ function GardenGraphView({ initialFocusStack = [] }) {
         animationDuration: 420,
         fit: shouldFit,
         randomize: true,
-        idealEdgeLength: 150,
-        nodeRepulsion: 6200,
+        idealEdgeLength: GRAPH_EDGE_LENGTH,
+        nodeRepulsion: GRAPH_NODE_REPULSION,
         gravity: 0.08,
         padding: 40
       })
@@ -361,33 +435,22 @@ function GardenGraphView({ initialFocusStack = [] }) {
       cy.fit(undefined, 40)
     }
 
-    cy.on("grab", "node", (event) => {
-      const node = event.target
-      lastDragPositionRef.current[node.id()] = node.position()
+    cy.on("grab", "node", () => {
+      startPhysicsLoop()
     })
 
-    cy.on("drag", "node", (event) => {
-      const node = event.target
-      const previousPosition = lastDragPositionRef.current[node.id()] || node.position()
-      const currentPosition = node.position()
-      const deltaX = currentPosition.x - previousPosition.x
-      const deltaY = currentPosition.y - previousPosition.y
-
-      if (deltaX === 0 && deltaY === 0) {
-        return
-      }
-
-      cy.startBatch()
-      applyNeighborPull(node, deltaX, deltaY)
-      applyLocalRepulsion(cy, node)
-      cy.endBatch()
-
-      lastDragPositionRef.current[node.id()] = currentPosition
+    cy.on("drag", "node", () => {
+      startPhysicsLoop()
     })
 
     cy.on("free", "node", (event) => {
-      const node = event.target
-      delete lastDragPositionRef.current[node.id()]
+      const hasGrabbedNodes = cy.nodes().some((node) => node.grabbed())
+
+      if (hasGrabbedNodes) {
+        return
+      }
+
+      schedulePhysicsStop()
     })
 
     cy.on("tap", "node", (event) => {
@@ -431,6 +494,13 @@ function GardenGraphView({ initialFocusStack = [] }) {
 
     return () => {
       rerenderFocusGraphRef.current = null
+      stopPhysicsLoop()
+
+      if (settleTimeoutRef.current !== null) {
+        clearTimeout(settleTimeoutRef.current)
+        settleTimeoutRef.current = null
+      }
+
       window.removeEventListener("resize", handleResize)
       cy.destroy()
     }
