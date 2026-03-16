@@ -30,7 +30,15 @@ export function useNotePageState() {
   const tagState = useTagInput(initialTags)
 
   const handleTagNavigation = () => {
-    navigate("/garden")
+    const focusStack = Array.isArray(statePayload.focusStack) ? statePayload.focusStack : []
+
+    navigate("/garden", {
+      state: {
+        view: "graph",
+        focusStack,
+        focusTagId: statePayload.focusTagId || null,
+      },
+    })
   }
 
   return {
