@@ -35,6 +35,21 @@ var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get
     .Distinct(StringComparer.OrdinalIgnoreCase)
     .ToArray() ?? Array.Empty<string>();
 
+var chromeExtensionIds = builder.Configuration.GetSection("Cors:ChromeExtensionIds").Get<string[]>()
+    ?.Where(id => !string.IsNullOrWhiteSpace(id))
+    .Select(id => id.Trim())
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray() ?? Array.Empty<string>();
+
+var chromeExtensionOrigins = chromeExtensionIds
+    .Select(id => $"chrome-extension://{id}")
+    .ToArray();
+
+var allAllowedOrigins = allowedOrigins
+    .Concat(chromeExtensionOrigins)
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
+
 if (allowedOrigins.Length == 0)
 {
     if (builder.Environment.IsDevelopment())
@@ -73,7 +88,9 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
     {
-        policy.WithOrigins(allowedOrigins)
+        policy.SetIsOriginAllowed(origin =>
+            !string.IsNullOrWhiteSpace(origin)
+            && allAllowedOrigins.Contains(origin.TrimEnd('/'), StringComparer.OrdinalIgnoreCase))
             .AllowAnyHeader()
             .AllowAnyMethod();
     });

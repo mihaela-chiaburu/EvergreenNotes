@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EvergreenNotes Capture</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="capture">
+      <h1 class="capture__title">EvergreenNotes Capture</h1>
+
+      <section class="capture__section">
+        <h2 class="capture__section-title">Connection</h2>
+        <label class="capture__label" for="apiBaseUrl">API Base URL</label>
+        <input id="apiBaseUrl" class="capture__input" type="url" placeholder="https://localhost:7010" />
+
+        <label class="capture__label" for="email">Email</label>
+        <input id="email" class="capture__input" type="email" placeholder="you@example.com" />
+
+        <label class="capture__label" for="password">Password</label>
+        <input id="password" class="capture__input" type="password" placeholder="Your password" />
+
+        <div class="capture__row">
+          <button id="loginButton" class="capture__button" type="button">Login</button>
+          <button id="logoutButton" class="capture__button capture__button--muted" type="button">Logout</button>
+        </div>
+      </section>
+
+      <section class="capture__section">
+        <h2 class="capture__section-title">New Note</h2>
+
+        <label class="capture__label" for="noteTitle">Title</label>
+        <input id="noteTitle" class="capture__input" type="text" />
+
+        <label class="capture__label" for="noteSource">Source</label>
+        <input id="noteSource" class="capture__input" type="url" />
+
+        <label class="capture__label" for="noteTags">Tags (comma separated)</label>
+        <input id="noteTags" class="capture__input" type="text" placeholder="react, learning, javascript" />
+
+        <label class="capture__label" for="noteContent">Content</label>
+        <textarea id="noteContent" class="capture__textarea" rows="7" placeholder="Write your note here..."></textarea>
+
+        <button id="saveButton" class="capture__button capture__button--primary" type="button">Save to EvergreenNotes</button>
+      </section>
+
+      <p id="statusMessage" class="capture__status" aria-live="polite"></p>
+    </main>
+
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>

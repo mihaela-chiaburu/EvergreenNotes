@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "EvergreenNotes Capture",
+  "description": "Capture YouTube videos into EvergreenNotes with auto-filled title, source, and hashtags.",
+  "version": "0.1.0",
+  "action": {
+    "default_title": "Save to EvergreenNotes",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["storage", "activeTab", "tabs"],
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://youtube.com/*",
+    "https://localhost:7010/*",
+    "http://localhost:5280/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*", "https://youtube.com/*"],
+      "js": ["youtube-content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
