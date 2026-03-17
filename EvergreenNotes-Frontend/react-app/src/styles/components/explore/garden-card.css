@@ -83,8 +83,12 @@
 
 .garden-card__tags{
     display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    margin-bottom: 15px;
+    min-width: 0;
+    max-height: 56px;
+    overflow: hidden;
 }
 
 .garden-card__garden-info{
@@ -114,6 +118,20 @@
     color: #ffffff;
     font-size: 12px;
     border: 1px solid white;
+    flex: 0 1 auto;
+    min-width: 0;
+    width: fit-content;
+    max-width: 110px;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: break-word;
+    word-break: normal;
+    line-height: 1.15;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
 }
 
 .garden-card__notes-content{
@@ -134,7 +152,12 @@
     font-size: 15px;
     overflow: hidden;
     text-overflow: ellipsis;
-    /*white-space: nowrap;*/
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .garden-card__notes-title{
@@ -146,6 +169,8 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     line-clamp: 2;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .garden-card:hover .garden-card__content,

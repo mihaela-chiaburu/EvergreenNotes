@@ -8,6 +8,8 @@
         public int TotalNotes { get; set; }
         public int PublicNotes { get; set; }
         public List<string> Interests { get; set; } = new List<string>();
+        public string? RecentNoteTitle { get; set; }
+        public string? RecentNoteText { get; set; }
         public DateTime LastActive { get; set; }
     }
 }

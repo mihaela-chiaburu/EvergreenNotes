@@ -274,6 +274,11 @@ namespace EvergreenNotes.Application.Services
                     .OrderByDescending(n => n.LastWateredAt)
                     .FirstOrDefaultAsync();
 
+                var recentPublicNote = await _db.Notes
+                    .Where(n => n.UserId == garden.UserId && n.Visibility == NoteVisibility.Public)
+                    .OrderByDescending(n => n.CreatedAt)
+                    .FirstOrDefaultAsync();
+
                 results.Add(new ExploreGardensResponse
                 {
                     UserId = garden.UserId,
@@ -282,6 +287,8 @@ namespace EvergreenNotes.Application.Services
                     TotalNotes = totalNotes,
                     PublicNotes = publicNotes,
                     Interests = tags,
+                    RecentNoteTitle = recentPublicNote?.Title,
+                    RecentNoteText = recentPublicNote?.Content,
                     LastActive = lastNote?.LastWateredAt ?? garden.UpdatedAt
                 });
             }
