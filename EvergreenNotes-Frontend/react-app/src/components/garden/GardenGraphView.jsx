@@ -21,6 +21,8 @@ const PHYSICS_REPULSION_STRENGTH = 0.0142
 const PHYSICS_DAMPING = 0.86
 const PHYSICS_MAX_SPEED = 8
 const PHYSICS_SETTLE_MS = 260
+const NOTE_LABEL_FADE_START_ZOOM = 1
+const NOTE_LABEL_FADE_END_ZOOM = 0.6
 
 let nodeById = new Map()
 let adjacencyByNodeId = new Map()
@@ -191,6 +193,18 @@ function resolveInitialFocusNodeId(initialFocusStack = [], initialFocusPathLabel
   const desiredLabel = labels[labels.length - 1]
   const matchedNode = [...nodeById.values()].find((node) => node.label.toLowerCase() === desiredLabel.toLowerCase())
   return matchedNode?.id || null
+}
+
+function computeNoteLabelOpacity(zoomLevel) {
+  if (zoomLevel >= NOTE_LABEL_FADE_START_ZOOM) {
+    return 1
+  }
+
+  if (zoomLevel <= NOTE_LABEL_FADE_END_ZOOM) {
+    return 0
+  }
+
+  return (zoomLevel - NOTE_LABEL_FADE_END_ZOOM) / (NOTE_LABEL_FADE_START_ZOOM - NOTE_LABEL_FADE_END_ZOOM)
 }
 
 function GardenGraphView({ initialFocusStack = [], initialFocusPathLabels = [], onFocusPathChange, refreshTick = 0 }) {
@@ -493,6 +507,11 @@ function GardenGraphView({ initialFocusStack = [], initialFocusPathLabels = [], 
       }, PHYSICS_SETTLE_MS)
     }
 
+    const updateNoteLabelOpacity = () => {
+      const opacity = computeNoteLabelOpacity(cy.zoom())
+      cy.nodes('node[type = "note"]').style("text-opacity", opacity)
+    }
+
     const rerenderFocusGraph = ({ shouldFit = true } = {}) => {
       const nextElements = buildElementsForFocus(focusedNodeIdRef.current)
 
@@ -522,6 +541,8 @@ function GardenGraphView({ initialFocusStack = [], initialFocusPathLabels = [], 
         if (activeLayoutRef.current === layout) {
           activeLayoutRef.current = null
         }
+
+        updateNoteLabelOpacity()
       })
       layout.run()
     }
@@ -540,6 +561,8 @@ function GardenGraphView({ initialFocusStack = [], initialFocusPathLabels = [], 
     cy.on("drag", "node", () => {
       startPhysicsLoop()
     })
+
+    cy.on("zoom", updateNoteLabelOpacity)
 
     cy.on("free", "node", () => {
       const hasGrabbedNodes = cy.nodes().some((node) => node.grabbed())
@@ -591,6 +614,7 @@ function GardenGraphView({ initialFocusStack = [], initialFocusPathLabels = [], 
     })
 
     window.addEventListener("resize", handleResize)
+    updateNoteLabelOpacity()
 
     return () => {
       rerenderFocusGraphRef.current = null
@@ -603,6 +627,7 @@ function GardenGraphView({ initialFocusStack = [], initialFocusPathLabels = [], 
       }
 
       window.removeEventListener("resize", handleResize)
+      cy.removeListener("zoom", updateNoteLabelOpacity)
       cy.destroy()
     }
   }, [graphVersion, initialFocusPathLabels, initialFocusStack, navigate])

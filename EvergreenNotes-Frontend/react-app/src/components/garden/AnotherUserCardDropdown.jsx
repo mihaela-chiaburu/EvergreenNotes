@@ -1,5 +1,6 @@
 import { useState } from "react"
 import arrowIcon from "../../assets/images/arrow-down.png"
+import fallbackAvatar from "../../assets/images/avatar.jpg"
 import "../../styles/components/garden/another-user-card-dropdown.css"
 
 function AnotherUserCardDropdown({ user }) {
@@ -18,7 +19,7 @@ function AnotherUserCardDropdown({ user }) {
       aria-label={`Open ${user.userName} garden details`}
     >
       <span className="another-user-card__main">
-        <img src={user.avatar} alt={`${user.userName} avatar`} className="another-user-card__avatar" />
+        <img src={user.avatar || fallbackAvatar} alt={`${user.userName} avatar`} className="another-user-card__avatar" />
 
         <span className="another-user-card__user">
           <span className="another-user-card__name">{user.userName}</span>

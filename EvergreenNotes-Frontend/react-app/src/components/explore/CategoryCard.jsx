@@ -4,13 +4,16 @@ import topic1 from "../../assets/images/popular1.png"
 import topic2 from "../../assets/images/popular2.png"
 import topic3 from "../../assets/images/popular3.png"
 
-function CategoryCard({ onTopicSelect }) {
+function CategoryCard({ topics = [], onTopicSelect }) {
   const cardsRef = useRef(null)
-  const topics = [
-    { image: topic1, alt: "Nature topic", name: "Nature" },
-    { image: topic2, alt: "Psychology topic", name: "Psychology" },
-    { image: topic3, alt: "Art topic", name: "Art" },
-  ]
+  const imagePool = [topic1, topic2, topic3]
+  const fallbackTopics = ["Nature", "Art", "Philosophy"]
+
+  const normalizedTopics = (topics.length > 0 ? topics : fallbackTopics).map((name, index) => ({
+    image: imagePool[index % imagePool.length],
+    alt: `${name} topic`,
+    name,
+  }))
 
   const handleScroll = (direction) => {
     if (!cardsRef.current) {
@@ -35,7 +38,7 @@ function CategoryCard({ onTopicSelect }) {
       </button>
 
       <div className="category-card" ref={cardsRef}>
-        {topics.map((topic, index) => (
+        {normalizedTopics.map((topic, index) => (
           <button
             key={`${topic.name}-${index}`}
             type="button"

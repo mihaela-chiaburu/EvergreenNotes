@@ -1,5 +1,6 @@
 import "../../styles/components/explore/garden-card.css"
 import flower from "../../assets/images/stage-flower.png"
+import fallbackAvatar from "../../assets/images/avatar.jpg"
 
 function GardenCard({ garden, onClick }) {
   const {
@@ -18,7 +19,7 @@ function GardenCard({ garden, onClick }) {
       <div className="garden-card__content">
         <div className="garden-card__image">
           <div className="garden-card__user-wrapper">
-            <img src={avatar} alt="avatar-garden" className="garden-card__image-content" />
+            <img src={avatar || fallbackAvatar} alt="avatar-garden" className="garden-card__image-content" />
             <div className="garden-card__title">
               <p className="garden-card__user-name">{userName}</p>
               <p className="garden-card__user-bio">{userBio}</p>

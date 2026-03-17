@@ -1,9 +1,10 @@
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import CategoryCard from "./CategoryCard"
 import GardenCard from "./GardenCard"
 import Pagination from "./Pagination"
-import { mockExploreGardens } from "../../data/mockExploreGardens"
+import { useAuth } from "../../context/AuthContext"
+import { fetchExploreGardens, fetchFollowingUsers, mapExploreGarden } from "../../utils/explore"
 import "../../styles/components/explore/explore-section.css"
 
 const TAB_OPTIONS = ["Trending", "New", "Following"]
@@ -11,25 +12,94 @@ const PAGE_SIZE = 6
 
 function ExploreSection({ isPublicView = false }) {
   const navigate = useNavigate()
+  const { authUser } = useAuth()
+  const [gardens, setGardens] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
   const [selectedTopic, setSelectedTopic] = useState("")
   const [activeTab, setActiveTab] = useState("Trending")
   const [currentPage, setCurrentPage] = useState(1)
   const isTopicSelected = Boolean(selectedTopic)
   const visibleTabs = isPublicView ? TAB_OPTIONS.filter((tab) => tab !== "Following") : TAB_OPTIONS
 
-  const gardensByTab = {
-    Trending: mockExploreGardens,
-    New: [...mockExploreGardens].reverse(),
-    Following: mockExploreGardens.filter((_, index) => index % 2 === 0),
-  }
+  useEffect(() => {
+    let isMounted = true
+
+    const loadExplore = async () => {
+      setIsLoading(true)
+      setError("")
+
+      try {
+        const [gardensPayload, followingPayload] = await Promise.all([
+          fetchExploreGardens({ token: authUser?.token }),
+          authUser?.token ? fetchFollowingUsers(authUser.token) : Promise.resolve([]),
+        ])
+
+        if (!isMounted) {
+          return
+        }
+
+        const followingIds = new Set((followingPayload ?? []).map((user) => String(user.userId)))
+        const mapped = (gardensPayload ?? []).map((garden) =>
+          mapExploreGarden(garden, { followingUserIds: followingIds })
+        )
+
+        setGardens(mapped)
+      } catch (loadError) {
+        if (isMounted) {
+          setError(loadError.message)
+          setGardens([])
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadExplore()
+
+    return () => {
+      isMounted = false
+    }
+  }, [authUser?.token])
+
+  const gardensByTab = useMemo(() => ({
+    Trending: [...gardens].sort((firstGarden, secondGarden) => secondGarden.noteCount - firstGarden.noteCount),
+    New: [...gardens].sort((firstGarden, secondGarden) => {
+      const firstTime = Date.parse(firstGarden.lastActive ?? "") || 0
+      const secondTime = Date.parse(secondGarden.lastActive ?? "") || 0
+      return secondTime - firstTime
+    }),
+    Following: gardens.filter((garden) => garden.isFollowing),
+  }), [gardens])
 
   const activeGardens = gardensByTab[activeTab] ?? gardensByTab.Trending
-
   const filteredByTopic = selectedTopic
     ? activeGardens.filter((garden) =>
         garden.tags.some((tag) => tag.toLowerCase() === selectedTopic.toLowerCase())
       )
     : activeGardens
+
+  const topTopics = useMemo(() => {
+    const tagScores = new Map()
+
+    gardens.forEach((garden) => {
+      garden.tags.forEach((tag) => {
+        const normalizedTag = tag.trim()
+        if (!normalizedTag) {
+          return
+        }
+
+        tagScores.set(normalizedTag, (tagScores.get(normalizedTag) ?? 0) + 1)
+      })
+    })
+
+    return [...tagScores.entries()]
+      .sort((firstEntry, secondEntry) => secondEntry[1] - firstEntry[1])
+      .slice(0, 6)
+      .map(([tag]) => tag)
+  }, [gardens])
 
   const totalPages = Math.max(1, Math.ceil(filteredByTopic.length / PAGE_SIZE))
   const safeCurrentPage = Math.min(currentPage, totalPages)
@@ -37,7 +107,7 @@ function ExploreSection({ isPublicView = false }) {
   const paginatedGardens = filteredByTopic.slice(startIndex, startIndex + PAGE_SIZE)
 
   const handleOpenUserGarden = (garden) => {
-    navigate(`/garden/${garden.id}`, { state: { userGarden: garden } })
+    navigate(`/garden/${garden.userId}`, { state: { userGarden: garden } })
   }
 
   return (
@@ -85,21 +155,29 @@ function ExploreSection({ isPublicView = false }) {
           {!isTopicSelected && (
             <div className="explore-section__content">
               <h3 className="explore-section__subtitle">{isPublicView ? "Popular Topics" : "Recommended Topics"}</h3>
-              <CategoryCard onTopicSelect={setSelectedTopic} />
+              <CategoryCard topics={topTopics} onTopicSelect={(topic) => {
+                setSelectedTopic(topic)
+                setCurrentPage(1)
+              }} />
             </div>
           )}
           <div className="explore-section__content explore-section__content--discover">
             {!isTopicSelected && (
               <h3 className="explore-section__subtitle">Discover something new</h3>
             )}
+            {isLoading && <p className="explore-section__empty">Loading gardens...</p>}
+            {!isLoading && error && <p className="explore-section__empty">{error}</p>}
             <div className="explore-section__garden-grid">
-              {paginatedGardens.map((garden) => (
+              {!isLoading && !error && paginatedGardens.map((garden) => (
                 <GardenCard
                   key={garden.id}
                   garden={garden}
                   onClick={() => handleOpenUserGarden(garden)}
                 />
               ))}
+              {!isLoading && !error && paginatedGardens.length === 0 && (
+                <p className="explore-section__empty">No gardens found for this view.</p>
+              )}
             </div>
           </div>
         </div>
