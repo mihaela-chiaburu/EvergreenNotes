@@ -1,7 +1,8 @@
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import LoginModal from "../components/modals/LoginModal"
 import RegisterModal from "../components/modals/RegisterModal"
+import { useAuth } from "../context/AuthContext"
 import logo from "../assets/images/logo.png"
 import exploreIcon from "../assets/images/application (1).png"
 import sproutIcon from "../assets/images/sprout.png"
@@ -27,6 +28,8 @@ import featureExtension from "../assets/images/extension-white.png"
 import "../styles/pages/landing.css"
 
 function LandingPage() {
+  const navigate = useNavigate()
+  const { isAuthenticated, establishSession, logout } = useAuth()
   const [authModal, setAuthModal] = useState(null)
 
   const handleOpenLogin = () => {
@@ -47,6 +50,27 @@ function LandingPage() {
 
   const handleSwitchToLogin = () => {
     setAuthModal("login")
+  }
+
+  const handleLogout = () => {
+    logout()
+    setAuthModal(null)
+  }
+
+  const goToGardenIfAuthenticated = () => {
+    if (isAuthenticated) {
+      navigate("/garden")
+      return true
+    }
+
+    return false
+  }
+
+  const handleAuthSuccess = async (auth) => {
+    const isSessionReady = await establishSession(auth)
+    if (isSessionReady) {
+      navigate("/garden")
+    }
   }
 
   return (
@@ -76,7 +100,7 @@ function LandingPage() {
       </div>
 
       <nav className="landing-navbar">
-        <Link className="landing-navbar__item landing-navbar__item--brand" to="/">
+        <Link className="landing-navbar__item landing-navbar__item--brand" to={isAuthenticated ? "/garden" : "/"}>
           <img className="landing-navbar__brand-logo" src={logo} alt="evergreen logo" />
           <p className="landing-navbar__brand-name">EvergreenNotes</p>
         </Link>
@@ -84,12 +108,24 @@ function LandingPage() {
           <img className="landing-navbar__icon" src={exploreIcon} alt="explore icon" />
           <p className="landing-navbar__label">Explore</p>
         </Link>
-        <button type="button" className="landing-navbar__item landing-navbar__item--new-seed" onClick={handleOpenRegister}>
+        <button
+          type="button"
+          className="landing-navbar__item landing-navbar__item--new-seed"
+          onClick={() => {
+            if (!goToGardenIfAuthenticated()) {
+              handleOpenRegister()
+            }
+          }}
+        >
           <img className="landing-navbar__icon" src={sproutIcon} alt="sprout icon" />
           <p className="landing-navbar__label">New Seed</p>
         </button>
-        <button type="button" className="landing-navbar__item landing-navbar__item--login" onClick={handleOpenLogin}>
-          <p className="landing-navbar__label">Log In</p>
+        <button
+          type="button"
+          className="landing-navbar__item landing-navbar__item--login"
+          onClick={isAuthenticated ? handleLogout : handleOpenLogin}
+        >
+          <p className="landing-navbar__label">{isAuthenticated ? "Log out" : "Log In"}</p>
         </button>
       </nav>
 
@@ -101,7 +137,15 @@ function LandingPage() {
             <p className="hero__subtitle">Build your digital garden with evolving notes</p>
           </div>
           <div className="hero-actions">
-            <button type="button" className="hero-actions__item hero-actions__item--primary" onClick={handleOpenRegister}>
+            <button
+              type="button"
+              className="hero-actions__item hero-actions__item--primary"
+              onClick={() => {
+                if (!goToGardenIfAuthenticated()) {
+                  handleOpenRegister()
+                }
+              }}
+            >
               <img className="hero-actions__icon" src={sproutIcon} alt="sprout icon" />
               <p className="hero-actions__label">Start Your Garden</p>
             </button>
@@ -196,7 +240,15 @@ function LandingPage() {
         <section className="cta">
           <p className="cta__description">Built for those who want to reduce content consumption and improve memorization.</p>
           <p className="cta__title">Your ideas deserve to grow</p>
-          <button type="button" className="cta__action" onClick={handleOpenRegister}>
+          <button
+            type="button"
+            className="cta__action"
+            onClick={() => {
+              if (!goToGardenIfAuthenticated()) {
+                handleOpenRegister()
+              }
+            }}
+          >
             <img className="cta__icon" src={sproutIcon} alt="sprout icon" />
             <p className="cta__label">Plant your seed</p>
           </button>
@@ -211,12 +263,14 @@ function LandingPage() {
       isOpen={authModal === "login"}
       onClose={handleCloseAuthModal}
       onSwitchToRegister={handleSwitchToRegister}
+      onAuthSuccess={handleAuthSuccess}
     />
 
     <RegisterModal
       isOpen={authModal === "register"}
       onClose={handleCloseAuthModal}
       onSwitchToLogin={handleSwitchToLogin}
+      onAuthSuccess={handleAuthSuccess}
     />
     </>
   )

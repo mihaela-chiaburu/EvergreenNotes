@@ -8,61 +8,77 @@ import TrashPage from "./pages/TrashPage"
 import UserGarden from "./pages/UserGarden"
 import NotePage from "./pages/NotePage"
 import HelpPage from "./pages/HelpPage"
+import ProtectedRoute from "./components/auth/ProtectedRoute"
+import { AuthProvider } from "./context/AuthContext"
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Garden */}
-        <Route path="/" element={
-          <LandingPage />
-        } />
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Garden */}
+          <Route path="/" element={
+            <LandingPage />
+          } />
 
-        <Route path="/landing" element={
-          <LandingPage />
-        } />
+          <Route path="/landing" element={
+            <LandingPage />
+          } />
 
-        <Route path="/garden" element={
-          <GardenPage />
-        } />
+          <Route path="/garden" element={
+            <ProtectedRoute>
+              <GardenPage />
+            </ProtectedRoute>
+          } />
 
-        <Route path="/garden/:userId" element={
-          <UserGarden />
-        } />
+          <Route path="/garden/:userId" element={
+            <ProtectedRoute>
+              <UserGarden />
+            </ProtectedRoute>
+          } />
 
-        {/* Explore */}
-        <Route path="/explore" element={
-            <ExplorePage />
-        } />
+          {/* Explore */}
+          <Route path="/explore" element={
+              <ExplorePage />
+          } />
 
-        {/* Garden Care */}
-        <Route path="/garden-care" element={
-            <GardenCarePage />
-        } />
+          {/* Garden Care */}
+          <Route path="/garden-care" element={
+              <ProtectedRoute>
+                <GardenCarePage />
+              </ProtectedRoute>
+          } />
 
-        {/* Note */}
-        <Route path="/note" element={
-          <NotePage />
-        } />
+          {/* Note */}
+          <Route path="/note" element={
+            <ProtectedRoute>
+              <NotePage />
+            </ProtectedRoute>
+          } />
 
-        {/* Trash */}
-        <Route path="/trash" element={
-            <TrashPage />
-        } />
+          {/* Trash */}
+          <Route path="/trash" element={
+              <ProtectedRoute>
+                <TrashPage />
+              </ProtectedRoute>
+          } />
 
-        {/* Help */}
-        <Route path="/help" element={
-          <HelpPage />
-        } />
+          {/* Help */}
+          <Route path="/help" element={
+            <ProtectedRoute>
+              <HelpPage />
+            </ProtectedRoute>
+          } />
 
-        {/* User 
-        <Route path="/user" element={
-          <Layout>
-            <UserPage />
-          </Layout>
-        } />*/}
-      </Routes>
-    </BrowserRouter>
+          {/* User 
+          <Route path="/user" element={
+            <Layout>
+              <UserPage />
+            </Layout>
+          } />*/}
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 

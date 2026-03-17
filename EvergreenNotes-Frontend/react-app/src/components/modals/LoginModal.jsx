@@ -3,14 +3,45 @@ import "../../styles/components/modals/auth-modal.css"
 import ModalShell from "./ModalShell"
 import Button from "../ui/Button"
 import Input from "../ui/Input"
+import { loginUser } from "../../utils/auth"
 
 import eyeIcon from "../../assets/images/view.png"
 import googleLogo from "../../assets/images/Logo-google.png"
 
-function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
+function LoginModal({ isOpen, onClose, onSwitchToRegister, onAuthSuccess }) {
 	const [email, setEmail] = useState("")
 	const [password, setPassword] = useState("")
 	const [showPassword, setShowPassword] = useState(false)
+	const [error, setError] = useState("")
+	const [isSubmitting, setIsSubmitting] = useState(false)
+
+	const handleSubmit = async () => {
+		const normalizedEmail = email.trim()
+
+		if (!normalizedEmail || !password) {
+			setError("Email and password are required.")
+			return
+		}
+
+		setIsSubmitting(true)
+		setError("")
+
+		try {
+			const auth = await loginUser({
+				email: normalizedEmail,
+				password,
+			})
+
+			if (onAuthSuccess) {
+				await onAuthSuccess(auth)
+			}
+			onClose()
+		} catch (submitError) {
+			setError(submitError.message)
+		} finally {
+			setIsSubmitting(false)
+		}
+	}
 
 	return (
 		<ModalShell
@@ -62,7 +93,16 @@ function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
 					<p className="auth-modal__forgot">Forgot Password?</p>
 				</div>
 
-				<Button type="button" className="auth-modal__submit">Sign In</Button>
+				{error ? <p className="auth-modal__error">{error}</p> : null}
+
+				<Button
+					type="button"
+					className="auth-modal__submit"
+					onClick={handleSubmit}
+					disabled={isSubmitting}
+				>
+					{isSubmitting ? "Signing in..." : "Sign In"}
+				</Button>
 
 				<p className="auth-modal__switch-copy">
 					Don't have an account? {" "}

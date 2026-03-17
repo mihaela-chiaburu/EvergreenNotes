@@ -124,6 +124,19 @@
 	filter: brightness(1.03);
 }
 
+.auth-modal__submit:disabled {
+	opacity: 0.75;
+	cursor: not-allowed;
+	filter: none;
+}
+
+.auth-modal__error {
+	margin: 0;
+	font-size: 14px;
+	color: #ffd9d9;
+	text-align: center;
+}
+
 .auth-modal__switch-copy {
 	margin: 2px 0 0;
 	text-align: center;

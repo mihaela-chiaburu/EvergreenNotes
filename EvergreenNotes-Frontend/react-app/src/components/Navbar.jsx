@@ -1,7 +1,8 @@
 import { useRef, useState } from "react"
-import { Link, useLocation } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import "../styles/navbar.css"
 import { useDismiss } from "../hooks/useDismiss"
+import { useAuth } from "../context/AuthContext"
 
 import sprout from "../assets/images/sprout.png"
 import explore from "../assets/images/application (1).png"
@@ -11,11 +12,13 @@ import arrow from "../assets/images/arrow-down.png"
 import settings from "../assets/images/setting (1).png"
 import help from "../assets/images/question.png"
 import trash from "../assets/images/trash.png"
-import logout from "../assets/images/logout.png"
+import logouticon from "../assets/images/logout.png"
 import avatar from "../assets/images/avatar.jpg"
 
 function Navbar({ onOpenSettingsModal }) {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { authUser, isAuthenticated, logout } = useAuth()
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isVisibilityMenuOpen, setIsVisibilityMenuOpen] = useState(false)
   const [visibility, setVisibility] = useState("Private")
@@ -46,6 +49,20 @@ function Navbar({ onOpenSettingsModal }) {
     setIsUserMenuOpen(false)
   }
 
+  const handleLogout = () => {
+    logout()
+    setIsUserMenuOpen(false)
+    navigate("/", { replace: true })
+  }
+
+  const getNavTarget = (target) => {
+    if (!isAuthenticated) {
+      return target
+    }
+
+    return target === "/explore" ? "/explore" : "/garden"
+  }
+
   const currentPath = location.pathname.replace(/\/+$/, "") || "/"
   const isGardenSelected = currentPath === "/" || currentPath === "/garden"
   const isExploreSelected = currentPath === "/explore"
@@ -64,7 +81,7 @@ function Navbar({ onOpenSettingsModal }) {
             aria-haspopup="menu"
           >
             <img src={avatar} alt="user avatar" className="navbar__profile-image" />
-            <p className="navbar__username">Mihaela</p>
+            <p className="navbar__username">{authUser?.username || "User"}</p>
             <img
               src={arrow}
               alt="arrow icon"
@@ -83,34 +100,39 @@ function Navbar({ onOpenSettingsModal }) {
                 <img src={settings} alt="settings icon" className="navbar__icon"/>
                 Settings
               </button>
-              <Link to="/help" className="dropdown-menu__item" role="menuitem">
+              <Link to={getNavTarget("/help")} className="dropdown-menu__item" role="menuitem">
               <img src={help} alt="help icon" className="navbar__icon"/>
                 Help
               </Link>
-              <Link to="/trash" className="dropdown-menu__item" role="menuitem">
+              <Link to={getNavTarget("/trash")} className="dropdown-menu__item" role="menuitem">
               <img src={trash} alt="trash icon" className="navbar__icon"/>
                 Trash
               </Link>
-              <Link to="/" className="dropdown-menu__item" role="menuitem">
-              <img src={logout} alt="log out icon" className="navbar__icon"/>
+              <button
+                type="button"
+                className="dropdown-menu__item"
+                role="menuitem"
+                onClick={handleLogout}
+              >
+              <img src={logouticon} alt="log out icon" className="navbar__icon"/>
                 Log out
-              </Link>
+              </button>
             </div>
           )}
         </div>
 
-        <Link to="/garden" className={`navbar__link navbar__link--garden${isGardenSelected ? " navbar__link--selected" : ""}`}>
+        <Link to={getNavTarget("/garden")} className={`navbar__link navbar__link--garden${isGardenSelected ? " navbar__link--selected" : ""}`}>
           <img src={sprout} alt="sprout icon" className="navbar__icon"/>
           My Garden
         </Link>
 
-        <Link to="/explore" className={`navbar__link navbar__link--explore${isExploreSelected ? " navbar__link--selected" : ""}`}>
+        <Link to={getNavTarget("/explore")} className={`navbar__link navbar__link--explore${isExploreSelected ? " navbar__link--selected" : ""}`}>
           <img src={explore} alt="explore icon" className="navbar__icon"/>
           Explore
         </Link>
 
         <Link
-          to="/garden-care"
+          to={getNavTarget("/garden-care")}
           className={`navbar__link navbar__link--garden-care${isGardenCareSelected ? " navbar__link--selected" : ""}`}>
           <img src={gardenCare} alt="garden care icon" className="navbar__icon"/>
           Garden Care

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import "../../styles/components/settings/settings.css"
 import ModalShell from "./ModalShell"
 import Input from "../ui/Input"
@@ -7,13 +7,21 @@ import Button from "../ui/Button"
 import avatarImage from "../../assets/images/avatar.jpg"
 import googleLogo from "../../assets/images/Logo-google.png"
 
-function SettingsModal({ isOpen, onClose, userName = "Mihaela" }) {
+function SettingsModal({ isOpen, onClose, userName = "User", userEmail = "" }) {
 	const [activeTab, setActiveTab] = useState("general")
 	const [name, setName] = useState(userName)
 	const [bio, setBio] = useState("Growing quietly, one note at a time.")
-	const [email, setEmail] = useState("mihaela.bloom@gmail.com")
+	const [email, setEmail] = useState(userEmail)
 	const [oldPassword, setOldPassword] = useState("")
 	const [newPassword, setNewPassword] = useState("")
+
+	useEffect(() => {
+		setName(userName)
+	}, [userName])
+
+	useEffect(() => {
+		setEmail(userEmail)
+	}, [userEmail])
 
 	return (
 		<ModalShell
@@ -165,7 +173,7 @@ function SettingsModal({ isOpen, onClose, userName = "Mihaela" }) {
 								<div className="settings-modal__connected-copy">
 									<p className="settings-modal__connected-title">Google</p>
 									<p className="settings-modal__connected-subtitle">
-										Connected as user@gmail.com
+										Connected as {email || "user@gmail.com"}
 									</p>
 								</div>
 								<Button type="button" variant="secondary" className="settings-modal__disconnect-button">
