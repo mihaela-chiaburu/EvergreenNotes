@@ -2,6 +2,7 @@
 .add-note-input {
   display: flex;
   align-items: center;
+  position: relative;
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.22) 0%, rgba(232, 245, 238, 0.14) 55%, rgba(215, 233, 224, 0.1) 100%);
   border: 1px solid rgba(255, 255, 255, 0.42);
   backdrop-filter: blur(18px) saturate(128%);
@@ -11,6 +12,34 @@
   padding: 10px;
   gap: 10px;
   width: min(500px, calc(100vw - 40px));
+}
+
+.add-note-input__type-wrapper {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  color: rgba(236, 245, 240, 0.86);
+  flex-shrink: 0;
+}
+
+.add-note-input__type-select {
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 12px;
+  background: rgba(18, 42, 29, 0.42);
+  color: #eff7f1;
+  font-size: 14px;
+  padding: 7px 8px;
+  outline: none;
+}
+
+.add-note-input__type-select:focus {
+  border-color: rgba(154, 231, 183, 0.74);
+}
+
+.add-note-input__type-select option {
+  background: #153124;
+  color: #f0f8f2;
+  font-weight: 500;
 }
 
 .add-note-input__icon {
@@ -47,4 +76,53 @@
   font-family: "Poppins", "Segoe UI", sans-serif;
   font-size: 18px;
   color: rgba(236, 245, 240, 0.72);
+}
+
+.add-note-input__error {
+  position: absolute;
+  left: 12px;
+  bottom: -22px;
+  margin: 0;
+  color: #ffd9d9;
+  font-size: 12px;
+}
+
+.add-note-input__confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 13, 10, 0.56);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 16px;
+}
+
+.add-note-input__confirm-dialog {
+  width: min(420px, calc(100vw - 30px));
+  border-radius: 18px;
+  border: 1px solid rgba(240, 255, 245, 0.38);
+  background: linear-gradient(170deg, rgba(22, 45, 33, 0.95) 0%, rgba(16, 35, 25, 0.96) 100%);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
+  padding: 18px;
+}
+
+.add-note-input__confirm-title {
+  margin: 0;
+  color: #f2faf4;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.add-note-input__confirm-path {
+  margin: 10px 0 0;
+  color: #c9e7d3;
+  font-size: 14px;
+}
+
+.add-note-input__confirm-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }

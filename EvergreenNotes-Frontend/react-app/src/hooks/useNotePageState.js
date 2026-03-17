@@ -19,6 +19,9 @@ export function useNotePageState() {
   const initialCreatedOn = getIsoDate(statePayload.createdOn || queryParams.get("createdOn")) || fallbackDateIso
   const initialLastWatered = getIsoDate(statePayload.lastWatered || queryParams.get("lastWatered")) || initialCreatedOn
   const initialTags = Array.isArray(statePayload.tags) && statePayload.tags.length > 0 ? statePayload.tags : [initialTagName]
+  const initialContextPathTags = Array.isArray(statePayload.contextPathTags)
+    ? statePayload.contextPathTags.map((tag) => tag?.trim()).filter(Boolean)
+    : []
 
   const [title, setTitle] = useState(initialTitle)
   const [source, setSource] = useState(initialSource)
@@ -44,6 +47,7 @@ export function useNotePageState() {
 
   return {
     noteId: initialNoteId,
+    contextPathTags: initialContextPathTags,
     initialTagName,
     title,
     setTitle,

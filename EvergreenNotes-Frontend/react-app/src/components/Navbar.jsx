@@ -56,11 +56,7 @@ function Navbar({ onOpenSettingsModal }) {
   }
 
   const getNavTarget = (target) => {
-    if (!isAuthenticated) {
-      return target
-    }
-
-    return target === "/explore" ? "/explore" : "/garden"
+    return target
   }
 
   const currentPath = location.pathname.replace(/\/+$/, "") || "/"

@@ -16,7 +16,6 @@ import {
 	updateNote,
 	updateNoteStatus,
 	updateNoteVisibility,
-	waterNote,
 } from "../utils/notes"
 import { searchTaxonomyTags } from "../utils/taxonomy"
 import "../styles/pages/note.css"
@@ -59,6 +58,12 @@ function NotePage() {
 	const [isSaving, setIsSaving] = useState(false)
 	const [error, setError] = useState("")
 	const [tagSuggestions, setTagSuggestions] = useState([])
+
+	const buildTagSubmissionPaths = () => {
+		const normalizedTags = tags.map((tag) => tag?.trim()).filter(Boolean)
+
+		return [...new Set(normalizedTags)]
+	}
 
 	const optionsMenuRef = useRef(null)
 	const visibilityMenuRef = useRef(null)
@@ -158,7 +163,7 @@ function NotePage() {
 					source: normalizedSource,
 				  })
 
-			await replaceNoteTags(authUser.token, currentNote.id, tags)
+			await replaceNoteTags(authUser.token, currentNote.id, buildTagSubmissionPaths())
 
 			setActiveNoteId(currentNote.id)
 			navigate(`/note?noteId=${encodeURIComponent(currentNote.id)}`, {
@@ -209,21 +214,6 @@ function NotePage() {
 			navigate("/garden", { state: { view: "list" } })
 		} catch (deleteError) {
 			setError(deleteError.message)
-		}
-	}
-
-	const handleWater = async () => {
-		if (!authUser?.token || !activeNoteId) {
-			return
-		}
-
-		try {
-			const watered = await waterNote(authUser.token, activeNoteId)
-			setLastWatered(watered.lastWatered)
-			setStatus(watered.status)
-			setVisibility(watered.visibility)
-		} catch (waterError) {
-			setError(waterError.message)
 		}
 	}
 
@@ -311,9 +301,6 @@ function NotePage() {
 				<footer className="note-page__actions" aria-label="Note actions">
 					<Button type="button" className="note-page__action-btn" onClick={handleSave} disabled={isSaving}>
 						{isSaving ? "Saving..." : "Save note"}
-					</Button>
-					<Button type="button" variant="secondary" className="note-page__action-btn" onClick={handleWater}>
-						Water
 					</Button>
 					<Button type="button" variant="danger" className="note-page__action-btn note-page__action-btn--danger" onClick={handleDelete}>Delete note</Button>
 

@@ -1,18 +1,20 @@
-// src/components/garden/GardenGraphView.jsx
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import cytoscape from "cytoscape"
 import { mockGardenGraph } from "../../data/mockGardenGraph"
 import leafSvg from "../../assets/images/leaf.svg"
+import sproutttt from "../../assets/images/sproutttt.png"
+import noteFlowerMedium2 from "../../assets/images/note-flower-medium2.png"
+import noteTreeBig1 from "../../assets/images/note-tree-big1.png"
 import { useAuth } from "../../context/AuthContext"
 import { fetchGardenGraph } from "../../utils/garden"
 import "../../styles/components/garden/graph-view.css"
 
-const NOTE_NODE_SIZE = 38
-const TAG_NODE_MIN_SIZE = 52
-const TAG_NODE_MAX_SIZE = 88
-const GRAPH_EDGE_LENGTH = 100
-const GRAPH_NODE_REPULSION = 5000
+const NOTE_NODE_SIZE = 30
+const TAG_NODE_MIN_SIZE = 60
+const TAG_NODE_MAX_SIZE = 104
+const GRAPH_EDGE_LENGTH = 105
+const GRAPH_NODE_REPULSION = 5200
 const PHYSICS_SPRING_STRENGTH = 0.0038
 const PHYSICS_REPULSION_RADIUS = 120
 const PHYSICS_REPULSION_STRENGTH = 0.0142
@@ -20,25 +22,45 @@ const PHYSICS_DAMPING = 0.86
 const PHYSICS_MAX_SPEED = 8
 const PHYSICS_SETTLE_MS = 260
 
-let nodeById = new Map(mockGardenGraph.nodes.map((node) => [node.id, node]))
-
-let parentById = mockGardenGraph.nodes.reduce((accumulator, node) => {
-  node.children.forEach((childId) => {
-    accumulator[childId] = node.id
-  })
-
-  return accumulator
-}, {})
+let nodeById = new Map()
+let adjacencyByNodeId = new Map()
+let nodesSortedByConnectivity = []
 
 function rebuildGraphIndexes() {
   nodeById = new Map(mockGardenGraph.nodes.map((node) => [node.id, node]))
-  parentById = mockGardenGraph.nodes.reduce((accumulator, node) => {
-    node.children.forEach((childId) => {
-      accumulator[childId] = node.id
-    })
+  adjacencyByNodeId = new Map(mockGardenGraph.nodes.map((node) => [node.id, new Set()]))
 
-    return accumulator
-  }, {})
+  mockGardenGraph.edges.forEach((edge) => {
+    if (!adjacencyByNodeId.has(edge.source) || !adjacencyByNodeId.has(edge.target)) {
+      return
+    }
+
+    adjacencyByNodeId.get(edge.source).add(edge.target)
+    adjacencyByNodeId.get(edge.target).add(edge.source)
+  })
+
+  nodesSortedByConnectivity = [...mockGardenGraph.nodes].sort((firstNode, secondNode) => {
+    const firstDegree = adjacencyByNodeId.get(firstNode.id)?.size || firstNode.connectionCount || 0
+    const secondDegree = adjacencyByNodeId.get(secondNode.id)?.size || secondNode.connectionCount || 0
+
+    if (secondDegree !== firstDegree) {
+      return secondDegree - firstDegree
+    }
+
+    if (firstNode.type !== secondNode.type) {
+      return firstNode.type === "tag" ? -1 : 1
+    }
+
+    return firstNode.label.localeCompare(secondNode.label)
+  })
+}
+
+rebuildGraphIndexes()
+
+function getNodeConnectionCount(nodeId) {
+  const adjacencyCount = adjacencyByNodeId.get(nodeId)?.size || 0
+  const node = nodeById.get(nodeId)
+  return Math.max(adjacencyCount, node?.connectionCount || 0)
 }
 
 function computeNodeSize(node) {
@@ -46,42 +68,79 @@ function computeNodeSize(node) {
     return NOTE_NODE_SIZE
   }
 
-  const boundedNoteCount = Math.max(1, Math.min(node.noteCount || 1, 24))
-  const ratio = (boundedNoteCount - 1) / 23
-
+  const boundedConnectionCount = Math.max(1, Math.min(getNodeConnectionCount(node.id), 18))
+  const ratio = (boundedConnectionCount - 1) / 17
   return TAG_NODE_MIN_SIZE + ratio * (TAG_NODE_MAX_SIZE - TAG_NODE_MIN_SIZE)
 }
 
-function buildVisibleNodeIds(focusStack) {
-  if (!focusStack.length) {
-    return new Set(mockGardenGraph.rootNodeIds)
+function getTagNodeSprite(node) {
+  const linkedNotesCount = Number(node.noteCount) || 0
+
+  if (linkedNotesCount > 10) {
+    return noteTreeBig1
   }
 
-  const focusedNodeId = focusStack[focusStack.length - 1]
-  const focusedNode = nodeById.get(focusedNodeId)
-  const visibleNodeIds = new Set([focusedNodeId])
-
-  if (!focusedNode) {
-    return visibleNodeIds
+  if (linkedNotesCount >= 1) {
+    return noteFlowerMedium2
   }
 
-  focusedNode.children.forEach((childId) => visibleNodeIds.add(childId))
-
-  mockGardenGraph.edges.forEach((edge) => {
-    if (edge.source === focusedNodeId) {
-      visibleNodeIds.add(edge.target)
-    }
-
-    if (edge.target === focusedNodeId) {
-      visibleNodeIds.add(edge.source)
-    }
-  })
-
-  return visibleNodeIds
+  return sproutttt
 }
 
-function buildElementsForFocus(focusStack) {
-  const visibleNodeIds = buildVisibleNodeIds(focusStack)
+function selectDefaultSeedNodeIds() {
+  const payloadSeeds = Array.isArray(mockGardenGraph.seedNodeIds)
+    ? mockGardenGraph.seedNodeIds.filter((nodeId) => nodeById.has(nodeId))
+    : []
+
+  if (payloadSeeds.length > 0) {
+    return payloadSeeds
+  }
+
+  return nodesSortedByConnectivity.slice(0, 18).map((node) => node.id)
+}
+
+function getNeighborhoodDepthByNodeId(focusNodeId) {
+  if (!focusNodeId || !nodeById.has(focusNodeId)) {
+    const defaultDepthByNodeId = new Map()
+
+    selectDefaultSeedNodeIds().forEach((seedId) => {
+      defaultDepthByNodeId.set(seedId, 0)
+
+      const seedNeighbors = adjacencyByNodeId.get(seedId) || new Set()
+      seedNeighbors.forEach((neighborId) => {
+        if (!defaultDepthByNodeId.has(neighborId)) {
+          defaultDepthByNodeId.set(neighborId, 1)
+        }
+      })
+    })
+
+    return defaultDepthByNodeId
+  }
+
+  const depthByNodeId = new Map([[focusNodeId, 0]])
+  const firstLevelNeighbors = adjacencyByNodeId.get(focusNodeId) || new Set()
+
+  firstLevelNeighbors.forEach((neighborId) => {
+    depthByNodeId.set(neighborId, 1)
+  })
+
+  firstLevelNeighbors.forEach((neighborId) => {
+    const secondLevelNeighbors = adjacencyByNodeId.get(neighborId) || new Set()
+    secondLevelNeighbors.forEach((secondLevelId) => {
+      if (depthByNodeId.has(secondLevelId)) {
+        return
+      }
+
+      depthByNodeId.set(secondLevelId, 2)
+    })
+  })
+
+  return depthByNodeId
+}
+
+function buildElementsForFocus(focusNodeId) {
+  const depthByNodeId = getNeighborhoodDepthByNodeId(focusNodeId)
+  const visibleNodeIds = new Set(depthByNodeId.keys())
 
   const nodes = [...visibleNodeIds]
     .map((id) => nodeById.get(id))
@@ -92,136 +151,74 @@ function buildElementsForFocus(focusStack) {
         label: node.label,
         type: node.type,
         size: computeNodeSize(node),
-        hasChildren: node.children.length > 0
-      }
+        sprite: node.type === "tag" ? getTagNodeSprite(node) : leafSvg,
+        depth: depthByNodeId.get(node.id) ?? 2,
+      },
     }))
 
-  const edgeMap = new Map()
-
-  const addEdgeIfMissing = (sourceId, targetId, kind = "explicit") => {
-    const source = sourceId < targetId ? sourceId : targetId
-    const target = sourceId < targetId ? targetId : sourceId
-    const edgeKey = `${source}__${target}`
-
-    if (edgeMap.has(edgeKey)) {
-      return
-    }
-
-    edgeMap.set(edgeKey, {
+  const edges = mockGardenGraph.edges
+    .filter((edge) => visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target))
+    .map((edge, index) => ({
       data: {
-        id: `edge-${edgeKey}`,
-        source,
-        target,
-        kind
-      }
-    })
-  }
+        id: `edge-${edge.source}-${edge.target}-${index}`,
+        source: edge.source,
+        target: edge.target,
+        type: edge.type || "related",
+        depth: Math.max(depthByNodeId.get(edge.source) ?? 2, depthByNodeId.get(edge.target) ?? 2),
+      },
+    }))
 
-  ;[...visibleNodeIds].forEach((nodeId) => {
-    const parentId = parentById[nodeId]
-
-    if (!parentId || !visibleNodeIds.has(parentId)) {
-      return
-    }
-
-    addEdgeIfMissing(parentId, nodeId, "explicit")
-  })
-
-  mockGardenGraph.edges.forEach((edge) => {
-    if (!visibleNodeIds.has(edge.source) || !visibleNodeIds.has(edge.target)) {
-      return
-    }
-
-    addEdgeIfMissing(edge.source, edge.target, "explicit")
-  })
-
-  // Infer higher-level links: if two visible tags point to the same lower node,
-  // connect those higher tags with a lightweight inferred edge.
-  const visibleTagNodes = [...visibleNodeIds]
-    .map((nodeId) => nodeById.get(nodeId))
-    .filter((node) => node?.type === "tag")
-
-  for (let firstIndex = 0; firstIndex < visibleTagNodes.length; firstIndex += 1) {
-    const firstTag = visibleTagNodes[firstIndex]
-
-    for (let secondIndex = firstIndex + 1; secondIndex < visibleTagNodes.length; secondIndex += 1) {
-      const secondTag = visibleTagNodes[secondIndex]
-
-      if (!firstTag || !secondTag) {
-        continue
-      }
-
-      const isDirectParentChild = parentById[firstTag.id] === secondTag.id || parentById[secondTag.id] === firstTag.id
-      if (isDirectParentChild) {
-        continue
-      }
-
-      const sharedVisibleChild = firstTag.children.some((childId) => secondTag.children.includes(childId))
-
-      if (sharedVisibleChild) {
-        addEdgeIfMissing(firstTag.id, secondTag.id, "inferred")
-      }
-    }
-  }
-
-  return [...nodes, ...edgeMap.values()]
+  return [...nodes, ...edges]
 }
 
-function sanitizeFocusStack(candidateFocusStack) {
-  if (!Array.isArray(candidateFocusStack)) {
-    return []
+function resolveInitialFocusNodeId(initialFocusStack = [], initialFocusPathLabels = []) {
+  const fromStack = Array.isArray(initialFocusStack)
+    ? initialFocusStack.filter((nodeId) => nodeById.has(nodeId))
+    : []
+
+  if (fromStack.length > 0) {
+    return fromStack[fromStack.length - 1]
   }
 
-  const normalizedStack = []
+  const labels = Array.isArray(initialFocusPathLabels)
+    ? initialFocusPathLabels.map((label) => label?.trim()).filter(Boolean)
+    : []
 
-  candidateFocusStack.forEach((nodeId) => {
-    if (!nodeById.has(nodeId)) {
-      return
-    }
+  if (labels.length === 0) {
+    return null
+  }
 
-    const existingIndex = normalizedStack.indexOf(nodeId)
-
-    // Stop looping paths like A/B/A by trimming back to the first A.
-    if (existingIndex >= 0) {
-      normalizedStack.splice(existingIndex + 1)
-      return
-    }
-
-    normalizedStack.push(nodeId)
-  })
-
-  return normalizedStack
+  const desiredLabel = labels[labels.length - 1]
+  const matchedNode = [...nodeById.values()].find((node) => node.label.toLowerCase() === desiredLabel.toLowerCase())
+  return matchedNode?.id || null
 }
 
-function buildFocusPath(focusStack) {
-  return focusStack
-    .map((nodeId) => {
-      const node = nodeById.get(nodeId)
-
-      if (!node) {
-        return null
-      }
-
-      return {
-        id: node.id,
-        label: node.label
-      }
-    })
-    .filter(Boolean)
-}
-
-function GardenGraphView({ initialFocusStack = [] }) {
+function GardenGraphView({ initialFocusStack = [], initialFocusPathLabels = [], onFocusPathChange, refreshTick = 0 }) {
   const { authUser } = useAuth()
   const graphContainerRef = useRef(null)
-  const focusStackRef = useRef([])
+  const focusedNodeIdRef = useRef(null)
   const rerenderFocusGraphRef = useRef(null)
   const velocityByNodeIdRef = useRef(new Map())
   const physicsRafRef = useRef(null)
   const settleTimeoutRef = useRef(null)
   const physicsRunningRef = useRef(false)
-  const [focusPath, setFocusPath] = useState([])
+  const activeLayoutRef = useRef(null)
+  const [focusedNodeSummary, setFocusedNodeSummary] = useState(null)
   const [graphVersion, setGraphVersion] = useState(0)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (typeof onFocusPathChange !== "function") {
+      return
+    }
+
+    if (!focusedNodeSummary) {
+      onFocusPathChange([])
+      return
+    }
+
+    onFocusPathChange([focusedNodeSummary.label])
+  }, [focusedNodeSummary, onFocusPathChange])
 
   useEffect(() => {
     let isMounted = true
@@ -233,11 +230,11 @@ function GardenGraphView({ initialFocusStack = [] }) {
 
       try {
         const payload = await fetchGardenGraph(authUser.token)
-        if (!isMounted || !payload?.nodes || !payload?.edges || !payload?.rootNodeIds) {
+        if (!isMounted || !payload?.nodes || !payload?.edges || !payload?.seedNodeIds) {
           return
         }
 
-        mockGardenGraph.rootNodeIds = payload.rootNodeIds
+        mockGardenGraph.seedNodeIds = payload.seedNodeIds
         mockGardenGraph.nodes = payload.nodes
         mockGardenGraph.edges = payload.edges
         rebuildGraphIndexes()
@@ -252,25 +249,15 @@ function GardenGraphView({ initialFocusStack = [] }) {
     return () => {
       isMounted = false
     }
-  }, [authUser?.token])
+  }, [authUser?.token, refreshTick])
 
-  const handleRootPathClick = () => {
+  const handleResetFocus = () => {
     if (!rerenderFocusGraphRef.current) {
       return
     }
 
-    focusStackRef.current = []
-    setFocusPath([])
-    rerenderFocusGraphRef.current({ shouldFit: true })
-  }
-
-  const handlePathNodeClick = (pathIndex) => {
-    if (!rerenderFocusGraphRef.current) {
-      return
-    }
-
-    focusStackRef.current = focusStackRef.current.slice(0, pathIndex + 1)
-    setFocusPath(buildFocusPath(focusStackRef.current))
+    focusedNodeIdRef.current = null
+    setFocusedNodeSummary(null)
     rerenderFocusGraphRef.current({ shouldFit: true })
   }
 
@@ -279,12 +266,19 @@ function GardenGraphView({ initialFocusStack = [] }) {
       return undefined
     }
 
-    focusStackRef.current = sanitizeFocusStack(initialFocusStack)
-    setFocusPath(buildFocusPath(focusStackRef.current))
+    const initialFocusNodeId = resolveInitialFocusNodeId(initialFocusStack, initialFocusPathLabels)
+    focusedNodeIdRef.current = initialFocusNodeId
+
+    if (initialFocusNodeId && nodeById.has(initialFocusNodeId)) {
+      const initialNode = nodeById.get(initialFocusNodeId)
+      setFocusedNodeSummary({ id: initialNode.id, label: initialNode.label, type: initialNode.type })
+    } else {
+      setFocusedNodeSummary(null)
+    }
 
     const cy = cytoscape({
       container: graphContainerRef.current,
-      elements: buildElementsForFocus(focusStackRef.current),
+      elements: buildElementsForFocus(focusedNodeIdRef.current),
       layout: {
         name: "cose",
         animate: true,
@@ -294,7 +288,7 @@ function GardenGraphView({ initialFocusStack = [] }) {
         idealEdgeLength: GRAPH_EDGE_LENGTH,
         nodeRepulsion: GRAPH_NODE_REPULSION,
         gravity: 0.08,
-        padding: 40
+        padding: 40,
       },
       wheelSensitivity: 0.6,
       minZoom: 0.25,
@@ -304,7 +298,7 @@ function GardenGraphView({ initialFocusStack = [] }) {
           selector: "node",
           style: {
             "background-opacity": 0,
-            "background-image": leafSvg,
+            "background-image": "data(sprite)",
             "background-fit": "contain",
             "background-clip": "none",
             "background-width": "100%",
@@ -321,17 +315,24 @@ function GardenGraphView({ initialFocusStack = [] }) {
             "line-height": 1.2,
             width: "data(size)",
             height: "data(size)",
-            "transition-property": "width height",
-            "transition-duration": "120ms"
-          }
+            opacity: 1,
+            "transition-property": "width height opacity",
+            "transition-duration": "120ms",
+          },
         },
         {
           selector: 'node[type = "note"]',
           style: {
             "text-max-width": 90,
             "font-size": 13,
-            "text-margin-y": 16
-          }
+            "text-margin-y": 16,
+          },
+        },
+        {
+          selector: "node[depth = 2]",
+          style: {
+            opacity: 0.44,
+          },
         },
         {
           selector: "edge",
@@ -340,19 +341,17 @@ function GardenGraphView({ initialFocusStack = [] }) {
             "line-color": "#93a790",
             "target-arrow-shape": "none",
             "curve-style": "bezier",
-            opacity: 0.85
-          }
+            opacity: 0.85,
+          },
         },
         {
-          selector: 'edge[kind = "inferred"]',
+          selector: "edge[depth = 2]",
           style: {
             width: 1.5,
-            "line-style": "solid",
-            "line-color": "#c7d2be",
-            opacity: 0.65
-          }
-        }
-      ]
+            opacity: 0.42,
+          },
+        },
+      ],
     })
 
     const clearVelocities = () => {
@@ -365,6 +364,13 @@ function GardenGraphView({ initialFocusStack = [] }) {
       if (physicsRafRef.current !== null) {
         cancelAnimationFrame(physicsRafRef.current)
         physicsRafRef.current = null
+      }
+    }
+
+    const stopActiveLayout = () => {
+      if (activeLayoutRef.current) {
+        activeLayoutRef.current.stop()
+        activeLayoutRef.current = null
       }
     }
 
@@ -454,7 +460,7 @@ function GardenGraphView({ initialFocusStack = [] }) {
           const position = node.position()
           node.position({
             x: position.x + velocityX,
-            y: position.y + velocityY
+            y: position.y + velocityY,
           })
         })
       })
@@ -488,8 +494,9 @@ function GardenGraphView({ initialFocusStack = [] }) {
     }
 
     const rerenderFocusGraph = ({ shouldFit = true } = {}) => {
-      const nextElements = buildElementsForFocus(focusStackRef.current)
+      const nextElements = buildElementsForFocus(focusedNodeIdRef.current)
 
+      stopActiveLayout()
       stopPhysicsLoop()
       clearVelocities()
 
@@ -507,9 +514,15 @@ function GardenGraphView({ initialFocusStack = [] }) {
         idealEdgeLength: GRAPH_EDGE_LENGTH,
         nodeRepulsion: GRAPH_NODE_REPULSION,
         gravity: 0.08,
-        padding: 40
+        padding: 40,
       })
 
+      activeLayoutRef.current = layout
+      cy.one("layoutstop", () => {
+        if (activeLayoutRef.current === layout) {
+          activeLayoutRef.current = null
+        }
+      })
       layout.run()
     }
 
@@ -528,9 +541,8 @@ function GardenGraphView({ initialFocusStack = [] }) {
       startPhysicsLoop()
     })
 
-    cy.on("free", "node", (event) => {
+    cy.on("free", "node", () => {
       const hasGrabbedNodes = cy.nodes().some((node) => node.grabbed())
-
       if (hasGrabbedNodes) {
         return
       }
@@ -540,45 +552,49 @@ function GardenGraphView({ initialFocusStack = [] }) {
 
     cy.on("tap", "node", (event) => {
       const nodeData = event.target.data()
-      const hasChildren = Boolean(nodeData.hasChildren)
 
-      if (hasChildren) {
-        const existingFocusIndex = focusStackRef.current.indexOf(nodeData.id)
+      if (nodeData.type === "note") {
+        const noteId = nodeData.id?.startsWith("note-") ? nodeData.id.slice(5) : null
+        const neighborIds = [...(adjacencyByNodeId.get(nodeData.id) || new Set())]
+        const connectedTags = neighborIds
+          .map((neighborId) => nodeById.get(neighborId))
+          .filter((neighborNode) => neighborNode?.type === "tag")
+        const fallbackTagName = connectedTags[0]?.label || "Garden"
 
-        if (existingFocusIndex >= 0) {
-          focusStackRef.current = focusStackRef.current.slice(0, existingFocusIndex + 1)
-        } else {
-          focusStackRef.current = [...focusStackRef.current, nodeData.id]
-        }
-
-        setFocusPath(buildFocusPath(focusStackRef.current))
-        rerenderFocusGraph({ shouldFit: true })
+        navigate(
+          `/note${noteId ? `?noteId=${encodeURIComponent(noteId)}` : `?title=${encodeURIComponent(nodeData.label || "Untitled note")}&tag=${encodeURIComponent(fallbackTagName)}`}`,
+          {
+            state: {
+              noteId,
+              noteTitle: nodeData.label || "Untitled note",
+              tagName: fallbackTagName,
+              focusStack: focusedNodeIdRef.current ? [focusedNodeIdRef.current] : [],
+              focusTagId: focusedNodeIdRef.current,
+              tags: connectedTags.map((tagNode) => tagNode.label),
+            },
+          },
+        )
         return
       }
 
-      const noteTitle = nodeData.label || "Untitled note"
-      const focusedTagId = focusStackRef.current[focusStackRef.current.length - 1]
-      const focusedTagNode = focusedTagId ? nodeById.get(focusedTagId) : undefined
-      const fallbackTagName = focusedTagNode?.label || nodeData.label || "Garden"
-
-      navigate(
-        `/note?title=${encodeURIComponent(noteTitle)}&tag=${encodeURIComponent(fallbackTagName)}`,
-        {
-          state: {
-            noteTitle,
-            tagName: fallbackTagName,
-            focusStack: [...focusStackRef.current],
-            focusTagId: focusedTagId,
-            tags: [fallbackTagName]
-          }
-        }
+      focusedNodeIdRef.current = focusedNodeIdRef.current === nodeData.id ? null : nodeData.id
+      setFocusedNodeSummary(
+        focusedNodeIdRef.current
+          ? {
+              id: nodeData.id,
+              label: nodeData.label,
+              type: nodeData.type,
+            }
+          : null,
       )
+      rerenderFocusGraph({ shouldFit: true })
     })
 
     window.addEventListener("resize", handleResize)
 
     return () => {
       rerenderFocusGraphRef.current = null
+      stopActiveLayout()
       stopPhysicsLoop()
 
       if (settleTimeoutRef.current !== null) {
@@ -589,40 +605,25 @@ function GardenGraphView({ initialFocusStack = [] }) {
       window.removeEventListener("resize", handleResize)
       cy.destroy()
     }
-  }, [graphVersion, initialFocusStack, navigate])
+  }, [graphVersion, initialFocusPathLabels, initialFocusStack, navigate])
 
   return (
     <div className="garden-view garden-graph-view" aria-label="Garden graph view">
-      {focusPath.length > 0 && (
-        <div className="garden-graph-view__breadcrumb" role="navigation" aria-label="Graph path">
+      {focusedNodeSummary ? (
+        <div className="garden-graph-view__breadcrumb" role="navigation" aria-label="Graph focus">
           <button
             type="button"
             className="garden-graph-view__breadcrumb-link garden-graph-view__breadcrumb-link--inactive"
-            onClick={handleRootPathClick}
+            onClick={handleResetFocus}
           >
-            My Garden
+            Show Seeds
           </button>
           <span className="garden-graph-view__breadcrumb-separator" aria-hidden="true">/</span>
-          {focusPath.map((pathNode, index) => (
-            <div key={pathNode.id} className="garden-graph-view__breadcrumb-item">
-              <button
-                type="button"
-                className={`garden-graph-view__breadcrumb-link ${
-                  index === focusPath.length - 1
-                    ? "garden-graph-view__breadcrumb-link--active"
-                    : "garden-graph-view__breadcrumb-link--inactive"
-                }`}
-                onClick={() => handlePathNodeClick(index)}
-              >
-                {pathNode.label}
-              </button>
-              {index < focusPath.length - 1 && (
-                <span className="garden-graph-view__breadcrumb-separator" aria-hidden="true">/</span>
-              )}
-            </div>
-          ))}
+          <span className="garden-graph-view__breadcrumb-link garden-graph-view__breadcrumb-link--active">
+            {focusedNodeSummary.label}
+          </span>
         </div>
-      )}
+      ) : null}
       <div
         ref={graphContainerRef}
         className="garden-graph-view__canvas"

@@ -35,43 +35,104 @@ namespace EvergreenNotes.Application.Services
                 .OrderByDescending(n => n.LastWateredAt)
                 .ToListAsync();
 
-            var rootTagIds = tags
-                .Where(tag => tag.ParentTagId == null)
-                .OrderBy(tag => tag.Name)
-                .Select(tag => $"tag-{tag.Id:N}")
-                .ToList();
+            var noteIds = notes.Select(note => note.Id).ToList();
 
-            var childrenByTagId = tags.ToDictionary(tag => tag.Id, _ => new List<string>());
-
-            foreach (var tag in tags)
-            {
-                if (tag.ParentTagId.HasValue && childrenByTagId.TryGetValue(tag.ParentTagId.Value, out var children))
-                {
-                    children.Add($"tag-{tag.Id:N}");
-                }
-            }
+            var noteTagLinks = await _db.NoteTags
+                .Where(link => noteIds.Contains(link.NoteId))
+                .Select(link => new { link.NoteId, link.TagId })
+                .ToListAsync();
 
             var noteNodeIds = notes.ToDictionary(note => note.Id, note => $"note-{note.Id:N}");
 
+            var tagNodeIds = tags.ToDictionary(tag => tag.Id, tag => $"tag-{tag.Id:N}");
+
+            var edgeKeys = new HashSet<string>(StringComparer.Ordinal);
+            var edges = new List<GardenGraphEdgeResponse>();
+
+            void AddEdge(string source, string target, string type)
+            {
+                if (source == target)
+                {
+                    return;
+                }
+
+                var first = string.CompareOrdinal(source, target) <= 0 ? source : target;
+                var second = string.CompareOrdinal(source, target) <= 0 ? target : source;
+                var edgeKey = $"{type}:{first}__{second}";
+
+                if (!edgeKeys.Add(edgeKey))
+                {
+                    return;
+                }
+
+                edges.Add(new GardenGraphEdgeResponse
+                {
+                    Source = source,
+                    Target = target,
+                    Type = type
+                });
+            }
+
+            foreach (var link in noteTagLinks)
+            {
+                if (!noteNodeIds.TryGetValue(link.NoteId, out var noteNodeId))
+                {
+                    continue;
+                }
+
+                if (!tagNodeIds.TryGetValue(link.TagId, out var tagNodeId))
+                {
+                    continue;
+                }
+
+                AddEdge(noteNodeId, tagNodeId, "note-tag");
+            }
+
             foreach (var tag in tags)
             {
-                foreach (var noteTag in tag.NoteTags)
+                if (!tag.ParentTagId.HasValue)
                 {
-                    if (noteNodeIds.TryGetValue(noteTag.NoteId, out var noteNodeId))
-                    {
-                        childrenByTagId[tag.Id].Add(noteNodeId);
-                    }
+                    continue;
                 }
+
+                if (!tagNodeIds.TryGetValue(tag.ParentTagId.Value, out var sourceTagNodeId))
+                {
+                    continue;
+                }
+
+                if (!tagNodeIds.TryGetValue(tag.Id, out var targetTagNodeId))
+                {
+                    continue;
+                }
+
+                // ParentTagId is treated as an explicit concept relation, not hierarchy depth.
+                AddEdge(sourceTagNodeId, targetTagNodeId, "tag-tag");
+            }
+
+            var connectionCountByNodeId = new Dictionary<string, int>(StringComparer.Ordinal);
+
+            void IncrementConnectionCount(string nodeId)
+            {
+                if (!connectionCountByNodeId.TryAdd(nodeId, 1))
+                {
+                    connectionCountByNodeId[nodeId] += 1;
+                }
+            }
+
+            foreach (var edge in edges)
+            {
+                IncrementConnectionCount(edge.Source);
+                IncrementConnectionCount(edge.Target);
             }
 
             var nodes = new List<GardenGraphNodeResponse>();
             nodes.AddRange(tags.Select(tag => new GardenGraphNodeResponse
             {
-                Id = $"tag-{tag.Id:N}",
+                Id = tagNodeIds[tag.Id],
                 Label = tag.Name,
                 Type = "tag",
                 NoteCount = tag.NoteTags.Count,
-                Children = childrenByTagId[tag.Id].Distinct().ToList()
+                ConnectionCount = connectionCountByNodeId.TryGetValue(tagNodeIds[tag.Id], out var count) ? count : 0
             }));
 
             nodes.AddRange(notes.Select(note => new GardenGraphNodeResponse
@@ -80,39 +141,53 @@ namespace EvergreenNotes.Application.Services
                 Label = note.Title,
                 Type = "note",
                 NoteCount = 1,
-                Children = new List<string>()
+                ConnectionCount = connectionCountByNodeId.TryGetValue(noteNodeIds[note.Id], out var count) ? count : 0
             }));
 
-            var edges = new List<GardenGraphEdgeResponse>();
-            foreach (var tag in tags)
+            var connectedNodes = nodes
+                .Where(node => node.ConnectionCount > 0)
+                .OrderByDescending(node => node.ConnectionCount)
+                .ThenByDescending(node => node.Type == "tag")
+                .ThenBy(node => node.Label)
+                .ToList();
+
+            var disconnectedTagNodes = nodes
+                .Where(node => node.Type == "tag" && node.ConnectionCount == 0)
+                .OrderBy(node => node.Label)
+                .ToList();
+
+            var highConnectivitySeeds = connectedNodes
+                .Where(node => node.ConnectionCount >= 3)
+                .Take(18)
+                .Select(node => node.Id)
+                .ToList();
+
+            var seedNodeIds = highConnectivitySeeds;
+
+            // Keep sparse graphs explorable: if not enough high-connectivity nodes,
+            // fall back to the most connected nodes with at least one edge.
+            if (seedNodeIds.Count < 8)
             {
-                if (tag.ParentTagId.HasValue)
-                {
-                    edges.Add(new GardenGraphEdgeResponse
-                    {
-                        Source = $"tag-{tag.ParentTagId.Value:N}",
-                        Target = $"tag-{tag.Id:N}"
-                    });
-                }
+                seedNodeIds = connectedNodes
+                    .Concat(disconnectedTagNodes)
+                    .Take(18)
+                    .Select(node => node.Id)
+                    .ToList();
+            }
 
-                foreach (var noteTag in tag.NoteTags)
-                {
-                    if (!noteNodeIds.TryGetValue(noteTag.NoteId, out var noteNodeId))
-                    {
-                        continue;
-                    }
-
-                    edges.Add(new GardenGraphEdgeResponse
-                    {
-                        Source = $"tag-{tag.Id:N}",
-                        Target = noteNodeId
-                    });
-                }
+            if (seedNodeIds.Count == 0)
+            {
+                seedNodeIds = nodes
+                    .OrderByDescending(node => node.Type == "tag")
+                    .ThenBy(node => node.Label)
+                    .Take(12)
+                    .Select(node => node.Id)
+                    .ToList();
             }
 
             return new GardenGraphResponse
             {
-                RootNodeIds = rootTagIds,
+                SeedNodeIds = seedNodeIds,
                 Nodes = nodes,
                 Edges = edges
             };

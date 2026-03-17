@@ -80,44 +80,18 @@ namespace EvergreenNotes.Application.Services
                 .OrderBy(t => t.Name)
                 .ToListAsync();
 
-            var byParent = tags
-                .GroupBy(t => t.ParentTagId)
-                .ToList();
-
-            List<TaxonomyTagNodeResponse> BuildLevel(Guid? parentId, string parentPath, int depth)
-            {
-                var levelTags = byParent
-                    .FirstOrDefault(group => group.Key == parentId)
-                    ?.ToList();
-
-                if (levelTags == null)
+            return tags
+                .Select(tag => new TaxonomyTagNodeResponse
                 {
-                    return new List<TaxonomyTagNodeResponse>();
-                }
-
-                return levelTags
-                    .OrderBy(t => t.Name)
-                    .Select(tag =>
-                    {
-                        var path = string.IsNullOrWhiteSpace(parentPath)
-                            ? tag.Name
-                            : $"{parentPath} > {tag.Name}";
-
-                        return new TaxonomyTagNodeResponse
-                        {
-                            Id = tag.Id,
-                            Name = tag.Name,
-                            ParentTagId = tag.ParentTagId,
-                            Depth = depth,
-                            Path = path,
-                            NotesCount = tag.NoteTags.Count,
-                            Children = BuildLevel(tag.Id, path, depth + 1)
-                        };
-                    })
-                    .ToList();
-            }
-
-            return BuildLevel(null, string.Empty, 0);
+                    Id = tag.Id,
+                    Name = tag.Name,
+                    ParentTagId = tag.ParentTagId,
+                    Depth = 0,
+                    Path = tag.Name,
+                    NotesCount = tag.NoteTags.Count,
+                    Children = new List<TaxonomyTagNodeResponse>()
+                })
+                .ToList();
         }
 
         public async Task<List<TaxonomyTagSearchItemResponse>> SearchTagsAsync(Guid userId, string query, Guid? parentTagId = null, int limit = 20)
@@ -132,27 +106,20 @@ namespace EvergreenNotes.Application.Services
             var tags = await _db.Tags
                 .Where(t => t.UserId == userId)
                 .Where(t => t.Name.ToLower().Contains(normalizedQuery))
-                .Where(t => !parentTagId.HasValue || t.ParentTagId == parentTagId)
                 .OrderBy(t => t.Name)
                 .Take(Math.Clamp(limit, 1, 50))
                 .ToListAsync();
 
-            var result = new List<TaxonomyTagSearchItemResponse>();
-            foreach (var tag in tags)
-            {
-                var path = await BuildPathAsync(tag);
-
-                result.Add(new TaxonomyTagSearchItemResponse
+            return tags
+                .Select(tag => new TaxonomyTagSearchItemResponse
                 {
                     Id = tag.Id,
                     Name = tag.Name,
                     ParentTagId = tag.ParentTagId,
-                    Depth = path.Count(part => part == '/') + 1,
-                    Path = path
-                });
-            }
-
-            return result;
+                    Depth = 0,
+                    Path = tag.Name
+                })
+                .ToList();
         }
 
         public async Task AddTagToNoteAsync(Guid userId, Guid noteId, Guid tagId)
@@ -195,57 +162,36 @@ namespace EvergreenNotes.Application.Services
 
             foreach (var rawTag in tagNames)
             {
-                if (string.IsNullOrWhiteSpace(rawTag))
+                var normalizedTag = NormalizeTagName(rawTag);
+                if (string.IsNullOrWhiteSpace(normalizedTag))
                 {
                     continue;
                 }
 
-                var pathSegments = rawTag
-                    .Split('>')
-                    .Select(segment => NormalizeTagName(segment))
-                    .Where(segment => !string.IsNullOrWhiteSpace(segment))
-                    .ToList();
+                var existingTag = await _db.Tags.FirstOrDefaultAsync(t =>
+                    t.UserId == userId &&
+                    t.Name.ToLower() == normalizedTag.ToLower());
 
-                if (pathSegments.Count == 0)
+                if (existingTag == null)
                 {
-                    continue;
-                }
-
-                Guid? parentTagId = null;
-                Tag? currentTag = null;
-
-                foreach (var segment in pathSegments)
-                {
-                    currentTag = await _db.Tags.FirstOrDefaultAsync(t =>
-                        t.UserId == userId &&
-                        t.ParentTagId == parentTagId &&
-                        t.Name.ToLower() == segment.ToLower());
-
-                    if (currentTag == null)
+                    existingTag = new Tag
                     {
-                        currentTag = new Tag
-                        {
-                            Id = Guid.NewGuid(),
-                            UserId = userId,
-                            Name = segment,
-                            ParentTagId = parentTagId,
-                            CreatedAt = DateTime.UtcNow
-                        };
+                        Id = Guid.NewGuid(),
+                        UserId = userId,
+                        Name = normalizedTag,
+                        ParentTagId = null,
+                        CreatedAt = DateTime.UtcNow
+                    };
 
-                        _db.Tags.Add(currentTag);
-                        await _db.SaveChangesAsync();
-                    }
-
-                    parentTagId = currentTag.Id;
+                    _db.Tags.Add(existingTag);
+                    await _db.SaveChangesAsync();
                 }
 
-                if (currentTag != null && resolvedTags.All(tag => tag.Id != currentTag.Id))
+                if (resolvedTags.All(tag => tag.Id != existingTag.Id))
                 {
-                    resolvedTags.Add(currentTag);
+                    resolvedTags.Add(existingTag);
                 }
             }
-
-            await EnsureNoDuplicateNoteNameOnSamePathAsync(userId, noteId, note.Title, resolvedTags.Select(tag => tag.Id).ToList());
 
             var existingLinks = await _db.NoteTags.Where(nt => nt.NoteId == noteId).ToListAsync();
             _db.NoteTags.RemoveRange(existingLinks);
@@ -261,51 +207,6 @@ namespace EvergreenNotes.Application.Services
             }
 
             await _db.SaveChangesAsync();
-        }
-
-        private async Task EnsureNoDuplicateNoteNameOnSamePathAsync(Guid userId, Guid noteId, string noteTitle, List<Guid> resolvedTagIds)
-        {
-            var normalizedTitle = noteTitle.Trim().ToLower();
-            if (string.IsNullOrWhiteSpace(normalizedTitle))
-            {
-                return;
-            }
-
-            var candidateNotes = await _db.Notes
-                .Where(note =>
-                    note.UserId == userId &&
-                    note.Id != noteId &&
-                    note.Title.ToLower() == normalizedTitle)
-                .Select(note => note.Id)
-                .ToListAsync();
-
-            if (candidateNotes.Count == 0)
-            {
-                return;
-            }
-
-            if (resolvedTagIds.Count == 0)
-            {
-                var hasRootConflict = await _db.NoteTags
-                    .Where(link => candidateNotes.Contains(link.NoteId))
-                    .AnyAsync() == false;
-
-                if (hasRootConflict)
-                {
-                    throw new Exception("A note with the same title already exists on this path.");
-                }
-
-                return;
-            }
-
-            var hasPathConflict = await _db.NoteTags
-                .Where(link => candidateNotes.Contains(link.NoteId) && resolvedTagIds.Contains(link.TagId))
-                .AnyAsync();
-
-            if (hasPathConflict)
-            {
-                throw new Exception("A note with the same title already exists on this path.");
-            }
         }
 
         public async Task RemoveTagFromNoteAsync(Guid userId, Guid noteId, Guid tagId)
@@ -368,25 +269,5 @@ namespace EvergreenNotes.Application.Services
             return trimmed;
         }
 
-        private async Task<string> BuildPathAsync(Tag tag)
-        {
-            var parts = new List<string> { tag.Name };
-            var parentId = tag.ParentTagId;
-
-            while (parentId.HasValue)
-            {
-                var parent = await _db.Tags.FirstOrDefaultAsync(t => t.Id == parentId.Value && t.UserId == tag.UserId);
-                if (parent == null)
-                {
-                    break;
-                }
-
-                parts.Add(parent.Name);
-                parentId = parent.ParentTagId;
-            }
-
-            parts.Reverse();
-            return string.Join(" > ", parts);
-        }
     }
 }

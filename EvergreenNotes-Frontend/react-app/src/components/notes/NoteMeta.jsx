@@ -90,9 +90,9 @@ function NoteMeta({
                   key={suggestion.id}
                   type="button"
                   className="note-page__tag-suggestion-item"
-                  onClick={() => onSelectTagSuggestion?.(suggestion.path)}
+                  onClick={() => onSelectTagSuggestion?.(suggestion.name)}
                 >
-                  {suggestion.path}
+                  {suggestion.name}
                 </button>
               ))}
             </div>
