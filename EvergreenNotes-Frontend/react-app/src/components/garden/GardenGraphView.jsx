@@ -7,7 +7,7 @@ import sproutttt from "../../assets/images/sproutttt.png"
 import noteFlowerMedium2 from "../../assets/images/note-flower-medium2.png"
 import noteTreeBig1 from "../../assets/images/note-tree-big1.png"
 import { useAuth } from "../../context/AuthContext"
-import { fetchGardenGraph } from "../../utils/garden"
+import { fetchGardenGraph, fetchPublicGardenGraph } from "../../utils/garden"
 import "../../styles/components/garden/graph-view.css"
 
 const NOTE_NODE_SIZE = 30
@@ -207,7 +207,14 @@ function computeNoteLabelOpacity(zoomLevel) {
   return (zoomLevel - NOTE_LABEL_FADE_END_ZOOM) / (NOTE_LABEL_FADE_START_ZOOM - NOTE_LABEL_FADE_END_ZOOM)
 }
 
-function GardenGraphView({ initialFocusStack = [], initialFocusPathLabels = [], onFocusPathChange, refreshTick = 0 }) {
+function GardenGraphView({
+  initialFocusStack = [],
+  initialFocusPathLabels = [],
+  onFocusPathChange,
+  refreshTick = 0,
+  userId = null,
+  isReadOnly = false,
+}) {
   const { authUser } = useAuth()
   const graphContainerRef = useRef(null)
   const focusedNodeIdRef = useRef(null)
@@ -243,7 +250,9 @@ function GardenGraphView({ initialFocusStack = [], initialFocusPathLabels = [], 
       }
 
       try {
-        const payload = await fetchGardenGraph(authUser.token)
+        const payload = userId
+          ? await fetchPublicGardenGraph(userId, authUser.token)
+          : await fetchGardenGraph(authUser.token)
         if (!isMounted || !payload?.nodes || !payload?.edges || !payload?.seedNodeIds) {
           return
         }
@@ -263,7 +272,7 @@ function GardenGraphView({ initialFocusStack = [], initialFocusPathLabels = [], 
     return () => {
       isMounted = false
     }
-  }, [authUser?.token, refreshTick])
+  }, [authUser?.token, refreshTick, userId])
 
   const handleResetFocus = () => {
     if (!rerenderFocusGraphRef.current) {
@@ -585,12 +594,13 @@ function GardenGraphView({ initialFocusStack = [], initialFocusPathLabels = [], 
         const fallbackTagName = connectedTags[0]?.label || "Garden"
 
         navigate(
-          `/note${noteId ? `?noteId=${encodeURIComponent(noteId)}` : `?title=${encodeURIComponent(nodeData.label || "Untitled note")}&tag=${encodeURIComponent(fallbackTagName)}`}`,
+          `/note${noteId ? `?noteId=${encodeURIComponent(noteId)}` : `?title=${encodeURIComponent(nodeData.label || "Untitled note")}&tag=${encodeURIComponent(fallbackTagName)}`}${isReadOnly ? "&readOnly=1" : ""}`,
           {
             state: {
               noteId,
               noteTitle: nodeData.label || "Untitled note",
               tagName: fallbackTagName,
+              readOnly: isReadOnly,
               focusStack: focusedNodeIdRef.current ? [focusedNodeIdRef.current] : [],
               focusTagId: focusedNodeIdRef.current,
               tags: connectedTags.map((tagNode) => tagNode.label),
@@ -630,7 +640,7 @@ function GardenGraphView({ initialFocusStack = [], initialFocusPathLabels = [], 
       cy.removeListener("zoom", updateNoteLabelOpacity)
       cy.destroy()
     }
-  }, [graphVersion, initialFocusPathLabels, initialFocusStack, navigate])
+  }, [graphVersion, initialFocusPathLabels, initialFocusStack, isReadOnly, navigate])
 
   return (
     <div className="garden-view garden-graph-view" aria-label="Garden graph view">

@@ -25,13 +25,43 @@ namespace EvergreenNotes.Application.Services
 
         public async Task<GardenGraphResponse> GetMyGardenGraphAsync(Guid userId)
         {
+            return await BuildGardenGraphAsync(userId, includePrivate: true);
+        }
+
+        public async Task<GardenGraphResponse?> GetPublicGardenGraphAsync(Guid targetUserId, Guid? currentUserId)
+        {
+            var user = await _db.Users.FindAsync(targetUserId);
+            if (user == null)
+            {
+                return null;
+            }
+
+            var isOwner = currentUserId == targetUserId;
+            if (!isOwner)
+            {
+                var garden = await _db.Gardens.FirstOrDefaultAsync(g => g.UserId == targetUserId);
+                if (garden == null || garden.Visibility == GardenVisibility.Private)
+                {
+                    return null;
+                }
+            }
+
+            return await BuildGardenGraphAsync(targetUserId, includePrivate: isOwner);
+        }
+
+        private async Task<GardenGraphResponse> BuildGardenGraphAsync(Guid userId, bool includePrivate)
+        {
             var tags = await _db.Tags
                 .Where(t => t.UserId == userId)
-                .Include(t => t.NoteTags)
                 .ToListAsync();
 
-            var notes = await _db.Notes
-                .Where(n => n.UserId == userId)
+            var notesQuery = _db.Notes.Where(n => n.UserId == userId);
+            if (!includePrivate)
+            {
+                notesQuery = notesQuery.Where(n => n.Visibility == NoteVisibility.Public);
+            }
+
+            var notes = await notesQuery
                 .OrderByDescending(n => n.LastWateredAt)
                 .ToListAsync();
 
@@ -42,9 +72,23 @@ namespace EvergreenNotes.Application.Services
                 .Select(link => new { link.NoteId, link.TagId })
                 .ToListAsync();
 
+            var visibleTagIds = noteTagLinks
+                .Select(link => link.TagId)
+                .Distinct()
+                .ToHashSet();
+
+            if (!includePrivate)
+            {
+                tags = tags.Where(tag => visibleTagIds.Contains(tag.Id)).ToList();
+            }
+
             var noteNodeIds = notes.ToDictionary(note => note.Id, note => $"note-{note.Id:N}");
 
             var tagNodeIds = tags.ToDictionary(tag => tag.Id, tag => $"tag-{tag.Id:N}");
+
+            var noteCountByTagId = noteTagLinks
+                .GroupBy(link => link.TagId)
+                .ToDictionary(group => group.Key, group => group.Count());
 
             var edgeKeys = new HashSet<string>(StringComparer.Ordinal);
             var edges = new List<GardenGraphEdgeResponse>();
@@ -131,7 +175,7 @@ namespace EvergreenNotes.Application.Services
                 Id = tagNodeIds[tag.Id],
                 Label = tag.Name,
                 Type = "tag",
-                NoteCount = tag.NoteTags.Count,
+                NoteCount = noteCountByTagId.TryGetValue(tag.Id, out var noteCount) ? noteCount : 0,
                 ConnectionCount = connectionCountByNodeId.TryGetValue(tagNodeIds[tag.Id], out var count) ? count : 0
             }));
 

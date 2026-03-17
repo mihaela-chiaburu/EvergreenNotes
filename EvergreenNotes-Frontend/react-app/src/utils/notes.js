@@ -37,6 +37,14 @@ export async function fetchNotes(token) {
   return Array.isArray(payload) ? payload.map(mapNoteToViewModel) : []
 }
 
+export async function fetchPublicUserNotes(userId, token) {
+  const payload = await apiRequest(`/api/notes/users/${encodeURIComponent(userId)}/public?page=1&pageSize=100`, {
+    token,
+  })
+
+  return Array.isArray(payload) ? payload.map(mapNoteToViewModel) : []
+}
+
 export async function fetchNoteById(token, noteId) {
   const payload = await apiRequest(`/api/notes/${noteId}`, {
     token,

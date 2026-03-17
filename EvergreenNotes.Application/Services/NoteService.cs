@@ -209,6 +209,49 @@ namespace EvergreenNotes.Application.Services
             return MapToResponse(note, tags);
         }
 
+        public async Task<List<NoteResponse>> GetPublicNotesByUserIdAsync(Guid targetUserId, Guid? currentUserId, int page = 1, int pageSize = 100)
+        {
+            var isOwner = currentUserId == targetUserId;
+
+            if (!isOwner)
+            {
+                var garden = await _db.Gardens.FirstOrDefaultAsync(g => g.UserId == targetUserId);
+                if (garden == null || garden.Visibility == GardenVisibility.Private)
+                {
+                    return new List<NoteResponse>();
+                }
+            }
+
+            var notesQuery = _db.Notes.Where(note => note.UserId == targetUserId);
+            if (!isOwner)
+            {
+                notesQuery = notesQuery.Where(note => note.Visibility == NoteVisibility.Public);
+            }
+
+            var notes = await notesQuery
+                .Include(note => note.NoteTags)
+                .ThenInclude(noteTag => noteTag.Tag)
+                .OrderByDescending(note => note.LastWateredAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            foreach (var note in notes)
+            {
+                UpdatePlantState(note);
+            }
+
+            return notes.Select(note =>
+            {
+                var tags = note.NoteTags
+                    .Select(noteTag => noteTag.Tag.Name)
+                    .OrderBy(name => name)
+                    .ToList();
+
+                return MapToResponse(note, tags);
+            }).ToList();
+        }
+
         private void UpdatePlantState(Note note)
         {
             var daysSinceWatered = (DateTime.UtcNow - note.LastWateredAt).Days;

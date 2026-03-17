@@ -49,6 +49,25 @@ namespace EvergreenNotes.Controllers
             }
         }
 
+        [HttpGet("{userId}/graph")]
+        public async Task<IActionResult> GetPublicGardenGraph(Guid userId)
+        {
+            try
+            {
+                var currentUserId = GetCurrentUserIdOrNull();
+                var result = await _gardenService.GetPublicGardenGraphAsync(userId, currentUserId);
+
+                if (result == null)
+                    return NotFound(new { error = "Garden graph not found or is private" });
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         [Authorize]
         [HttpPut("me")]
         public async Task<IActionResult> UpdateMyGarden([FromBody] UpdateGardenRequest request)

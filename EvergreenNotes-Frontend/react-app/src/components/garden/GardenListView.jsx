@@ -5,9 +5,9 @@ import leafSvg from "../../assets/images/leaf.svg"
 import "../../styles/components/garden/list-view.css"
 import NoteCard from "../notes/NoteCard"
 import { useAuth } from "../../context/AuthContext"
-import { fetchNotes } from "../../utils/notes"
+import { fetchNotes, fetchPublicUserNotes } from "../../utils/notes"
 
-function GardenListView() {
+function GardenListView({ userId = null, isReadOnly = false }) {
   const navigate = useNavigate()
   const { authUser } = useAuth()
   const [notes, setNotes] = useState([])
@@ -26,7 +26,9 @@ function GardenListView() {
       setError("")
 
       try {
-        const fetchedNotes = await fetchNotes(authUser.token)
+        const fetchedNotes = userId
+          ? await fetchPublicUserNotes(userId, authUser.token)
+          : await fetchNotes(authUser.token)
         if (isMounted) {
           setNotes(fetchedNotes)
         }
@@ -46,7 +48,7 @@ function GardenListView() {
     return () => {
       isMounted = false
     }
-  }, [authUser?.token])
+  }, [authUser?.token, userId])
 
   const notesCountLabel = useMemo(() => {
     if (isLoading) {
@@ -60,18 +62,19 @@ function GardenListView() {
     const primaryTag = note.tags[0] || "Garden"
 
     navigate(
-      `/note?noteId=${encodeURIComponent(note.id)}&title=${encodeURIComponent(note.title)}&tag=${encodeURIComponent(primaryTag)}`,
+      `/note?noteId=${encodeURIComponent(note.id)}&title=${encodeURIComponent(note.title)}&tag=${encodeURIComponent(primaryTag)}${isReadOnly ? "&readOnly=1" : ""}`,
       {
         state: {
           noteId: note.id,
           noteTitle: note.title,
+          readOnly: isReadOnly,
           tagName: primaryTag,
           tags: note.tags,
           status: note.status === "Polished" ? "Polished" : "Rough",
           source: note.source,
           body: note.text,
           createdOn: note.createdOn,
-          lastWatered: note.lastWatered
+          lastWatered: note.lastWatered,
         }
       }
     )

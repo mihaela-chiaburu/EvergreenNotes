@@ -22,6 +22,7 @@ import "../styles/pages/note.css"
 
 function NotePage() {
 	const {
+		isReadOnly,
 		noteId,
 		initialTagName,
 		title,
@@ -140,7 +141,7 @@ function NotePage() {
 	])
 
 	const handleSave = async () => {
-		if (!authUser?.token || isSaving) {
+		if (isReadOnly || !authUser?.token || isSaving) {
 			return
 		}
 
@@ -183,6 +184,10 @@ function NotePage() {
 	}
 
 	const handleTagInputChange = async (event) => {
+		if (isReadOnly) {
+			return
+		}
+
 		const nextValue = event.target.value
 		setTagInput(nextValue)
 
@@ -200,12 +205,16 @@ function NotePage() {
 	}
 
 	const handleTagSuggestionSelect = (path) => {
+		if (isReadOnly) {
+			return
+		}
+
 		addTag(path)
 		setTagSuggestions([])
 	}
 
 	const handleDelete = async () => {
-		if (!authUser?.token || !activeNoteId) {
+		if (isReadOnly || !authUser?.token || !activeNoteId) {
 			return
 		}
 
@@ -218,6 +227,10 @@ function NotePage() {
 	}
 
 	const handleStatusChange = async (nextStatus) => {
+		if (isReadOnly) {
+			return
+		}
+
 		setStatus(nextStatus)
 		setIsStatusMenuOpen(false)
 
@@ -234,6 +247,10 @@ function NotePage() {
 	}
 
 	const handleVisibilityChange = async (nextVisibility) => {
+		if (isReadOnly) {
+			return
+		}
+
 		setVisibility(nextVisibility)
 		setIsVisibilityMenuOpen(false)
 
@@ -262,6 +279,7 @@ function NotePage() {
 						isOptionsOpen={isOptionsOpen}
 						onToggleOptions={() => setIsOptionsOpen((isOpen) => !isOpen)}
 						onNavigateToTag={handleTagNavigation}
+						readOnly={isReadOnly}
 					/>
 				</div>
 
@@ -274,6 +292,8 @@ function NotePage() {
 							onChange={(event) => setTitle(event.target.value)}
 							placeholder="Note title"
 							aria-label="Note title"
+							readOnly={isReadOnly}
+							disabled={isReadOnly}
 						/>
 					</div>
 					<NoteMeta
@@ -290,15 +310,17 @@ function NotePage() {
 						onRemoveTag={removeTag}
 						tagSuggestions={tagSuggestions}
 						onSelectTagSuggestion={handleTagSuggestionSelect}
+						readOnly={isReadOnly}
 					/>
 					<NoteEditor
 						body={body}
 						onBodyChange={(event) => setBody(event.target.value)}
 						bodyRef={bodyTextareaRef}
+						readOnly={isReadOnly}
 					/>
 				</section>
 
-				<footer className="note-page__actions" aria-label="Note actions">
+				{!isReadOnly && <footer className="note-page__actions" aria-label="Note actions">
 					<Button type="button" className="note-page__action-btn" onClick={handleSave} disabled={isSaving}>
 						{isSaving ? "Saving..." : "Save note"}
 					</Button>
@@ -371,7 +393,8 @@ function NotePage() {
 							</div>
 						)}
 					</div>
-				</footer>
+				</footer>}
+				{isReadOnly ? <p className="note-page__status-message">Read-only mode: this note cannot be edited.</p> : null}
 			</div>
 		</Layout>
 	)

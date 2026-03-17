@@ -14,6 +14,7 @@ function NoteMeta({
   onRemoveTag,
   tagSuggestions = [],
   onSelectTagSuggestion,
+  readOnly = false,
 }) {
   return (
     <>
@@ -26,6 +27,7 @@ function NoteMeta({
           onChange={onSourceChange}
           aria-label="Source"
           inputClassName="input--unstyled"
+          disabled={readOnly}
         />
       </div>
 
@@ -39,6 +41,7 @@ function NoteMeta({
             value={createdOn}
             onChange={onCreatedOnChange}
             inputClassName="input--unstyled"
+            disabled={readOnly}
           />
         </label>
         <span className="note-page__meta-divider" aria-hidden="true">|</span>
@@ -51,6 +54,7 @@ function NoteMeta({
             value={lastWatered}
             onChange={onLastWateredChange}
             inputClassName="input--unstyled"
+            disabled={readOnly}
           />
         </label>
       </div>
@@ -61,29 +65,33 @@ function NoteMeta({
           {tags.map((tag) => (
             <span key={tag} className="note-page__tag-pill">
               {tag}
-              <button
-                type="button"
-                className="note-page__tag-remove"
-                onClick={() => onRemoveTag(tag)}
-                aria-label={`Remove tag ${tag}`}
-              >
-                x
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  className="note-page__tag-remove"
+                  onClick={() => onRemoveTag(tag)}
+                  aria-label={`Remove tag ${tag}`}
+                >
+                  x
+                </button>
+              )}
             </span>
           ))}
-          <Input
-            type="text"
-            className="note-page__tag-input"
-            wrapperClassName="note-page__tag-input-wrap"
-            placeholder="Add tag"
-            value={tagInput}
-            onChange={onTagInputChange}
-            onKeyDown={onTagInputKeyDown}
-            size={Math.max(8, tagInput.length + 1)}
-            inputClassName="input--unstyled"
-          />
+          {!readOnly && (
+            <Input
+              type="text"
+              className="note-page__tag-input"
+              wrapperClassName="note-page__tag-input-wrap"
+              placeholder="Add tag"
+              value={tagInput}
+              onChange={onTagInputChange}
+              onKeyDown={onTagInputKeyDown}
+              size={Math.max(8, tagInput.length + 1)}
+              inputClassName="input--unstyled"
+            />
+          )}
 
-          {tagSuggestions.length > 0 ? (
+          {tagSuggestions.length > 0 && !readOnly ? (
             <div className="note-page__tag-suggestions" role="listbox" aria-label="Tag suggestions">
               {tagSuggestions.map((suggestion) => (
                 <button

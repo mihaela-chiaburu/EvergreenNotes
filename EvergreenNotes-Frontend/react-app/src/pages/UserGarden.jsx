@@ -79,8 +79,8 @@ function UserGarden() {
 			<div className="garden-page garden-page--another-user">
 				<AnotherUserCardDropdown user={activeUser} />
 
-				{view === "graph" && <GardenGraphView />}
-				{view === "list" && <GardenListView />}
+				{view === "graph" && <GardenGraphView userId={activeUser.userId} isReadOnly />}
+				{view === "list" && <GardenListView userId={activeUser.userId} isReadOnly />}
 
 				<GraphSettingsPanel setView={setView} isAnotherUserGarden />
 			</div>

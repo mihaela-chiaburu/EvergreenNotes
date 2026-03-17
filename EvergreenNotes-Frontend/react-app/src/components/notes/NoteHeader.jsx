@@ -4,6 +4,7 @@ function NoteHeader({
   isOptionsOpen,
   onToggleOptions,
   onNavigateToTag,
+  readOnly = false,
 }) {
   return (
     <header className="note-page__top-nav" aria-label="Note navigation">
@@ -16,19 +17,21 @@ function NoteHeader({
       </div>
 
       <div className="note-page__options-wrap">
-        <button
-          type="button"
-          className="note-page__options-button"
-          aria-label="Open note options"
-          aria-expanded={isOptionsOpen}
-          onClick={onToggleOptions}
-        >
-          <span className="note-page__options-dot" />
-          <span className="note-page__options-dot" />
-          <span className="note-page__options-dot" />
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            className="note-page__options-button"
+            aria-label="Open note options"
+            aria-expanded={isOptionsOpen}
+            onClick={onToggleOptions}
+          >
+            <span className="note-page__options-dot" />
+            <span className="note-page__options-dot" />
+            <span className="note-page__options-dot" />
+          </button>
+        )}
 
-        {isOptionsOpen && (
+        {isOptionsOpen && !readOnly && (
           <div className="note-page__options-menu" role="menu">
             <button type="button" className="note-page__options-item" role="menuitem">Duplicate note</button>
             <button type="button" className="note-page__options-item" role="menuitem">Move to another tag</button>

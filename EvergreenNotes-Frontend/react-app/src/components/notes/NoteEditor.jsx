@@ -1,6 +1,6 @@
 import Input from "../ui/Input"
 
-function NoteEditor({ body, onBodyChange, bodyRef }) {
+function NoteEditor({ body, onBodyChange, bodyRef, readOnly = false }) {
   return (
     <>
       <textarea
@@ -10,6 +10,7 @@ function NoteEditor({ body, onBodyChange, bodyRef }) {
         value={body}
         onChange={onBodyChange}
         placeholder="Start writing your note..."
+        readOnly={readOnly}
       />
     </>
   )

@@ -13,5 +13,6 @@ namespace EvergreenNotes.Domain.Interfaces
         Task<NoteResponse> WaterNoteAsync(Guid noteId, Guid userId);
         Task<NoteResponse> UpdateNoteStatusAsync(Guid noteId, Guid userId, NoteStatus status);
         Task<NoteResponse> UpdateNoteVisibilityAsync(Guid noteId, Guid userId, NoteVisibility visibility);
+        Task<List<NoteResponse>> GetPublicNotesByUserIdAsync(Guid targetUserId, Guid? currentUserId, int page = 1, int pageSize = 100);
     }
 }

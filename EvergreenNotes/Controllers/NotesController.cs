@@ -116,6 +116,25 @@ namespace EvergreenNotes.Controllers
             }
         }
 
+        [HttpGet("users/{userId}/public")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetPublicNotesByUser(
+            Guid userId,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 100)
+        {
+            try
+            {
+                var currentUserId = GetCurrentUserIdOrNull();
+                var result = await _noteService.GetPublicNotesByUserIdAsync(userId, currentUserId, page, pageSize);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         [HttpPost("{noteId}/water")]
         public async Task<IActionResult> WaterNote(Guid noteId)
         {
