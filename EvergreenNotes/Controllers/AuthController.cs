@@ -49,12 +49,13 @@ namespace EvergreenNotes.Controllers
         [HttpGet("me")]
         public IActionResult Me()
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var email = User.FindFirstValue(ClaimTypes.Email);
+            var userId = User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var email = User.FindFirstValue("email") ?? User.FindFirstValue(ClaimTypes.Email);
+            var username = User.FindFirstValue("unique_name") ?? User.FindFirstValue(ClaimTypes.Name);
 
             if (userId == null) return Unauthorized();
 
-            return Ok(new { id = userId, email });
+            return Ok(new { id = userId, email, username });
         }
     }
 }
