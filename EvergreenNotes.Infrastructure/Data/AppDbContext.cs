@@ -83,13 +83,19 @@ namespace EvergreenNotes.Infrastructure.Data
                 entity.HasKey(t => t.Id);
                 entity.Property(t => t.Name).IsRequired().HasMaxLength(100);
 
+                entity.HasOne(t => t.ParentTag)
+                    .WithMany(t => t.Children)
+                    .HasForeignKey(t => t.ParentTagId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 entity.HasOne(t => t.User)
                     .WithMany()
                     .HasForeignKey(t => t.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasIndex(t => new { t.UserId, t.Name }).IsUnique();
+                entity.HasIndex(t => new { t.UserId, t.ParentTagId, t.Name }).IsUnique();
                 entity.HasIndex(t => t.UserId);
+                entity.HasIndex(t => t.ParentTagId);
             });
 
             // NoteTag configuration

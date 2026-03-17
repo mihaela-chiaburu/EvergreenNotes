@@ -9,6 +9,7 @@ export function useNotePageState() {
 
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search])
   const statePayload = location.state ?? {}
+  const initialNoteId = statePayload.noteId || queryParams.get("noteId") || null
 
   const initialTitle = statePayload.noteTitle?.trim() || queryParams.get("title")?.trim() || "Untitled note"
   const initialTagName = statePayload.tagName?.trim() || queryParams.get("tag")?.trim() || "Garden"
@@ -42,6 +43,7 @@ export function useNotePageState() {
   }
 
   return {
+    noteId: initialNoteId,
     initialTagName,
     title,
     setTitle,

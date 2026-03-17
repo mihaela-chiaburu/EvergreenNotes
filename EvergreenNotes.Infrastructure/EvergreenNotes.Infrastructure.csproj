@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EvergreenNotes.Domain\EvergreenNotes.Domain.csproj" />
+    <ProjectReference Include="..\EvergreenNotes.Helpers\EvergreenNotes.Helpers.csproj" />
   </ItemGroup>
 
 </Project>

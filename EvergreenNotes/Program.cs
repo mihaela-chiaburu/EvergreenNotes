@@ -132,6 +132,12 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await AppDbInitializer.InitializeAsync(db);
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

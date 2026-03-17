@@ -23,6 +23,101 @@ namespace EvergreenNotes.Application.Services
             return await BuildGardenResponseAsync(garden, user!, userId, isOwner: true);
         }
 
+        public async Task<GardenGraphResponse> GetMyGardenGraphAsync(Guid userId)
+        {
+            var tags = await _db.Tags
+                .Where(t => t.UserId == userId)
+                .Include(t => t.NoteTags)
+                .ToListAsync();
+
+            var notes = await _db.Notes
+                .Where(n => n.UserId == userId)
+                .OrderByDescending(n => n.LastWateredAt)
+                .ToListAsync();
+
+            var rootTagIds = tags
+                .Where(tag => tag.ParentTagId == null)
+                .OrderBy(tag => tag.Name)
+                .Select(tag => $"tag-{tag.Id:N}")
+                .ToList();
+
+            var childrenByTagId = tags.ToDictionary(tag => tag.Id, _ => new List<string>());
+
+            foreach (var tag in tags)
+            {
+                if (tag.ParentTagId.HasValue && childrenByTagId.TryGetValue(tag.ParentTagId.Value, out var children))
+                {
+                    children.Add($"tag-{tag.Id:N}");
+                }
+            }
+
+            var noteNodeIds = notes.ToDictionary(note => note.Id, note => $"note-{note.Id:N}");
+
+            foreach (var tag in tags)
+            {
+                foreach (var noteTag in tag.NoteTags)
+                {
+                    if (noteNodeIds.TryGetValue(noteTag.NoteId, out var noteNodeId))
+                    {
+                        childrenByTagId[tag.Id].Add(noteNodeId);
+                    }
+                }
+            }
+
+            var nodes = new List<GardenGraphNodeResponse>();
+            nodes.AddRange(tags.Select(tag => new GardenGraphNodeResponse
+            {
+                Id = $"tag-{tag.Id:N}",
+                Label = tag.Name,
+                Type = "tag",
+                NoteCount = tag.NoteTags.Count,
+                Children = childrenByTagId[tag.Id].Distinct().ToList()
+            }));
+
+            nodes.AddRange(notes.Select(note => new GardenGraphNodeResponse
+            {
+                Id = noteNodeIds[note.Id],
+                Label = note.Title,
+                Type = "note",
+                NoteCount = 1,
+                Children = new List<string>()
+            }));
+
+            var edges = new List<GardenGraphEdgeResponse>();
+            foreach (var tag in tags)
+            {
+                if (tag.ParentTagId.HasValue)
+                {
+                    edges.Add(new GardenGraphEdgeResponse
+                    {
+                        Source = $"tag-{tag.ParentTagId.Value:N}",
+                        Target = $"tag-{tag.Id:N}"
+                    });
+                }
+
+                foreach (var noteTag in tag.NoteTags)
+                {
+                    if (!noteNodeIds.TryGetValue(noteTag.NoteId, out var noteNodeId))
+                    {
+                        continue;
+                    }
+
+                    edges.Add(new GardenGraphEdgeResponse
+                    {
+                        Source = $"tag-{tag.Id:N}",
+                        Target = noteNodeId
+                    });
+                }
+            }
+
+            return new GardenGraphResponse
+            {
+                RootNodeIds = rootTagIds,
+                Nodes = nodes,
+                Edges = edges
+            };
+        }
+
         public async Task<GardenResponse> UpdateMyGardenAsync(Guid userId, UpdateGardenRequest request)
         {
             var garden = await GetOrCreateGardenAsync(userId);
@@ -238,6 +333,7 @@ namespace EvergreenNotes.Application.Services
                 Status = note.Status.ToString().ToLower(),
                 Visibility = note.Visibility.ToString().ToLower(),
                 PlantState = plantState.ToString().ToLower(),
+                Tags = new List<string>(),
                 SourceUrl = note.SourceUrl,
                 SourceType = note.SourceType,
                 SourceThumbnail = note.SourceThumbnail,

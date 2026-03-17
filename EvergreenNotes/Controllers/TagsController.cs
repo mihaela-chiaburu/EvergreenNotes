@@ -24,8 +24,23 @@ namespace EvergreenNotes.Controllers
             try
             {
                 var userId = GetCurrentUserId();
-                var result = await _tagService.CreateTagAsync(userId, request.Name);
+                var result = await _tagService.CreateTagAsync(userId, request.Name, null);
                 return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPut("notes/{noteId}/tags")]
+        public async Task<IActionResult> ReplaceNoteTags(Guid noteId, [FromBody] ReplaceNoteTagsRequest request)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                await _tagService.ReplaceNoteTagsAsync(userId, noteId, request.TagNames);
+                return Ok(new { message = "Note tags updated successfully" });
             }
             catch (Exception ex)
             {

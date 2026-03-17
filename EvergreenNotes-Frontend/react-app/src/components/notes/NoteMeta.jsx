@@ -12,6 +12,8 @@ function NoteMeta({
   onTagInputChange,
   onTagInputKeyDown,
   onRemoveTag,
+  tagSuggestions = [],
+  onSelectTagSuggestion,
 }) {
   return (
     <>
@@ -80,6 +82,21 @@ function NoteMeta({
             size={Math.max(8, tagInput.length + 1)}
             inputClassName="input--unstyled"
           />
+
+          {tagSuggestions.length > 0 ? (
+            <div className="note-page__tag-suggestions" role="listbox" aria-label="Tag suggestions">
+              {tagSuggestions.map((suggestion) => (
+                <button
+                  key={suggestion.id}
+                  type="button"
+                  className="note-page__tag-suggestion-item"
+                  onClick={() => onSelectTagSuggestion?.(suggestion.path)}
+                >
+                  {suggestion.path}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
     </>

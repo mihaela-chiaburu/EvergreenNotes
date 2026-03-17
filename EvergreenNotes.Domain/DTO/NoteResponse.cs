@@ -15,6 +15,7 @@ namespace EvergreenNotes.Domain.DTO
         public string Status { get; set; } = string.Empty; 
         public string Visibility { get; set; } = string.Empty; 
         public string PlantState { get; set; } = string.Empty; 
+        public List<string> Tags { get; set; } = new();
         public string? SourceUrl { get; set; }
         public string? SourceType { get; set; }
         public string? SourceThumbnail { get; set; }

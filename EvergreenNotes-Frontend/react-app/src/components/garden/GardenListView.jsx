@@ -1,20 +1,69 @@
 // src/components/garden/GardenListView.jsx
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import leafSvg from "../../assets/images/leaf.svg"
 import "../../styles/components/garden/list-view.css"
 import NoteCard from "../notes/NoteCard"
-import { mockGardenListNotes } from "../../data/mockGardenListNotes"
+import { useAuth } from "../../context/AuthContext"
+import { fetchNotes } from "../../utils/notes"
 
 function GardenListView() {
   const navigate = useNavigate()
+  const { authUser } = useAuth()
+  const [notes, setNotes] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadNotes = async () => {
+      if (!authUser?.token) {
+        return
+      }
+
+      setIsLoading(true)
+      setError("")
+
+      try {
+        const fetchedNotes = await fetchNotes(authUser.token)
+        if (isMounted) {
+          setNotes(fetchedNotes)
+        }
+      } catch (loadError) {
+        if (isMounted) {
+          setError(loadError.message)
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadNotes()
+
+    return () => {
+      isMounted = false
+    }
+  }, [authUser?.token])
+
+  const notesCountLabel = useMemo(() => {
+    if (isLoading) {
+      return "Loading..."
+    }
+
+    return `${notes.length} notes`
+  }, [isLoading, notes.length])
 
   const handleOpenNote = (note) => {
     const primaryTag = note.tags[0] || "Garden"
 
     navigate(
-      `/note?title=${encodeURIComponent(note.title)}&tag=${encodeURIComponent(primaryTag)}`,
+      `/note?noteId=${encodeURIComponent(note.id)}&title=${encodeURIComponent(note.title)}&tag=${encodeURIComponent(primaryTag)}`,
       {
         state: {
+          noteId: note.id,
           noteTitle: note.title,
           tagName: primaryTag,
           tags: note.tags,
@@ -38,12 +87,14 @@ function GardenListView() {
           <p>Sort by: Date</p>
         </div>
         <div className="garden-list-view__chip garden-list-view__chip--count">
-          <p>{mockGardenListNotes.length} notes</p>
+          <p>{notesCountLabel}</p>
         </div>
       </div>
 
+      {error ? <p className="garden-list-view__error">{error}</p> : null}
+
       <div className="garden-list-view__list garden-list-view__canvas">
-        {mockGardenListNotes.map((note) => (
+        {notes.map((note) => (
           <NoteCard
             key={note.id}
             note={note}

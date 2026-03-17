@@ -35,24 +35,37 @@ namespace EvergreenNotes.Application.Services
             _db.Notes.Add(note);
             await _db.SaveChangesAsync();
 
-            return MapToResponse(note);
+            return MapToResponse(note, new List<string>());
         }
 
         public async Task<NoteResponse?> GetNoteByIdAsync(Guid noteId, Guid? currentUserId)
         {
-            var note = await _db.Notes.FindAsync(noteId);
+            var note = await _db.Notes
+                .Include(n => n.NoteTags)
+                .ThenInclude(nt => nt.Tag)
+                .FirstOrDefaultAsync(n => n.Id == noteId);
+
             if (note == null) return null;
 
             if (note.Visibility == NoteVisibility.Private && note.UserId != currentUserId)
                 return null;
 
             UpdatePlantState(note);
-            return MapToResponse(note);
+            var tags = note.NoteTags
+                .Select(nt => nt.Tag.Name)
+                .OrderBy(name => name)
+                .ToList();
+
+            return MapToResponse(note, tags);
         }
 
         public async Task<NoteResponse> UpdateNoteAsync(Guid noteId, Guid userId, UpdateNoteRequest request)
         {
-            var note = await _db.Notes.FindAsync(noteId);
+            var note = await _db.Notes
+                .Include(n => n.NoteTags)
+                .ThenInclude(nt => nt.Tag)
+                .FirstOrDefaultAsync(n => n.Id == noteId);
+
             if (note == null || note.UserId != userId)
                 throw new Exception("Note not found or access denied");
 
@@ -64,7 +77,12 @@ namespace EvergreenNotes.Application.Services
             await _db.SaveChangesAsync();
 
             UpdatePlantState(note);
-            return MapToResponse(note);
+            var tags = note.NoteTags
+                .Select(nt => nt.Tag.Name)
+                .OrderBy(name => name)
+                .ToList();
+
+            return MapToResponse(note, tags);
         }
 
         public async Task DeleteNoteAsync(Guid noteId, Guid userId)
@@ -96,6 +114,8 @@ namespace EvergreenNotes.Application.Services
             }
 
             var notes = await query
+                .Include(n => n.NoteTags)
+                .ThenInclude(nt => nt.Tag)
                 .OrderByDescending(n => n.LastWateredAt)
                 .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
@@ -111,12 +131,24 @@ namespace EvergreenNotes.Application.Services
                 notes = notes.Where(n => n.PlantState == request.PlantState.Value).ToList();
             }
 
-            return notes.Select(MapToResponse).ToList();
+            return notes.Select(note =>
+            {
+                var tags = note.NoteTags
+                    .Select(nt => nt.Tag.Name)
+                    .OrderBy(name => name)
+                    .ToList();
+
+                return MapToResponse(note, tags);
+            }).ToList();
         }
 
         public async Task<NoteResponse> WaterNoteAsync(Guid noteId, Guid userId)
         {
-            var note = await _db.Notes.FindAsync(noteId);
+            var note = await _db.Notes
+                .Include(n => n.NoteTags)
+                .ThenInclude(nt => nt.Tag)
+                .FirstOrDefaultAsync(n => n.Id == noteId);
+
             if (note == null || note.UserId != userId)
                 throw new Exception("Note not found or access denied");
 
@@ -124,12 +156,21 @@ namespace EvergreenNotes.Application.Services
             await _db.SaveChangesAsync();
 
             UpdatePlantState(note);
-            return MapToResponse(note);
+            var tags = note.NoteTags
+                .Select(nt => nt.Tag.Name)
+                .OrderBy(name => name)
+                .ToList();
+
+            return MapToResponse(note, tags);
         }
 
         public async Task<NoteResponse> UpdateNoteStatusAsync(Guid noteId, Guid userId, NoteStatus status)
         {
-            var note = await _db.Notes.FindAsync(noteId);
+            var note = await _db.Notes
+                .Include(n => n.NoteTags)
+                .ThenInclude(nt => nt.Tag)
+                .FirstOrDefaultAsync(n => n.Id == noteId);
+
             if (note == null || note.UserId != userId)
                 throw new Exception("Note not found or access denied");
 
@@ -138,12 +179,21 @@ namespace EvergreenNotes.Application.Services
             await _db.SaveChangesAsync();
 
             UpdatePlantState(note);
-            return MapToResponse(note);
+            var tags = note.NoteTags
+                .Select(nt => nt.Tag.Name)
+                .OrderBy(name => name)
+                .ToList();
+
+            return MapToResponse(note, tags);
         }
 
         public async Task<NoteResponse> UpdateNoteVisibilityAsync(Guid noteId, Guid userId, NoteVisibility visibility)
         {
-            var note = await _db.Notes.FindAsync(noteId);
+            var note = await _db.Notes
+                .Include(n => n.NoteTags)
+                .ThenInclude(nt => nt.Tag)
+                .FirstOrDefaultAsync(n => n.Id == noteId);
+
             if (note == null || note.UserId != userId)
                 throw new Exception("Note not found or access denied");
 
@@ -151,7 +201,12 @@ namespace EvergreenNotes.Application.Services
             await _db.SaveChangesAsync();
 
             UpdatePlantState(note);
-            return MapToResponse(note);
+            var tags = note.NoteTags
+                .Select(nt => nt.Tag.Name)
+                .OrderBy(name => name)
+                .ToList();
+
+            return MapToResponse(note, tags);
         }
 
         private void UpdatePlantState(Note note)
@@ -168,7 +223,7 @@ namespace EvergreenNotes.Application.Services
                 note.PlantState = PlantState.Dry;
         }
 
-        private NoteResponse MapToResponse(Note note)
+        private static NoteResponse MapToResponse(Note note, List<string> tags)
         {
             var daysSinceWatered = (DateTime.UtcNow - note.LastWateredAt).Days;
 
@@ -181,6 +236,7 @@ namespace EvergreenNotes.Application.Services
                 Status = note.Status.ToString().ToLower(),
                 Visibility = note.Visibility.ToString().ToLower(),
                 PlantState = note.PlantState.ToString().ToLower(),
+                Tags = tags,
                 SourceUrl = note.SourceUrl,
                 SourceType = note.SourceType,
                 SourceThumbnail = note.SourceThumbnail,

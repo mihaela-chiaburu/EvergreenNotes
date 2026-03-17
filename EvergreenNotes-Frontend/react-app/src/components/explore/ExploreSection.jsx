@@ -9,12 +9,13 @@ import "../../styles/components/explore/explore-section.css"
 const TAB_OPTIONS = ["Trending", "New", "Following"]
 const PAGE_SIZE = 6
 
-function ExploreSection() {
+function ExploreSection({ isPublicView = false }) {
   const navigate = useNavigate()
   const [selectedTopic, setSelectedTopic] = useState("")
   const [activeTab, setActiveTab] = useState("Trending")
   const [currentPage, setCurrentPage] = useState(1)
   const isTopicSelected = Boolean(selectedTopic)
+  const visibleTabs = isPublicView ? TAB_OPTIONS.filter((tab) => tab !== "Following") : TAB_OPTIONS
 
   const gardensByTab = {
     Trending: mockExploreGardens,
@@ -22,11 +23,13 @@ function ExploreSection() {
     Following: mockExploreGardens.filter((_, index) => index % 2 === 0),
   }
 
+  const activeGardens = gardensByTab[activeTab] ?? gardensByTab.Trending
+
   const filteredByTopic = selectedTopic
-    ? gardensByTab[activeTab].filter((garden) =>
+    ? activeGardens.filter((garden) =>
         garden.tags.some((tag) => tag.toLowerCase() === selectedTopic.toLowerCase())
       )
-    : gardensByTab[activeTab]
+    : activeGardens
 
   const totalPages = Math.max(1, Math.ceil(filteredByTopic.length / PAGE_SIZE))
   const safeCurrentPage = Math.min(currentPage, totalPages)
@@ -62,7 +65,7 @@ function ExploreSection() {
           )}
         </div>
         <div className="explore-section__tabs">
-          {TAB_OPTIONS.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab}
               type="button"
@@ -81,7 +84,7 @@ function ExploreSection() {
         <div className="explore-section__content-area">
           {!isTopicSelected && (
             <div className="explore-section__content">
-              <h3 className="explore-section__subtitle">Recommended Topics</h3>
+              <h3 className="explore-section__subtitle">{isPublicView ? "Popular Topics" : "Recommended Topics"}</h3>
               <CategoryCard onTopicSelect={setSelectedTopic} />
             </div>
           )}

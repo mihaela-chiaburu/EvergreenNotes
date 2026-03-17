@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom"
 import cytoscape from "cytoscape"
 import { mockGardenGraph } from "../../data/mockGardenGraph"
 import leafSvg from "../../assets/images/leaf.svg"
+import { useAuth } from "../../context/AuthContext"
+import { fetchGardenGraph } from "../../utils/garden"
 import "../../styles/components/garden/graph-view.css"
 
 const NOTE_NODE_SIZE = 38
@@ -12,21 +14,32 @@ const TAG_NODE_MAX_SIZE = 88
 const GRAPH_EDGE_LENGTH = 100
 const GRAPH_NODE_REPULSION = 5000
 const PHYSICS_SPRING_STRENGTH = 0.0038
-const PHYSICS_REPULSION_RADIUS = 220
+const PHYSICS_REPULSION_RADIUS = 120
 const PHYSICS_REPULSION_STRENGTH = 0.0142
 const PHYSICS_DAMPING = 0.86
 const PHYSICS_MAX_SPEED = 8
 const PHYSICS_SETTLE_MS = 260
 
-const nodeById = new Map(mockGardenGraph.nodes.map((node) => [node.id, node]))
+let nodeById = new Map(mockGardenGraph.nodes.map((node) => [node.id, node]))
 
-const parentById = mockGardenGraph.nodes.reduce((accumulator, node) => {
+let parentById = mockGardenGraph.nodes.reduce((accumulator, node) => {
   node.children.forEach((childId) => {
     accumulator[childId] = node.id
   })
 
   return accumulator
 }, {})
+
+function rebuildGraphIndexes() {
+  nodeById = new Map(mockGardenGraph.nodes.map((node) => [node.id, node]))
+  parentById = mockGardenGraph.nodes.reduce((accumulator, node) => {
+    node.children.forEach((childId) => {
+      accumulator[childId] = node.id
+    })
+
+    return accumulator
+  }, {})
+}
 
 function computeNodeSize(node) {
   if (node.type === "note") {
@@ -85,7 +98,7 @@ function buildElementsForFocus(focusStack) {
 
   const edgeMap = new Map()
 
-  const addEdgeIfMissing = (sourceId, targetId) => {
+  const addEdgeIfMissing = (sourceId, targetId, kind = "explicit") => {
     const source = sourceId < targetId ? sourceId : targetId
     const target = sourceId < targetId ? targetId : sourceId
     const edgeKey = `${source}__${target}`
@@ -98,7 +111,8 @@ function buildElementsForFocus(focusStack) {
       data: {
         id: `edge-${edgeKey}`,
         source,
-        target
+        target,
+        kind
       }
     })
   }
@@ -110,7 +124,7 @@ function buildElementsForFocus(focusStack) {
       return
     }
 
-    addEdgeIfMissing(parentId, nodeId)
+    addEdgeIfMissing(parentId, nodeId, "explicit")
   })
 
   mockGardenGraph.edges.forEach((edge) => {
@@ -118,8 +132,37 @@ function buildElementsForFocus(focusStack) {
       return
     }
 
-    addEdgeIfMissing(edge.source, edge.target)
+    addEdgeIfMissing(edge.source, edge.target, "explicit")
   })
+
+  // Infer higher-level links: if two visible tags point to the same lower node,
+  // connect those higher tags with a lightweight inferred edge.
+  const visibleTagNodes = [...visibleNodeIds]
+    .map((nodeId) => nodeById.get(nodeId))
+    .filter((node) => node?.type === "tag")
+
+  for (let firstIndex = 0; firstIndex < visibleTagNodes.length; firstIndex += 1) {
+    const firstTag = visibleTagNodes[firstIndex]
+
+    for (let secondIndex = firstIndex + 1; secondIndex < visibleTagNodes.length; secondIndex += 1) {
+      const secondTag = visibleTagNodes[secondIndex]
+
+      if (!firstTag || !secondTag) {
+        continue
+      }
+
+      const isDirectParentChild = parentById[firstTag.id] === secondTag.id || parentById[secondTag.id] === firstTag.id
+      if (isDirectParentChild) {
+        continue
+      }
+
+      const sharedVisibleChild = firstTag.children.some((childId) => secondTag.children.includes(childId))
+
+      if (sharedVisibleChild) {
+        addEdgeIfMissing(firstTag.id, secondTag.id, "inferred")
+      }
+    }
+  }
 
   return [...nodes, ...edgeMap.values()]
 }
@@ -168,6 +211,7 @@ function buildFocusPath(focusStack) {
 }
 
 function GardenGraphView({ initialFocusStack = [] }) {
+  const { authUser } = useAuth()
   const graphContainerRef = useRef(null)
   const focusStackRef = useRef([])
   const rerenderFocusGraphRef = useRef(null)
@@ -176,7 +220,39 @@ function GardenGraphView({ initialFocusStack = [] }) {
   const settleTimeoutRef = useRef(null)
   const physicsRunningRef = useRef(false)
   const [focusPath, setFocusPath] = useState([])
+  const [graphVersion, setGraphVersion] = useState(0)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadGraph = async () => {
+      if (!authUser?.token) {
+        return
+      }
+
+      try {
+        const payload = await fetchGardenGraph(authUser.token)
+        if (!isMounted || !payload?.nodes || !payload?.edges || !payload?.rootNodeIds) {
+          return
+        }
+
+        mockGardenGraph.rootNodeIds = payload.rootNodeIds
+        mockGardenGraph.nodes = payload.nodes
+        mockGardenGraph.edges = payload.edges
+        rebuildGraphIndexes()
+        setGraphVersion((currentVersion) => currentVersion + 1)
+      } catch {
+        // Keep mock fallback if graph API fails.
+      }
+    }
+
+    loadGraph()
+
+    return () => {
+      isMounted = false
+    }
+  }, [authUser?.token])
 
   const handleRootPathClick = () => {
     if (!rerenderFocusGraphRef.current) {
@@ -265,6 +341,15 @@ function GardenGraphView({ initialFocusStack = [] }) {
             "target-arrow-shape": "none",
             "curve-style": "bezier",
             opacity: 0.85
+          }
+        },
+        {
+          selector: 'edge[kind = "inferred"]',
+          style: {
+            width: 1.5,
+            "line-style": "solid",
+            "line-color": "#c7d2be",
+            opacity: 0.65
           }
         }
       ]
@@ -504,7 +589,7 @@ function GardenGraphView({ initialFocusStack = [] }) {
       window.removeEventListener("resize", handleResize)
       cy.destroy()
     }
-  }, [initialFocusStack, navigate])
+  }, [graphVersion, initialFocusStack, navigate])
 
   return (
     <div className="garden-view garden-graph-view" aria-label="Garden graph view">

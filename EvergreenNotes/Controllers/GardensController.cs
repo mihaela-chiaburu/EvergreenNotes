@@ -34,6 +34,22 @@ namespace EvergreenNotes.Controllers
         }
 
         [Authorize]
+        [HttpGet("me/graph")]
+        public async Task<IActionResult> GetMyGardenGraph()
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var result = await _gardenService.GetMyGardenGraphAsync(userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [Authorize]
         [HttpPut("me")]
         public async Task<IActionResult> UpdateMyGarden([FromBody] UpdateGardenRequest request)
         {
