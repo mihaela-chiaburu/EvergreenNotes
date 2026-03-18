@@ -81,6 +81,20 @@ export async function fetchFollowingUsers(token) {
   return apiRequest("/api/users/me/following", { token })
 }
 
+export async function followUser(token, userId) {
+  return apiRequest(`/api/users/${encodeURIComponent(userId)}/follow`, {
+    method: "POST",
+    token,
+  })
+}
+
+export async function unfollowUser(token, userId) {
+  return apiRequest(`/api/users/${encodeURIComponent(userId)}/follow`, {
+    method: "DELETE",
+    token,
+  })
+}
+
 export function mapExploreGarden(payload, { followingUserIds = new Set() } = {}) {
   const userId = payload?.userId
   const userName = toSafeText(payload?.username, "Unknown user")

@@ -7,15 +7,23 @@ import GraphSettingsPanel from "../components/garden/GraphSettingsPanel"
 import AnotherUserCardDropdown from "../components/garden/AnotherUserCardDropdown"
 import { useAuth } from "../context/AuthContext"
 import { fetchPublicGarden } from "../utils/garden"
-import { mapPublicGardenToExploreUser } from "../utils/explore"
+import {
+	fetchFollowingUsers,
+	followUser,
+	mapPublicGardenToExploreUser,
+	unfollowUser,
+} from "../utils/explore"
 import "../styles/pages/garden.css"
 
 function UserGarden() {
 	const [view, setView] = useState("graph")
 	const [activeUser, setActiveUser] = useState(null)
+	const [isFollowLoading, setIsFollowLoading] = useState(false)
+	const [followError, setFollowError] = useState("")
 	const { userId } = useParams()
 	const location = useLocation()
 	const { authUser } = useAuth()
+	const isOwnGarden = String(activeUser?.userId ?? "") === String(authUser?.id ?? "")
 
 	useEffect(() => {
 		let isMounted = true
@@ -31,12 +39,21 @@ function UserGarden() {
 			}
 
 			try {
-				const payload = await fetchPublicGarden(userId, authUser?.token)
+				const [payload, followingPayload] = await Promise.all([
+					fetchPublicGarden(userId, authUser?.token),
+					authUser?.token ? fetchFollowingUsers(authUser.token) : Promise.resolve([]),
+				])
 				if (!isMounted) {
 					return
 				}
 
-				setActiveUser(mapPublicGardenToExploreUser(payload, userId))
+				const followingIds = new Set((followingPayload ?? []).map((followedUser) => String(followedUser.userId)))
+				const mappedUser = mapPublicGardenToExploreUser(payload, userId)
+
+				setActiveUser({
+					...mappedUser,
+					isFollowing: followingIds.has(String(mappedUser.userId ?? userId ?? "")),
+				})
 			} catch {
 				if (isMounted && !userFromState) {
 					setActiveUser({
@@ -52,6 +69,7 @@ function UserGarden() {
 						recentNoteText: "No public notes yet.",
 						ideasCount: 0,
 						growingCount: 0,
+						isFollowing: false,
 					})
 				}
 			}
@@ -63,6 +81,30 @@ function UserGarden() {
 			isMounted = false
 		}
 	}, [authUser?.token, location.state?.userGarden, userId])
+
+	const handleToggleFollow = async () => {
+		if (!authUser?.token || !activeUser?.userId || isOwnGarden || isFollowLoading) {
+			return
+		}
+
+		const wasFollowing = Boolean(activeUser.isFollowing)
+		setFollowError("")
+		setIsFollowLoading(true)
+		setActiveUser((currentUser) => (currentUser ? { ...currentUser, isFollowing: !wasFollowing } : currentUser))
+
+		try {
+			if (wasFollowing) {
+				await unfollowUser(authUser.token, activeUser.userId)
+			} else {
+				await followUser(authUser.token, activeUser.userId)
+			}
+		} catch (error) {
+			setActiveUser((currentUser) => (currentUser ? { ...currentUser, isFollowing: wasFollowing } : currentUser))
+			setFollowError(error instanceof Error ? error.message : "Unable to update follow status right now.")
+		} finally {
+			setIsFollowLoading(false)
+		}
+	}
 
 	if (!activeUser) {
 		return (
@@ -77,7 +119,13 @@ function UserGarden() {
 	return (
 		<Layout>
 			<div className="garden-page garden-page--another-user">
-				<AnotherUserCardDropdown user={activeUser} />
+				<AnotherUserCardDropdown
+					user={activeUser}
+					onFollowToggle={handleToggleFollow}
+					isFollowLoading={isFollowLoading}
+					followError={followError}
+					isOwnGarden={isOwnGarden}
+				/>
 
 				{view === "graph" && <GardenGraphView userId={activeUser.userId} isReadOnly />}
 				{view === "list" && <GardenListView userId={activeUser.userId} isReadOnly />}

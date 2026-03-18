@@ -3,22 +3,39 @@ import arrowIcon from "../../assets/images/arrow-down.png"
 import fallbackAvatar from "../../assets/images/avatar.jpg"
 import "../../styles/components/garden/another-user-card-dropdown.css"
 
-function AnotherUserCardDropdown({ user }) {
+function AnotherUserCardDropdown({
+  user,
+  onFollowToggle,
+  isFollowLoading = false,
+  followError = "",
+  isOwnGarden = false,
+}) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   const handleToggleDropdown = () => {
     setIsExpanded((currentState) => !currentState)
   }
 
+  const handleFollowClick = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    if (!isFollowLoading && !isOwnGarden) {
+      onFollowToggle?.()
+    }
+  }
+
   return (
-    <button
-      type="button"
+    <div
       className={`another-user-card ${isExpanded ? "another-user-card--expanded" : ""}`}
-      onClick={handleToggleDropdown}
-      aria-expanded={isExpanded}
-      aria-label={`Open ${user.userName} garden details`}
     >
-      <span className="another-user-card__main">
+      <button
+        type="button"
+        className="another-user-card__main"
+        onClick={handleToggleDropdown}
+        aria-expanded={isExpanded}
+        aria-label={`Open ${user.userName} garden details`}
+      >
         <img src={user.avatar || fallbackAvatar} alt={`${user.userName} avatar`} className="another-user-card__avatar" />
 
         <span className="another-user-card__user">
@@ -32,16 +49,26 @@ function AnotherUserCardDropdown({ user }) {
           aria-hidden="true"
           className={`another-user-card__arrow ${isExpanded ? "another-user-card__arrow--open" : ""}`}
         />
-      </span>
+      </button>
 
       {isExpanded && (
-        <span className="another-user-card__stats">
-          <span className="another-user-card__stat-item">{user.ideasCount} ideas</span>
-          <span className="another-user-card__stat-item">{user.growingCount} growing</span>
-          <span className="another-user-card__follow">Follow</span>
-        </span>
+        <>
+          <span className="another-user-card__stats">
+            <span className="another-user-card__stat-item">{user.ideasCount} ideas</span>
+            <span className="another-user-card__stat-item">{user.growingCount} growing</span>
+            <button
+              type="button"
+              className={`another-user-card__follow ${user.isFollowing ? "another-user-card__follow--active" : ""}`}
+              onClick={handleFollowClick}
+              disabled={isFollowLoading || isOwnGarden}
+            >
+              {isOwnGarden ? "You" : isFollowLoading ? "Saving..." : user.isFollowing ? "Following" : "Follow"}
+            </button>
+          </span>
+          {followError && <span className="another-user-card__error">{followError}</span>}
+        </>
       )}
-    </button>
+    </div>
   )
 }
 
