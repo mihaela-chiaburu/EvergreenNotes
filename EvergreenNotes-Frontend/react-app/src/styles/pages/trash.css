@@ -31,6 +31,18 @@
   gap: 14px;
 }
 
+.trash-page__status {
+  margin: 18px 0 0;
+  font-size: 16px;
+  color: #425856;
+}
+
+.trash-page__error {
+  margin: 18px 0 0;
+  font-size: 16px;
+  color: #9d2f2f;
+}
+
 .trash-sort {
   position: relative;
 }

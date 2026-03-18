@@ -46,6 +46,7 @@ namespace EvergreenNotes.Application.Services
                 .FirstOrDefaultAsync(n => n.Id == noteId);
 
             if (note == null) return null;
+            if (note.IsDeleted) return null;
 
             if (note.Visibility == NoteVisibility.Private && note.UserId != currentUserId)
                 return null;
@@ -66,7 +67,7 @@ namespace EvergreenNotes.Application.Services
                 .ThenInclude(nt => nt.Tag)
                 .FirstOrDefaultAsync(n => n.Id == noteId);
 
-            if (note == null || note.UserId != userId)
+            if (note == null || note.UserId != userId || note.IsDeleted)
                 throw new Exception("Note not found or access denied");
 
             if (request.Title != null) note.Title = request.Title;
@@ -91,13 +92,17 @@ namespace EvergreenNotes.Application.Services
             if (note == null || note.UserId != userId)
                 throw new Exception("Note not found or access denied");
 
-            _db.Notes.Remove(note);
+            if (note.IsDeleted)
+                throw new Exception("Note is already in trash");
+
+            note.IsDeleted = true;
+            note.DeletedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
         }
 
         public async Task<List<NoteResponse>> GetNotesAsync(Guid userId, GetNotesRequest request)
         {
-            var query = _db.Notes.Where(n => n.UserId == userId);
+            var query = _db.Notes.Where(n => n.UserId == userId && !n.IsDeleted);
 
             if (request.Status.HasValue)
                 query = query.Where(n => n.Status == request.Status.Value);
@@ -149,7 +154,7 @@ namespace EvergreenNotes.Application.Services
                 .ThenInclude(nt => nt.Tag)
                 .FirstOrDefaultAsync(n => n.Id == noteId);
 
-            if (note == null || note.UserId != userId)
+            if (note == null || note.UserId != userId || note.IsDeleted)
                 throw new Exception("Note not found or access denied");
 
             note.LastWateredAt = DateTime.UtcNow;
@@ -171,7 +176,7 @@ namespace EvergreenNotes.Application.Services
                 .ThenInclude(nt => nt.Tag)
                 .FirstOrDefaultAsync(n => n.Id == noteId);
 
-            if (note == null || note.UserId != userId)
+            if (note == null || note.UserId != userId || note.IsDeleted)
                 throw new Exception("Note not found or access denied");
 
             note.Status = status;
@@ -194,7 +199,7 @@ namespace EvergreenNotes.Application.Services
                 .ThenInclude(nt => nt.Tag)
                 .FirstOrDefaultAsync(n => n.Id == noteId);
 
-            if (note == null || note.UserId != userId)
+            if (note == null || note.UserId != userId || note.IsDeleted)
                 throw new Exception("Note not found or access denied");
 
             note.Visibility = visibility;
@@ -207,6 +212,82 @@ namespace EvergreenNotes.Application.Services
                 .ToList();
 
             return MapToResponse(note, tags);
+        }
+
+        public async Task<List<NoteResponse>> GetDeletedNotesAsync(Guid userId, int page = 1, int pageSize = 100)
+        {
+            var notes = await _db.Notes
+                .Where(note => note.UserId == userId && note.IsDeleted)
+                .Include(note => note.NoteTags)
+                .ThenInclude(noteTag => noteTag.Tag)
+                .OrderByDescending(note => note.DeletedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return notes.Select(note =>
+            {
+                var tags = note.NoteTags
+                    .Select(noteTag => noteTag.Tag.Name)
+                    .OrderBy(name => name)
+                    .ToList();
+
+                return MapToResponse(note, tags);
+            }).ToList();
+        }
+
+        public async Task<NoteResponse> RestoreNoteAsync(Guid noteId, Guid userId)
+        {
+            var note = await _db.Notes
+                .Include(n => n.NoteTags)
+                .ThenInclude(nt => nt.Tag)
+                .FirstOrDefaultAsync(n => n.Id == noteId);
+
+            if (note == null || note.UserId != userId)
+                throw new Exception("Note not found or access denied");
+
+            if (!note.IsDeleted)
+                throw new Exception("Note is not in trash");
+
+            note.IsDeleted = false;
+            note.DeletedAt = null;
+            await _db.SaveChangesAsync();
+
+            UpdatePlantState(note);
+            var tags = note.NoteTags
+                .Select(nt => nt.Tag.Name)
+                .OrderBy(name => name)
+                .ToList();
+
+            return MapToResponse(note, tags);
+        }
+
+        public async Task PermanentlyDeleteNoteAsync(Guid noteId, Guid userId)
+        {
+            var note = await _db.Notes
+                .FirstOrDefaultAsync(n => n.Id == noteId && n.UserId == userId);
+
+            if (note == null)
+                throw new Exception("Note not found or access denied");
+
+            if (!note.IsDeleted)
+                throw new Exception("Note must be moved to trash before permanent delete");
+
+            _db.Notes.Remove(note);
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task EmptyTrashAsync(Guid userId)
+        {
+            var deletedNotes = await _db.Notes
+                .Where(n => n.UserId == userId && n.IsDeleted)
+                .ToListAsync();
+
+            if (deletedNotes.Count == 0)
+                return;
+
+            _db.Notes.RemoveRange(deletedNotes);
+            await _db.SaveChangesAsync();
         }
 
         public async Task<List<NoteResponse>> GetPublicNotesByUserIdAsync(Guid targetUserId, Guid? currentUserId, int page = 1, int pageSize = 100)
@@ -227,6 +308,8 @@ namespace EvergreenNotes.Application.Services
             {
                 notesQuery = notesQuery.Where(note => note.Visibility == NoteVisibility.Public);
             }
+
+            notesQuery = notesQuery.Where(note => !note.IsDeleted);
 
             var notes = await notesQuery
                 .Include(note => note.NoteTags)
@@ -285,6 +368,7 @@ namespace EvergreenNotes.Application.Services
                 SourceThumbnail = note.SourceThumbnail,
                 CreatedAt = note.CreatedAt,
                 LastWateredAt = note.LastWateredAt,
+                DeletedAt = note.DeletedAt,
                 DaysSinceWatered = daysSinceWatered
             };
         }

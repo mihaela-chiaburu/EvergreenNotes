@@ -96,14 +96,14 @@ namespace EvergreenNotes.Application.Services
                     continue;
 
                 var publicNotesCount = await _db.Notes
-                    .CountAsync(n => n.UserId == userId && n.Visibility == NoteVisibility.Public);
+                    .CountAsync(n => n.UserId == userId && n.Visibility == NoteVisibility.Public && !n.IsDeleted);
 
                 var userTag = matchingTags.FirstOrDefault(t => t.UserId == userId);
                 var notesWithInterest = 0;
                 if (userTag != null)
                 {
                     notesWithInterest = userTag.NoteTags
-                        .Count(nt => nt.Note.Visibility == NoteVisibility.Public);
+                        .Count(nt => nt.Note.Visibility == NoteVisibility.Public && !nt.Note.IsDeleted);
                 }
 
                 var otherInterests = await _db.Tags
@@ -115,7 +115,7 @@ namespace EvergreenNotes.Application.Services
                     .ToListAsync();
 
                 var lastNote = await _db.Notes
-                    .Where(n => n.UserId == userId)
+                    .Where(n => n.UserId == userId && !n.IsDeleted)
                     .OrderByDescending(n => n.LastWateredAt)
                     .FirstOrDefaultAsync();
 

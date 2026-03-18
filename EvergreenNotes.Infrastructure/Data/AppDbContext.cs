@@ -47,6 +47,7 @@ namespace EvergreenNotes.Infrastructure.Data
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasIndex(n => n.UserId);
+                entity.HasIndex(n => new { n.UserId, n.IsDeleted });
                 entity.HasIndex(n => n.CreatedAt);
                 entity.HasIndex(n => n.LastWateredAt);
             });

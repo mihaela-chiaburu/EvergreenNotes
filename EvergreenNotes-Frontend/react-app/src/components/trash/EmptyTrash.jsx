@@ -1,11 +1,11 @@
 import trashIcon from "../../assets/images/trash.png"
 import "../../styles/components/trash/empty-trash.css"
 
-function EmptyTrash() {
+function EmptyTrash({ onClick, disabled = false, isLoading = false }) {
 	return (
-		<button type="button" className="trash-empty-button">
+		<button type="button" className="trash-empty-button" onClick={onClick} disabled={disabled || isLoading}>
 			<img src={trashIcon} alt="trash icon" className="trash-empty-button__icon" />
-			Empty Trash
+			{isLoading ? "Emptying..." : "Empty Trash"}
 		</button>
 	)
 }

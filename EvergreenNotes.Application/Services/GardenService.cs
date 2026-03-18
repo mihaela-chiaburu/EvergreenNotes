@@ -55,7 +55,7 @@ namespace EvergreenNotes.Application.Services
                 .Where(t => t.UserId == userId)
                 .ToListAsync();
 
-            var notesQuery = _db.Notes.Where(n => n.UserId == userId);
+            var notesQuery = _db.Notes.Where(n => n.UserId == userId && !n.IsDeleted);
             if (!includePrivate)
             {
                 notesQuery = notesQuery.Where(n => n.Visibility == NoteVisibility.Public);
@@ -295,8 +295,8 @@ namespace EvergreenNotes.Application.Services
                 if (currentUserId.HasValue && garden.UserId == currentUserId.Value)
                     continue;
 
-                var totalNotes = await _db.Notes.CountAsync(n => n.UserId == garden.UserId);
-                var publicNotes = await _db.Notes.CountAsync(n => n.UserId == garden.UserId && n.Visibility == NoteVisibility.Public);
+                var totalNotes = await _db.Notes.CountAsync(n => n.UserId == garden.UserId && !n.IsDeleted);
+                var publicNotes = await _db.Notes.CountAsync(n => n.UserId == garden.UserId && n.Visibility == NoteVisibility.Public && !n.IsDeleted);
 
                 var tags = await _db.Tags
                     .Where(t => t.UserId == garden.UserId)
@@ -314,12 +314,12 @@ namespace EvergreenNotes.Application.Services
                 }
 
                 var lastNote = await _db.Notes
-                    .Where(n => n.UserId == garden.UserId)
+                    .Where(n => n.UserId == garden.UserId && !n.IsDeleted)
                     .OrderByDescending(n => n.LastWateredAt)
                     .FirstOrDefaultAsync();
 
                 var recentPublicNote = await _db.Notes
-                    .Where(n => n.UserId == garden.UserId && n.Visibility == NoteVisibility.Public)
+                    .Where(n => n.UserId == garden.UserId && n.Visibility == NoteVisibility.Public && !n.IsDeleted)
                     .OrderByDescending(n => n.CreatedAt)
                     .FirstOrDefaultAsync();
 
@@ -373,7 +373,7 @@ namespace EvergreenNotes.Application.Services
         {
             var userId = garden.UserId;
 
-            var notesQuery = _db.Notes.Where(n => n.UserId == userId);
+            var notesQuery = _db.Notes.Where(n => n.UserId == userId && !n.IsDeleted);
             if (!isOwner)
                 notesQuery = notesQuery.Where(n => n.Visibility == NoteVisibility.Public);
 

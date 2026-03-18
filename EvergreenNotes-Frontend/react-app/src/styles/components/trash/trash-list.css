@@ -54,6 +54,12 @@
   cursor: pointer;
 }
 
+.trash-list__icon-button--disabled,
+.trash-list__icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .trash-list__icon {
   width: 20px;
   height: 20px;

@@ -12,6 +12,7 @@ namespace EvergreenNotes.Infrastructure.Data
         {
             await db.Database.MigrateAsync();
             await EnsureTaxonomyColumnAsync(db);
+            await EnsureSoftDeleteColumnsAsync(db);
             await SeedDemoUserAsync(db);
         }
 
@@ -31,6 +32,31 @@ IF NOT EXISTS (
 )
 BEGIN
     CREATE INDEX [IX_Tags_ParentTagId] ON [Tags]([ParentTagId]);
+END");
+        }
+
+        private static async Task EnsureSoftDeleteColumnsAsync(AppDbContext db)
+        {
+            await db.Database.ExecuteSqlRawAsync(@"
+IF COL_LENGTH('Notes', 'IsDeleted') IS NULL
+BEGIN
+    ALTER TABLE [Notes] ADD [IsDeleted] bit NOT NULL CONSTRAINT [DF_Notes_IsDeleted] DEFAULT 0;
+END");
+
+            await db.Database.ExecuteSqlRawAsync(@"
+IF COL_LENGTH('Notes', 'DeletedAt') IS NULL
+BEGIN
+    ALTER TABLE [Notes] ADD [DeletedAt] datetime2 NULL;
+END");
+
+            await db.Database.ExecuteSqlRawAsync(@"
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = 'IX_Notes_UserId_IsDeleted' AND object_id = OBJECT_ID('Notes')
+)
+BEGIN
+    CREATE INDEX [IX_Notes_UserId_IsDeleted] ON [Notes]([UserId], [IsDeleted]);
 END");
         }
 

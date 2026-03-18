@@ -9,6 +9,23 @@ function titleCase(value) {
   return value.charAt(0).toUpperCase() + value.slice(1)
 }
 
+function toDeletedOn(value) {
+  if (!value) {
+    return ""
+  }
+
+  const deletedDate = new Date(value)
+  if (Number.isNaN(deletedDate.getTime())) {
+    return ""
+  }
+
+  const day = String(deletedDate.getDate()).padStart(2, "0")
+  const month = String(deletedDate.getMonth() + 1).padStart(2, "0")
+  const year = String(deletedDate.getFullYear())
+
+  return `${day}.${month}.${year}`
+}
+
 export function mapNoteToViewModel(note) {
   const tags = Array.isArray(note.tags) ? note.tags : []
 
@@ -21,6 +38,8 @@ export function mapNoteToViewModel(note) {
     source: note.sourceUrl || note.sourceType || "",
     date: getIsoDate(note.createdAt),
     createdOn: getIsoDate(note.createdAt),
+    deletedOn: toDeletedOn(note.deletedAt),
+    deletedAt: note.deletedAt || null,
     lastWatered: getIsoDate(note.lastWateredAt),
     status: titleCase(note.status),
     visibility: titleCase(note.visibility),
@@ -84,6 +103,37 @@ export async function updateNote(token, noteId, { title, body }) {
 
 export async function deleteNote(token, noteId) {
   await apiRequest(`/api/notes/${noteId}`, {
+    method: "DELETE",
+    token,
+  })
+}
+
+export async function fetchDeletedNotes(token) {
+  const payload = await apiRequest("/api/notes/trash?page=1&pageSize=100", {
+    token,
+  })
+
+  return Array.isArray(payload) ? payload.map(mapNoteToViewModel) : []
+}
+
+export async function restoreDeletedNote(token, noteId) {
+  const payload = await apiRequest(`/api/notes/${noteId}/restore`, {
+    method: "POST",
+    token,
+  })
+
+  return mapNoteToViewModel(payload)
+}
+
+export async function permanentlyDeleteNote(token, noteId) {
+  await apiRequest(`/api/notes/${noteId}/permanent`, {
+    method: "DELETE",
+    token,
+  })
+}
+
+export async function emptyTrash(token) {
+  await apiRequest("/api/notes/trash", {
     method: "DELETE",
     token,
   })

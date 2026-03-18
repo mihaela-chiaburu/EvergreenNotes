@@ -21,6 +21,7 @@ namespace EvergreenNotes.Domain.DTO
         public string? SourceThumbnail { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime LastWateredAt { get; set; }
+        public DateTime? DeletedAt { get; set; }
         public int DaysSinceWatered { get; set; }
     }
 }

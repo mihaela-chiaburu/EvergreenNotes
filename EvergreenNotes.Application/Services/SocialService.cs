@@ -69,7 +69,7 @@ namespace EvergreenNotes.Application.Services
                 var garden = await _db.Gardens.FirstOrDefaultAsync(g => g.UserId == follow.FollowingId);
 
                 var publicNotesCount = await _db.Notes
-                    .CountAsync(n => n.UserId == follow.FollowingId && n.Visibility == NoteVisibility.Public);
+                    .CountAsync(n => n.UserId == follow.FollowingId && n.Visibility == NoteVisibility.Public && !n.IsDeleted);
 
                 results.Add(new FollowResponse
                 {
@@ -93,6 +93,9 @@ namespace EvergreenNotes.Application.Services
             var note = await _db.Notes.FindAsync(noteId);
             if (note == null)
                 throw new Exception("Note not found");
+
+            if (note.IsDeleted)
+                throw new Exception("Cannot comment on deleted notes");
 
             if (note.Visibility != NoteVisibility.Public)
                 throw new Exception("Can only comment on public notes");
@@ -127,6 +130,9 @@ namespace EvergreenNotes.Application.Services
             var note = await _db.Notes.FindAsync(noteId);
             if (note == null)
                 throw new Exception("Note not found");
+
+            if (note.IsDeleted)
+                throw new Exception("Cannot view comments on deleted notes");
 
             if (note.Visibility != NoteVisibility.Public && note.UserId != currentUserId)
                 throw new Exception("Cannot view comments on private notes");

@@ -76,7 +76,69 @@ namespace EvergreenNotes.Controllers
             {
                 var userId = GetCurrentUserId();
                 await _noteService.DeleteNoteAsync(noteId, userId);
-                return Ok(new { message = "Note deleted successfully" });
+                return Ok(new { message = "Note moved to trash successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpGet("trash")]
+        public async Task<IActionResult> GetDeletedNotes(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 100)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var result = await _noteService.GetDeletedNotesAsync(userId, page, pageSize);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("{noteId}/restore")]
+        public async Task<IActionResult> RestoreNote(Guid noteId)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var result = await _noteService.RestoreNoteAsync(noteId, userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete("{noteId}/permanent")]
+        public async Task<IActionResult> PermanentlyDeleteNote(Guid noteId)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                await _noteService.PermanentlyDeleteNoteAsync(noteId, userId);
+                return Ok(new { message = "Note permanently deleted" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete("trash")]
+        public async Task<IActionResult> EmptyTrash()
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                await _noteService.EmptyTrashAsync(userId);
+                return Ok(new { message = "Trash emptied" });
             }
             catch (Exception ex)
             {

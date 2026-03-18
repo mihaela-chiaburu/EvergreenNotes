@@ -1,28 +1,125 @@
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Layout from "../components/Layout"
 import EmptyTrash from "../components/trash/EmptyTrash"
 import TrashList from "../components/trash/TrashList"
 import "../styles/pages/trash.css"
 import arrowIcon from "../assets/images/arrow-down.png"
 import { useDismiss } from "../hooks/useDismiss"
-import { mockTrashNotes } from "../data/mockTrashNotes"
+import { useAuth } from "../context/AuthContext"
+import { emptyTrash, fetchDeletedNotes, permanentlyDeleteNote, restoreDeletedNote } from "../utils/notes"
 
 function TrashPage() {
+	const { authUser } = useAuth()
 	const [sortOrder, setSortOrder] = useState("descending")
 	const [isSortMenuOpen, setIsSortMenuOpen] = useState(false)
+	const [deletedNotes, setDeletedNotes] = useState([])
+	const [isLoading, setIsLoading] = useState(true)
+	const [error, setError] = useState("")
+	const [activeNoteActionId, setActiveNoteActionId] = useState("")
+	const [isEmptyingTrash, setIsEmptyingTrash] = useState(false)
 	const sortDropdownRef = useRef(null)
 
 	useDismiss({ refs: [sortDropdownRef], isOpen: isSortMenuOpen, onDismiss: () => setIsSortMenuOpen(false) })
 
+	useEffect(() => {
+		let isMounted = true
+
+		const loadDeletedNotes = async () => {
+			if (!authUser?.token) {
+				if (isMounted) {
+					setDeletedNotes([])
+					setIsLoading(false)
+				}
+				return
+			}
+
+			setIsLoading(true)
+			setError("")
+
+			try {
+				const notes = await fetchDeletedNotes(authUser.token)
+				if (isMounted) {
+					setDeletedNotes(notes)
+				}
+			} catch (loadError) {
+				if (isMounted) {
+					setError(loadError instanceof Error ? loadError.message : "Could not load trash.")
+					setDeletedNotes([])
+				}
+			} finally {
+				if (isMounted) {
+					setIsLoading(false)
+				}
+			}
+		}
+
+		loadDeletedNotes()
+
+		return () => {
+			isMounted = false
+		}
+	}, [authUser?.token])
+
+	const handleRestoreNote = async (noteId) => {
+		if (!authUser?.token || activeNoteActionId) {
+			return
+		}
+
+		setError("")
+		setActiveNoteActionId(noteId)
+
+		try {
+			await restoreDeletedNote(authUser.token, noteId)
+			setDeletedNotes((previousNotes) => previousNotes.filter((note) => note.id !== noteId))
+		} catch (restoreError) {
+			setError(restoreError instanceof Error ? restoreError.message : "Could not restore note.")
+		} finally {
+			setActiveNoteActionId("")
+		}
+	}
+
+	const handlePermanentDelete = async (noteId) => {
+		if (!authUser?.token || activeNoteActionId) {
+			return
+		}
+
+		setError("")
+		setActiveNoteActionId(noteId)
+
+		try {
+			await permanentlyDeleteNote(authUser.token, noteId)
+			setDeletedNotes((previousNotes) => previousNotes.filter((note) => note.id !== noteId))
+		} catch (deleteError) {
+			setError(deleteError instanceof Error ? deleteError.message : "Could not delete note permanently.")
+		} finally {
+			setActiveNoteActionId("")
+		}
+	}
+
+	const handleEmptyTrash = async () => {
+		if (!authUser?.token || deletedNotes.length === 0 || isEmptyingTrash) {
+			return
+		}
+
+		setError("")
+		setIsEmptyingTrash(true)
+
+		try {
+			await emptyTrash(authUser.token)
+			setDeletedNotes([])
+		} catch (emptyError) {
+			setError(emptyError instanceof Error ? emptyError.message : "Could not empty trash.")
+		} finally {
+			setIsEmptyingTrash(false)
+		}
+	}
+
 	const sortedDeletedNotes = useMemo(() => {
-		const notesCopy = [...mockTrashNotes]
+		const notesCopy = [...deletedNotes]
 
 		notesCopy.sort((firstNote, secondNote) => {
-			const [firstDay, firstMonth, firstYear] = firstNote.deletedOn.split(".")
-			const [secondDay, secondMonth, secondYear] = secondNote.deletedOn.split(".")
-
-			const firstDate = new Date(Number(firstYear), Number(firstMonth) - 1, Number(firstDay))
-			const secondDate = new Date(Number(secondYear), Number(secondMonth) - 1, Number(secondDay))
+			const firstDate = new Date(firstNote.deletedAt || firstNote.createdOn)
+			const secondDate = new Date(secondNote.deletedAt || secondNote.createdOn)
 
 			if (sortOrder === "ascending") {
 				return firstDate - secondDate
@@ -32,7 +129,7 @@ function TrashPage() {
 		})
 
 		return notesCopy
-	}, [sortOrder])
+	}, [deletedNotes, sortOrder])
 
 	return (
 		<Layout>
@@ -89,11 +186,26 @@ function TrashPage() {
 							)}
 						</div>
 
-						<EmptyTrash />
+						<EmptyTrash
+							onClick={handleEmptyTrash}
+							disabled={deletedNotes.length === 0}
+							isLoading={isEmptyingTrash}
+						/>
 					</div>
 				</div>
 
-				<TrashList notes={sortedDeletedNotes} />
+				{error && <p className="trash-page__error">{error}</p>}
+				{isLoading && <p className="trash-page__status">Loading deleted notes...</p>}
+				{!isLoading && sortedDeletedNotes.length === 0 && <p className="trash-page__status">Trash is empty.</p>}
+
+				{!isLoading && sortedDeletedNotes.length > 0 && (
+					<TrashList
+						notes={sortedDeletedNotes}
+						onDeletePermanent={handlePermanentDelete}
+						onRestore={handleRestoreNote}
+						activeNoteActionId={activeNoteActionId}
+					/>
+				)}
 			</div>
 		</Layout>
 	)
