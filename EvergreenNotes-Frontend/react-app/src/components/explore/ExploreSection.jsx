@@ -10,7 +10,7 @@ import "../../styles/components/explore/explore-section.css"
 const TAB_OPTIONS = ["Trending", "New", "Following"]
 const PAGE_SIZE = 6
 
-function ExploreSection({ isPublicView = false }) {
+function ExploreSection({ isPublicView = false, filters = {} }) {
   const navigate = useNavigate()
   const { authUser } = useAuth()
   const [gardens, setGardens] = useState([])
@@ -75,11 +75,40 @@ function ExploreSection({ isPublicView = false }) {
   }), [gardens])
 
   const activeGardens = gardensByTab[activeTab] ?? gardensByTab.Trending
+  const selectedTags = Array.isArray(filters?.tags)
+    ? filters.tags.map((tag) => tag.trim().toLowerCase()).filter(Boolean)
+    : []
+  const parsedMinNotes = Number.parseInt(filters?.minNotes, 10)
+  const parsedMaxNotes = Number.parseInt(filters?.maxNotes, 10)
+  const hasMinFilter = Number.isFinite(parsedMinNotes)
+  const hasMaxFilter = Number.isFinite(parsedMaxNotes)
+
   const filteredByTopic = selectedTopic
     ? activeGardens.filter((garden) =>
         garden.tags.some((tag) => tag.toLowerCase() === selectedTopic.toLowerCase())
       )
     : activeGardens
+
+  const filteredGardens = filteredByTopic.filter((garden) => {
+    const noteCount = Number.isFinite(garden.noteCount) ? garden.noteCount : 0
+
+    if (hasMinFilter && noteCount < parsedMinNotes) {
+      return false
+    }
+
+    if (hasMaxFilter && noteCount > parsedMaxNotes) {
+      return false
+    }
+
+    if (selectedTags.length > 0) {
+      const hasMatchingTag = garden.tags.some((tag) => selectedTags.includes(tag.toLowerCase()))
+      if (!hasMatchingTag) {
+        return false
+      }
+    }
+
+    return true
+  })
 
   const topTopics = useMemo(() => {
     const tagScores = new Map()
@@ -101,10 +130,10 @@ function ExploreSection({ isPublicView = false }) {
       .map(([tag]) => tag)
   }, [gardens])
 
-  const totalPages = Math.max(1, Math.ceil(filteredByTopic.length / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(filteredGardens.length / PAGE_SIZE))
   const safeCurrentPage = Math.min(currentPage, totalPages)
   const startIndex = (safeCurrentPage - 1) * PAGE_SIZE
-  const paginatedGardens = filteredByTopic.slice(startIndex, startIndex + PAGE_SIZE)
+  const paginatedGardens = filteredGardens.slice(startIndex, startIndex + PAGE_SIZE)
 
   const handleOpenUserGarden = (garden) => {
     navigate(`/garden/${garden.userId}`, { state: { userGarden: garden } })

@@ -16,6 +16,18 @@ function ExplorePage() {
   const navigate = useNavigate()
   const { isAuthenticated, establishSession, logout } = useAuth()
   const [authModal, setAuthModal] = useState(null)
+  const [filters, setFilters] = useState({
+    minNotes: "",
+    maxNotes: "",
+    tags: [],
+  })
+
+  const handleFiltersChange = (nextFilters) => {
+    setFilters((previousFilters) => ({
+      ...previousFilters,
+      ...nextFilters,
+    }))
+  }
 
   const handleOpenLogin = () => {
     setAuthModal("login")
@@ -80,8 +92,8 @@ function ExplorePage() {
         </nav>
 
         <div className="explore-page">
-          <FilterPanel />
-          <ExploreSection isPublicView />
+          <FilterPanel filters={filters} onFiltersChange={handleFiltersChange} />
+          <ExploreSection isPublicView filters={filters} />
         </div>
 
         <LoginModal
@@ -104,8 +116,8 @@ function ExplorePage() {
   return (
     <Layout>
       <div className="explore-page">
-        <FilterPanel />
-        <ExploreSection />
+        <FilterPanel filters={filters} onFiltersChange={handleFiltersChange} />
+        <ExploreSection filters={filters} />
       </div>
     </Layout>
   )

@@ -1,21 +1,62 @@
 import { useState } from "react"
 import "../../styles/components/explore/explore-filter.css"
-import { useTagInput } from "../../hooks/useTagInput"
 
-function FilterPanel() {
-  const [minNotes, setMinNotes] = useState("")
-  const [maxNotes, setMaxNotes] = useState("")
+function FilterPanel({ filters, onFiltersChange }) {
+  const [tagInput, setTagInput] = useState("")
   const [stateFilters, setStateFilters] = useState([])
-  const { tags, tagInput, setTagInput, handleTagKeyDown, removeTag } = useTagInput([])
+  const tags = Array.isArray(filters?.tags) ? filters.tags : []
+  const minNotes = filters?.minNotes ?? ""
+  const maxNotes = filters?.maxNotes ?? ""
 
-  const toggleCheckboxValue = (value, setter) => {
-    setter((previousValues) => {
+  const toggleCheckboxValue = (value) => {
+    setStateFilters((previousValues) => {
       if (previousValues.includes(value)) {
         return previousValues.filter((item) => item !== value)
       }
 
       return [...previousValues, value]
     })
+  }
+
+  const addTag = (rawValue) => {
+    const normalizedTag = rawValue.trim()
+
+    if (!normalizedTag) {
+      return
+    }
+
+    const alreadyExists = tags.some((tag) => tag.toLowerCase() === normalizedTag.toLowerCase())
+
+    if (alreadyExists) {
+      setTagInput("")
+      return
+    }
+
+    onFiltersChange({ tags: [...tags, normalizedTag] })
+    setTagInput("")
+  }
+
+  const handleTagKeyDown = (event) => {
+    if (event.key !== "Enter") {
+      return
+    }
+
+    event.preventDefault()
+    addTag(tagInput)
+  }
+
+  const removeTag = (tagToRemove) => {
+    onFiltersChange({
+      tags: tags.filter((tag) => tag !== tagToRemove),
+    })
+  }
+
+  const handleMinNotesChange = (event) => {
+    onFiltersChange({ minNotes: event.target.value })
+  }
+
+  const handleMaxNotesChange = (event) => {
+    onFiltersChange({ maxNotes: event.target.value })
   }
 
   return (
@@ -33,7 +74,7 @@ function FilterPanel() {
             className="explore-filter-panel__range-input"
             placeholder="Min"
             value={minNotes}
-            onChange={(event) => setMinNotes(event.target.value)}
+            onChange={handleMinNotesChange}
           />
           <span className="explore-filter-panel__range-dash" aria-hidden="true">
             -
@@ -44,7 +85,7 @@ function FilterPanel() {
             className="explore-filter-panel__range-input"
             placeholder="Max"
             value={maxNotes}
-            onChange={(event) => setMaxNotes(event.target.value)}
+            onChange={handleMaxNotesChange}
           />
         </div>
       </section>
@@ -85,7 +126,7 @@ function FilterPanel() {
             <input
               type="checkbox"
               checked={stateFilters.includes("new")}
-              onChange={() => toggleCheckboxValue("new", setStateFilters)}
+              onChange={() => toggleCheckboxValue("new")}
             />
             <span>New</span>
           </label>
@@ -93,7 +134,7 @@ function FilterPanel() {
             <input
               type="checkbox"
               checked={stateFilters.includes("growing")}
-              onChange={() => toggleCheckboxValue("growing", setStateFilters)}
+              onChange={() => toggleCheckboxValue("growing")}
             />
             <span>Growing</span>
           </label>
@@ -101,7 +142,7 @@ function FilterPanel() {
             <input
               type="checkbox"
               checked={stateFilters.includes("big")}
-              onChange={() => toggleCheckboxValue("big", setStateFilters)}
+              onChange={() => toggleCheckboxValue("big")}
             />
             <span>Big</span>
           </label>
