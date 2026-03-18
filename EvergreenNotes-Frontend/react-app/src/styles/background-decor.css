@@ -133,24 +133,24 @@
 
 .side-decor__item--1 {
   top: 10%;
-  left: -10px;
-  transform: rotate(10deg);
+  left: -5px;
+  transform: rotate(5deg);
 }
 
 .side-decor__item--2 {
-  top: 28%;
-  left: -10px;
-  transform: rotate(90deg);
+  top: 34%;
+  left: -60px;
+  transform: rotate(70deg);
 }
 
 .side-decor__item--3 {
-  top: 48%;
+  top: 58%;
   left: -10px;
   transform: rotate(100deg);
 }
 
 .side-decor__item--4 {
-  top: 72%;
+  top: 82%;
   left: -10px;
   width: 50px;
   transform: rotate(100deg);
@@ -158,21 +158,26 @@
 
 .side-decor__item--5 {
   top: 10%;
-  transform: rotate(5deg);
+  right: -18px;
+  transform: rotate(-90deg);
 }
 
 .side-decor__item--6 {
   top: 31%;
-  transform: rotate(-7deg);
+  right: -25px;
+  transform: rotate(-90deg);
 }
 
 .side-decor__item--7 {
   top: 54%;
-  transform: rotate(8deg);
+  right: -28px;
+  width: 150px;
+  transform: rotate(-40deg);
 }
 
 .side-decor__item--8 {
   top: 77%;
+  right: 0px;
   transform: rotate(-6deg);
 }
 
