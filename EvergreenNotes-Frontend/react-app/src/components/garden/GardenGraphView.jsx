@@ -101,52 +101,8 @@ function selectDefaultSeedNodeIds() {
   return nodesSortedByConnectivity.slice(0, 18).map((node) => node.id)
 }
 
-function getNeighborhoodDepthByNodeId(focusNodeId) {
-  if (!focusNodeId || !nodeById.has(focusNodeId)) {
-    const defaultDepthByNodeId = new Map()
-
-    selectDefaultSeedNodeIds().forEach((seedId) => {
-      defaultDepthByNodeId.set(seedId, 0)
-
-      const seedNeighbors = adjacencyByNodeId.get(seedId) || new Set()
-      seedNeighbors.forEach((neighborId) => {
-        if (!defaultDepthByNodeId.has(neighborId)) {
-          defaultDepthByNodeId.set(neighborId, 1)
-        }
-      })
-    })
-
-    return defaultDepthByNodeId
-  }
-
-  const depthByNodeId = new Map([[focusNodeId, 0]])
-  const firstLevelNeighbors = adjacencyByNodeId.get(focusNodeId) || new Set()
-
-  firstLevelNeighbors.forEach((neighborId) => {
-    depthByNodeId.set(neighborId, 1)
-  })
-
-  firstLevelNeighbors.forEach((neighborId) => {
-    const secondLevelNeighbors = adjacencyByNodeId.get(neighborId) || new Set()
-    secondLevelNeighbors.forEach((secondLevelId) => {
-      if (depthByNodeId.has(secondLevelId)) {
-        return
-      }
-
-      depthByNodeId.set(secondLevelId, 2)
-    })
-  })
-
-  return depthByNodeId
-}
-
-function buildElementsForFocus(focusNodeId) {
-  const depthByNodeId = getNeighborhoodDepthByNodeId(focusNodeId)
-  const visibleNodeIds = new Set(depthByNodeId.keys())
-
-  const nodes = [...visibleNodeIds]
-    .map((id) => nodeById.get(id))
-    .filter(Boolean)
+function buildElementsForGraph() {
+  const nodes = mockGardenGraph.nodes
     .map((node) => ({
       data: {
         id: node.id,
@@ -154,21 +110,25 @@ function buildElementsForFocus(focusNodeId) {
         type: node.type,
         size: computeNodeSize(node),
         sprite: node.type === "tag" ? getTagNodeSprite(node) : leafSvg,
-        depth: depthByNodeId.get(node.id) ?? 2,
       },
     }))
 
-  const edges = mockGardenGraph.edges
-    .filter((edge) => visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target))
-    .map((edge, index) => ({
+  const edgeCounterByKey = new Map()
+  const edges = mockGardenGraph.edges.map((edge) => {
+    const edgeType = edge.type || "related"
+    const edgeKey = `${edge.source}|${edge.target}|${edgeType}`
+    const edgeIndex = edgeCounterByKey.get(edgeKey) || 0
+    edgeCounterByKey.set(edgeKey, edgeIndex + 1)
+
+    return {
       data: {
-        id: `edge-${edge.source}-${edge.target}-${index}`,
+        id: `edge-${edge.source}-${edge.target}-${edgeType}-${edgeIndex}`,
         source: edge.source,
         target: edge.target,
-        type: edge.type || "related",
-        depth: Math.max(depthByNodeId.get(edge.source) ?? 2, depthByNodeId.get(edge.target) ?? 2),
+        type: edgeType,
       },
-    }))
+    }
+  })
 
   return [...nodes, ...edges]
 }
@@ -217,15 +177,15 @@ function GardenGraphView({
 }) {
   const { authUser } = useAuth()
   const graphContainerRef = useRef(null)
+  const cyRef = useRef(null)
   const focusedNodeIdRef = useRef(null)
-  const rerenderFocusGraphRef = useRef(null)
+  const syncGraphElementsRef = useRef(null)
   const velocityByNodeIdRef = useRef(new Map())
   const physicsRafRef = useRef(null)
   const settleTimeoutRef = useRef(null)
   const physicsRunningRef = useRef(false)
   const activeLayoutRef = useRef(null)
   const [focusedNodeSummary, setFocusedNodeSummary] = useState(null)
-  const [graphVersion, setGraphVersion] = useState(0)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -261,7 +221,15 @@ function GardenGraphView({
         mockGardenGraph.nodes = payload.nodes
         mockGardenGraph.edges = payload.edges
         rebuildGraphIndexes()
-        setGraphVersion((currentVersion) => currentVersion + 1)
+
+        if (focusedNodeIdRef.current && !nodeById.has(focusedNodeIdRef.current)) {
+          focusedNodeIdRef.current = null
+          setFocusedNodeSummary(null)
+        }
+
+        if (typeof syncGraphElementsRef.current === "function") {
+          syncGraphElementsRef.current({ shouldRunLayout: false })
+        }
       } catch {
         // Keep mock fallback if graph API fails.
       }
@@ -275,13 +243,8 @@ function GardenGraphView({
   }, [authUser?.token, refreshTick, userId])
 
   const handleResetFocus = () => {
-    if (!rerenderFocusGraphRef.current) {
-      return
-    }
-
     focusedNodeIdRef.current = null
     setFocusedNodeSummary(null)
-    rerenderFocusGraphRef.current({ shouldFit: true })
   }
 
   useEffect(() => {
@@ -303,7 +266,7 @@ function GardenGraphView({
 
     const cy = cytoscape({
       container: graphContainerRef.current,
-      elements: buildElementsForFocus(focusedNodeIdRef.current),
+      elements: buildElementsForGraph(),
       layout: {
         name: "cose",
         animate: true,
@@ -378,6 +341,7 @@ function GardenGraphView({
         },
       ],
     })
+    cyRef.current = cy
 
     const clearVelocities = () => {
       velocityByNodeIdRef.current = new Map()
@@ -543,41 +507,102 @@ function GardenGraphView({
         return
       }
 
-      const nextElements = buildElementsForFocus(focusedNodeIdRef.current)
+      const [nextNodes, nextEdges] = buildElementsForGraph().reduce(
+        (accumulator, element) => {
+          if (element.data.source && element.data.target) {
+            accumulator[1].push(element)
+          } else {
+            accumulator[0].push(element)
+          }
+
+          return accumulator
+        },
+        [[], []],
+      )
+
+      const nextNodeIds = new Set(nextNodes.map((nodeElement) => nodeElement.data.id))
+      const nextEdgeIds = new Set(nextEdges.map((edgeElement) => edgeElement.data.id))
+      const viewportZoom = cy.zoom()
+      const viewportPan = cy.pan()
 
       stopActiveLayout()
       stopPhysicsLoop()
       clearVelocities()
 
       cy.batch(() => {
-        cy.elements().remove()
-        cy.add(nextElements)
+        cy.edges().forEach((edge) => {
+          if (!nextEdgeIds.has(edge.id())) {
+            edge.remove()
+          }
+        })
+
+        cy.nodes().forEach((node) => {
+          if (!nextNodeIds.has(node.id())) {
+            node.remove()
+          }
+        })
+
+        nextNodes.forEach((nodeElement) => {
+          const existingNode = cy.getElementById(nodeElement.data.id)
+
+          if (existingNode.nonempty()) {
+            existingNode.data(nodeElement.data)
+            return
+          }
+
+          cy.add(nodeElement)
+          const graphExtent = cy.extent()
+          const centerX = (graphExtent.x1 + graphExtent.x2) / 2
+          const centerY = (graphExtent.y1 + graphExtent.y2) / 2
+          cy.getElementById(nodeElement.data.id).position({
+            x: centerX + (Math.random() - 0.5) * 90,
+            y: centerY + (Math.random() - 0.5) * 90,
+          })
+        })
+
+        nextEdges.forEach((edgeElement) => {
+          const existingEdge = cy.getElementById(edgeElement.data.id)
+
+          if (existingEdge.nonempty()) {
+            existingEdge.data(edgeElement.data)
+            return
+          }
+
+          cy.add(edgeElement)
+        })
       })
 
-      const layout = cy.layout({
-        name: "cose",
-        animate: true,
-        animationDuration: 420,
-        fit: shouldFit,
-        randomize: true,
-        idealEdgeLength: GRAPH_EDGE_LENGTH,
-        nodeRepulsion: GRAPH_NODE_REPULSION,
-        gravity: 0.08,
-        padding: 40,
-      })
+      if (shouldFit) {
+        const layout = cy.layout({
+          name: "cose",
+          animate: true,
+          animationDuration: 420,
+          fit: true,
+          randomize: true,
+          idealEdgeLength: GRAPH_EDGE_LENGTH,
+          nodeRepulsion: GRAPH_NODE_REPULSION,
+          gravity: 0.08,
+          padding: 40,
+        })
 
-      activeLayoutRef.current = layout
-      cy.one("layoutstop", () => {
-        if (activeLayoutRef.current === layout) {
-          activeLayoutRef.current = null
-        }
+        activeLayoutRef.current = layout
+        cy.one("layoutstop", () => {
+          if (activeLayoutRef.current === layout) {
+            activeLayoutRef.current = null
+          }
 
-        updateNoteLabelOpacity()
-      })
-      layout.run()
+          updateNoteLabelOpacity()
+        })
+        layout.run()
+        return
+      }
+
+      cy.zoom(viewportZoom)
+      cy.pan(viewportPan)
+      updateNoteLabelOpacity()
     }
 
-    rerenderFocusGraphRef.current = rerenderFocusGraph
+    syncGraphElementsRef.current = rerenderFocusGraph
 
     const handleResize = () => {
       if (isCyDestroyed || cy.destroyed()) {
@@ -645,7 +670,6 @@ function GardenGraphView({
             }
           : null,
       )
-      rerenderFocusGraph({ shouldFit: true })
     })
 
     window.addEventListener("resize", handleResize)
@@ -653,7 +677,8 @@ function GardenGraphView({
 
     return () => {
       isCyDestroyed = true
-      rerenderFocusGraphRef.current = null
+      syncGraphElementsRef.current = null
+      cyRef.current = null
       stopActiveLayout()
       stopPhysicsLoop()
 
@@ -666,7 +691,7 @@ function GardenGraphView({
       cy.removeListener("zoom", updateNoteLabelOpacity)
       cy.destroy()
     }
-  }, [graphVersion, initialFocusPathLabels, initialFocusStack, isReadOnly, navigate])
+  }, [initialFocusPathLabels, initialFocusStack, isReadOnly, navigate])
 
   return (
     <div className="garden-view garden-graph-view" aria-label="Garden graph view">

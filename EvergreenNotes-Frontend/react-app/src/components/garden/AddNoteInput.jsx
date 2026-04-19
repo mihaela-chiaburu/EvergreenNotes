@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import "../../styles/components/garden/add-note-input.css"
 import Button from "../ui/Button"
 import Input from "../ui/Input"
@@ -18,7 +17,6 @@ function AddNoteInput({ contextPathTags = [], onCreated }) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
-  const navigate = useNavigate()
   const { authUser } = useAuth()
 
   const normalizedPathTags = contextPathTags.map((tag) => tag?.trim()).filter(Boolean)
@@ -66,13 +64,6 @@ function AddNoteInput({ contextPathTags = [], onCreated }) {
         if (typeof onCreated === "function") {
           onCreated()
         }
-        navigate("/garden", {
-          state: {
-            view: "graph",
-            focusPathLabels: [normalizedInput],
-          },
-          replace: true,
-        })
         return
       }
 
@@ -87,18 +78,11 @@ function AddNoteInput({ contextPathTags = [], onCreated }) {
         createdNoteId = createdNote.id
 
         await replaceNoteTags(authUser.token, createdNote.id, normalizedPathTags.length ? [primaryTag] : [])
-
-        navigate(`/note?noteId=${encodeURIComponent(createdNote.id)}&title=${encodeURIComponent(normalizedInput)}&tag=${encodeURIComponent(primaryTag)}`, {
-          state: {
-            noteId: createdNote.id,
-            noteTitle: normalizedInput,
-            tagName: primaryTag,
-            tags: normalizedPathTags.length ? [primaryTag] : [],
-            contextPathTags: normalizedPathTags.length ? [primaryTag] : [],
-          },
-        })
         setInputValue("")
         setIsConfirmOpen(false)
+        if (typeof onCreated === "function") {
+          onCreated()
+        }
       } catch (createError) {
         if (createdNoteId) {
           await deleteNote(authUser.token, createdNoteId).catch(() => {})
