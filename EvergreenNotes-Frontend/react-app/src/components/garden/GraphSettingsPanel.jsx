@@ -4,6 +4,7 @@ import arrow from "../../assets/images/arrow-down.png"
 import { useTagInput } from "../../hooks/useTagInput"
 
 function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false)
   const [isViewOpen, setIsViewOpen] = useState(true)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
@@ -38,8 +39,26 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
   }
 
   return (
-    <aside className="graph-settings floating-control-panel" aria-label="Graph settings panel">
-      <section className="floating-control-panel__section">
+    <aside
+      className={`graph-settings floating-control-panel ${isPanelCollapsed ? "floating-control-panel--collapsed" : ""}`}
+      aria-label="Graph settings panel"
+    >
+      <div className="floating-control-panel__toolbar">
+        <span className="floating-control-panel__title">Graph settings</span>
+        <button
+          type="button"
+          className="floating-control-panel__collapse-button"
+          onClick={() => setIsPanelCollapsed((isCollapsed) => !isCollapsed)}
+          aria-expanded={!isPanelCollapsed}
+          aria-label={isPanelCollapsed ? "Expand graph settings panel" : "Minimize graph settings panel"}
+        >
+          {isPanelCollapsed ? "Expand" : "Minimize"}
+        </button>
+      </div>
+
+      {!isPanelCollapsed && (
+        <>
+          <section className="floating-control-panel__section">
         <button
           className="floating-control-panel__header"
           type="button"
@@ -79,9 +98,9 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
             </div>
           </div>
         )}
-      </section>
+          </section>
 
-      <section className="floating-control-panel__section">
+          <section className="floating-control-panel__section">
         <button
           className="floating-control-panel__header"
           type="button"
@@ -207,9 +226,9 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
             </div>
           </div>
         )}
-      </section>
+          </section>
 
-      <section className="floating-control-panel__section">
+          <section className="floating-control-panel__section">
         <button
           className="floating-control-panel__header"
           type="button"
@@ -264,7 +283,9 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
             </div>
           </div>
         )}
-      </section>
+          </section>
+        </>
+      )}
     </aside>
   )
 }

@@ -289,6 +289,8 @@ function GardenGraphView({
       return undefined
     }
 
+    let isCyDestroyed = false
+
     const initialFocusNodeId = resolveInitialFocusNodeId(initialFocusStack, initialFocusPathLabels)
     focusedNodeIdRef.current = initialFocusNodeId
 
@@ -398,7 +400,9 @@ function GardenGraphView({
     }
 
     const runPhysicsStep = () => {
-      if (!physicsRunningRef.current) {
+      if (!physicsRunningRef.current || isCyDestroyed || cy.destroyed()) {
+        physicsRunningRef.current = false
+        physicsRafRef.current = null
         return
       }
 
@@ -488,10 +492,19 @@ function GardenGraphView({
         })
       })
 
-      physicsRafRef.current = requestAnimationFrame(runPhysicsStep)
+      if (!isCyDestroyed && !cy.destroyed() && physicsRunningRef.current) {
+        physicsRafRef.current = requestAnimationFrame(runPhysicsStep)
+      } else {
+        physicsRunningRef.current = false
+        physicsRafRef.current = null
+      }
     }
 
     const startPhysicsLoop = () => {
+      if (isCyDestroyed || cy.destroyed()) {
+        return
+      }
+
       if (settleTimeoutRef.current !== null) {
         clearTimeout(settleTimeoutRef.current)
         settleTimeoutRef.current = null
@@ -517,11 +530,19 @@ function GardenGraphView({
     }
 
     const updateNoteLabelOpacity = () => {
+      if (isCyDestroyed || cy.destroyed()) {
+        return
+      }
+
       const opacity = computeNoteLabelOpacity(cy.zoom())
       cy.nodes('node[type = "note"]').style("text-opacity", opacity)
     }
 
     const rerenderFocusGraph = ({ shouldFit = true } = {}) => {
+      if (isCyDestroyed || cy.destroyed()) {
+        return
+      }
+
       const nextElements = buildElementsForFocus(focusedNodeIdRef.current)
 
       stopActiveLayout()
@@ -559,6 +580,10 @@ function GardenGraphView({
     rerenderFocusGraphRef.current = rerenderFocusGraph
 
     const handleResize = () => {
+      if (isCyDestroyed || cy.destroyed()) {
+        return
+      }
+
       cy.resize()
       cy.fit(undefined, 40)
     }
@@ -627,6 +652,7 @@ function GardenGraphView({
     updateNoteLabelOpacity()
 
     return () => {
+      isCyDestroyed = true
       rerenderFocusGraphRef.current = null
       stopActiveLayout()
       stopPhysicsLoop()
