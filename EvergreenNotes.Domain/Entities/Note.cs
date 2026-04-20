@@ -25,6 +25,13 @@ namespace EvergreenNotes.Domain.Entities
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime LastWateredAt { get; set; } = DateTime.UtcNow;
+        public DateTime LastReviewedAt { get; set; } = DateTime.UtcNow;
+        public DateTime NextReviewAt { get; set; } = DateTime.UtcNow.AddDays(1);
+        public int ReviewCount { get; set; } = 0;
+        public int CurrentReviewIntervalDays { get; set; } = 1;
+        public string? CachedReviewQuestion { get; set; }
+        public DateTime? CachedReviewQuestionGeneratedAt { get; set; }
+        public string? CachedReviewQuestionContentHash { get; set; }
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }
 

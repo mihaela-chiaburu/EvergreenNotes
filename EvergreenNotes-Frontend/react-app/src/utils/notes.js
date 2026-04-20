@@ -41,6 +41,12 @@ export function mapNoteToViewModel(note) {
     deletedOn: toDeletedOn(note.deletedAt),
     deletedAt: note.deletedAt || null,
     lastWatered: getIsoDate(note.lastWateredAt),
+    lastReviewedAt: note.lastReviewedAt || null,
+    nextReviewAt: note.nextReviewAt || null,
+    reviewCount: note.reviewCount ?? 0,
+    reviewIntervalDays: note.currentReviewIntervalDays ?? 1,
+    cachedReviewQuestion: note.cachedReviewQuestion || "",
+    cachedReviewQuestionGeneratedAt: note.cachedReviewQuestionGeneratedAt || null,
     status: titleCase(note.status),
     visibility: titleCase(note.visibility),
     plantState: titleCase(note.plantState),
@@ -174,6 +180,19 @@ export async function waterNote(token, noteId) {
   })
 
   return mapNoteToViewModel(payload)
+}
+
+export async function fetchGardenCareQueue(token) {
+  return apiRequest("/api/notes/garden-care", {
+    token,
+  })
+}
+
+export async function completeReview(token, noteId) {
+  return apiRequest(`/api/notes/${noteId}/review/complete`, {
+    method: "POST",
+    token,
+  })
 }
 
 export async function replaceNoteTags(token, noteId, tags) {

@@ -11,6 +11,8 @@ export function useNotePageState() {
   const statePayload = location.state ?? {}
   const initialNoteId = statePayload.noteId || queryParams.get("noteId") || null
   const isReadOnly = statePayload.readOnly === true || queryParams.get("readOnly") === "1"
+  const isGardenReview = statePayload.isGardenReview === true || queryParams.get("review") === "1"
+  const reviewQuestion = statePayload.reviewQuestion?.trim() || queryParams.get("reviewQuestion")?.trim() || ""
 
   const initialTitle = statePayload.noteTitle?.trim() || queryParams.get("title")?.trim() || "Untitled note"
   const initialTagName = statePayload.tagName?.trim() || queryParams.get("tag")?.trim() || "Garden"
@@ -48,6 +50,8 @@ export function useNotePageState() {
 
   return {
     isReadOnly,
+    isGardenReview,
+    reviewQuestion,
     noteId: initialNoteId,
     contextPathTags: initialContextPathTags,
     initialTagName,

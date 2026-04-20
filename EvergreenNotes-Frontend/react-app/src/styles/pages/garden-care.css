@@ -24,6 +24,20 @@
     font-weight: 500;
 }
 
+.garden-care-status,
+.garden-care-empty {
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(113, 159, 134, 0.8);
+    background: rgba(66, 88, 86, 0.5);
+}
+
+.garden-care-status--error {
+    border-color: rgba(255, 140, 140, 0.75);
+    color: #ffdada;
+}
+
 @media (max-width: 960px) {
     .garden-care-page {
         width: 90%;

@@ -9,6 +9,7 @@ import { useDismiss } from "../hooks/useDismiss"
 import { useNotePageState } from "../hooks/useNotePageState"
 import { useAuth } from "../context/AuthContext"
 import {
+	completeReview,
 	createNote,
 	deleteNote,
 	fetchNoteById,
@@ -23,6 +24,8 @@ import "../styles/pages/note.css"
 function NotePage() {
 	const {
 		isReadOnly,
+		isGardenReview,
+		reviewQuestion,
 		noteId,
 		initialTagName,
 		title,
@@ -58,6 +61,7 @@ function NotePage() {
 	const [isLoading, setIsLoading] = useState(Boolean(noteId))
 	const [isSaving, setIsSaving] = useState(false)
 	const [error, setError] = useState("")
+	const [reviewStatus, setReviewStatus] = useState("")
 	const [tagSuggestions, setTagSuggestions] = useState([])
 
 	const buildTagSubmissionPaths = () => {
@@ -147,6 +151,7 @@ function NotePage() {
 
 		setIsSaving(true)
 		setError("")
+		setReviewStatus("")
 
 		try {
 			const normalizedTitle = title.trim() || "Untitled note"
@@ -166,6 +171,11 @@ function NotePage() {
 
 			await replaceNoteTags(authUser.token, currentNote.id, buildTagSubmissionPaths())
 
+			if (isGardenReview) {
+				await completeReview(authUser.token, currentNote.id)
+				setReviewStatus("Review completed. This note has been scheduled for a future reflection.")
+			}
+
 			setActiveNoteId(currentNote.id)
 			navigate(`/note?noteId=${encodeURIComponent(currentNote.id)}`, {
 				replace: true,
@@ -174,6 +184,8 @@ function NotePage() {
 					noteTitle: normalizedTitle,
 					tagName: tags[0] || "Garden",
 					tags,
+					reviewQuestion,
+					isGardenReview,
 				},
 			})
 		} catch (saveError) {
@@ -271,6 +283,13 @@ function NotePage() {
 			<div className="note-page">
 				{isLoading ? <p className="note-page__status-message">Loading note...</p> : null}
 				{error ? <p className="note-page__status-message note-page__status-message--error">{error}</p> : null}
+				{reviewStatus ? <p className="note-page__status-message note-page__status-message--success">{reviewStatus}</p> : null}
+				{isGardenReview && reviewQuestion ? (
+					<section className="note-page__review-question" aria-label="Review question">
+						<p className="note-page__review-label">Reflection prompt</p>
+						<p className="note-page__review-text">{reviewQuestion}</p>
+					</section>
+				) : null}
 
 				<div ref={optionsMenuRef}>
 					<NoteHeader

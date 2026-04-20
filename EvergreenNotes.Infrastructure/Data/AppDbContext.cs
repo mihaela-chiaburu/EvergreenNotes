@@ -40,6 +40,8 @@ namespace EvergreenNotes.Infrastructure.Data
                 entity.Property(n => n.SourceUrl).HasMaxLength(2000);
                 entity.Property(n => n.SourceType).HasMaxLength(50);
                 entity.Property(n => n.SourceThumbnail).HasMaxLength(2000);
+                entity.Property(n => n.CachedReviewQuestion).HasMaxLength(1000);
+                entity.Property(n => n.CachedReviewQuestionContentHash).HasMaxLength(128);
 
                 entity.HasOne(n => n.User)
                     .WithMany()
@@ -48,6 +50,7 @@ namespace EvergreenNotes.Infrastructure.Data
 
                 entity.HasIndex(n => n.UserId);
                 entity.HasIndex(n => new { n.UserId, n.IsDeleted });
+                entity.HasIndex(n => new { n.UserId, n.IsDeleted, n.NextReviewAt });
                 entity.HasIndex(n => n.CreatedAt);
                 entity.HasIndex(n => n.LastWateredAt);
             });

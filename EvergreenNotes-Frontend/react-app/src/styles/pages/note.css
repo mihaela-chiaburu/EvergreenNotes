@@ -6,6 +6,48 @@
   padding: 14px 0 28px;
 }
 
+.note-page__status-message {
+  width: min(80%, 980px);
+  margin: 0 auto;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.note-page__status-message--error {
+  border-color: rgba(255, 128, 128, 0.7);
+  color: #ffd3d3;
+}
+
+.note-page__status-message--success {
+  border-color: rgba(149, 230, 149, 0.7);
+  color: #d8ffd8;
+}
+
+.note-page__review-question {
+  width: min(80%, 980px);
+  margin: 0 auto;
+  background: rgba(175, 193, 173, 0.2);
+  border: 1px solid rgba(154, 213, 161, 0.7);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.note-page__review-label {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.note-page__review-text {
+  margin: 8px 0 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
 .note-page__top-nav {
   position: relative;
   min-height: 44px;
@@ -319,7 +361,9 @@
 @media (max-width: 960px) {
   .note-page__content,
   .note-page__actions,
-  .note-page__top-nav {
+  .note-page__top-nav,
+  .note-page__status-message,
+  .note-page__review-question {
     width: min(92%, 980px);
   }
 

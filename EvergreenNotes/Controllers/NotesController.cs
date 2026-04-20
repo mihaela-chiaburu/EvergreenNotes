@@ -242,6 +242,36 @@ namespace EvergreenNotes.Controllers
             }
         }
 
+        [HttpGet("garden-care")]
+        public async Task<IActionResult> GetGardenCareQueue()
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var result = await _noteService.GetGardenCareQueueAsync(userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("{noteId}/review/complete")]
+        public async Task<IActionResult> CompleteReview(Guid noteId)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var result = await _noteService.CompleteReviewAsync(noteId, userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         private Guid GetCurrentUserId()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
