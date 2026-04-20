@@ -21,8 +21,18 @@ const PHYSICS_REPULSION_STRENGTH = 0.0142
 const PHYSICS_DAMPING = 0.86
 const PHYSICS_MAX_SPEED = 8
 const PHYSICS_SETTLE_MS = 260
+const PHYSICS_AUTO_SETTLE_MS = 1200
+const PHYSICS_NODE_BASE_GAP = 18
+const PHYSICS_NODE_COLLISION_STRENGTH = 0.06
+const PHYSICS_EDGE_CLEARANCE = 20
+const PHYSICS_EDGE_REPULSION_STRENGTH = 0.08
+const PHYSICS_NOTE_REVEAL_SETTLE_MS = 520
 const NOTE_LABEL_FADE_START_ZOOM = 1.2
 const NOTE_LABEL_FADE_END_ZOOM = 0.8
+const ZOOM_AUTO_REVEAL_THRESHOLD = 0.95
+const ORBIT_MAIN_CLEARANCE = 26
+const ORBIT_MIN_NODE_SPACING = 34
+const ORBIT_NOTES_BASE_RADIUS = 130
 
 let nodeById = new Map()
 let adjacencyByNodeId = new Map()
@@ -101,8 +111,211 @@ function selectDefaultSeedNodeIds() {
   return nodesSortedByConnectivity.slice(0, 18).map((node) => node.id)
 }
 
-function buildElementsForGraph() {
-  const nodes = mockGardenGraph.nodes
+function getSeedNodeIdSet() {
+  const payloadSeeds = Array.isArray(mockGardenGraph.seedNodeIds)
+    ? mockGardenGraph.seedNodeIds.filter((seedId) => nodeById.get(seedId)?.type === "tag")
+    : []
+
+  if (payloadSeeds.length > 0) {
+    return new Set(payloadSeeds)
+  }
+
+  return new Set(selectDefaultSeedNodeIds())
+}
+
+function getRelatedTagIdsForTag(tagId) {
+  if (!tagId || !nodeById.has(tagId)) {
+    return new Set()
+  }
+
+  const relatedTagIds = new Set([tagId])
+  const firstLevelNeighbors = adjacencyByNodeId.get(tagId) || new Set()
+
+  firstLevelNeighbors.forEach((neighborId) => {
+    const neighborNode = nodeById.get(neighborId)
+    if (neighborNode?.type === "tag") {
+      relatedTagIds.add(neighborId)
+    }
+  })
+
+  return relatedTagIds
+}
+
+function getNoteIdsForFocusedTag(tagId) {
+  if (!tagId || !nodeById.has(tagId)) {
+    return new Set()
+  }
+
+  const noteIds = new Set()
+
+  mockGardenGraph.edges.forEach((edge) => {
+    const sourceNode = nodeById.get(edge.source)
+    const targetNode = nodeById.get(edge.target)
+
+    if (sourceNode?.type === "tag" && sourceNode.id === tagId && targetNode?.type === "note") {
+      noteIds.add(targetNode.id)
+      return
+    }
+
+    if (targetNode?.type === "tag" && targetNode.id === tagId && sourceNode?.type === "note") {
+      noteIds.add(sourceNode.id)
+    }
+  })
+
+  return noteIds
+}
+
+function buildInferredTagEdgesForVisibleTags(visibleTagIds) {
+  const visibleTagIdList = [...visibleTagIds]
+  if (visibleTagIdList.length < 2) {
+    return []
+  }
+
+  const explicitPairs = new Set()
+  mockGardenGraph.edges.forEach((edge) => {
+    const sourceNode = nodeById.get(edge.source)
+    const targetNode = nodeById.get(edge.target)
+
+    if (sourceNode?.type !== "tag" || targetNode?.type !== "tag") {
+      return
+    }
+
+    const firstId = sourceNode.id < targetNode.id ? sourceNode.id : targetNode.id
+    const secondId = sourceNode.id < targetNode.id ? targetNode.id : sourceNode.id
+    explicitPairs.add(`${firstId}|${secondId}`)
+  })
+
+  const supportCountByPair = new Map()
+  nodeById.forEach((node, nodeId) => {
+    if (visibleTagIds.has(nodeId) || node.type === "tag") {
+      return
+    }
+
+    const neighborTagIds = [...(adjacencyByNodeId.get(nodeId) || new Set())]
+      .filter((neighborId) => visibleTagIds.has(neighborId) && nodeById.get(neighborId)?.type === "tag")
+      .sort((firstId, secondId) => firstId.localeCompare(secondId))
+
+    for (let index = 0; index < neighborTagIds.length; index += 1) {
+      for (let innerIndex = index + 1; innerIndex < neighborTagIds.length; innerIndex += 1) {
+        const firstId = neighborTagIds[index]
+        const secondId = neighborTagIds[innerIndex]
+        const pairKey = `${firstId}|${secondId}`
+
+        if (explicitPairs.has(pairKey)) {
+          continue
+        }
+
+        supportCountByPair.set(pairKey, (supportCountByPair.get(pairKey) || 0) + 1)
+      }
+    }
+  })
+
+  return [...supportCountByPair.entries()].map(([pairKey, support]) => {
+    const [source, target] = pairKey.split("|")
+    return {
+      source,
+      target,
+      type: "inferred-tag-tag",
+      support,
+      inferred: true,
+    }
+  })
+}
+
+function recenterGraphToViewport(cy) {
+  const nodes = cy.nodes().toArray()
+  if (nodes.length === 0) {
+    return
+  }
+
+  const viewportCenter = getViewportCenterPosition(cy)
+  const centroid = nodes.reduce(
+    (accumulator, node) => {
+      const position = node.position()
+      return {
+        x: accumulator.x + position.x,
+        y: accumulator.y + position.y,
+      }
+    },
+    { x: 0, y: 0 },
+  )
+
+  centroid.x /= nodes.length
+  centroid.y /= nodes.length
+
+  const shiftX = viewportCenter.x - centroid.x
+  const shiftY = viewportCenter.y - centroid.y
+
+  cy.batch(() => {
+    nodes.forEach((node) => {
+      const position = node.position()
+      node.position({
+        x: position.x + shiftX,
+        y: position.y + shiftY,
+      })
+    })
+  })
+}
+
+function captureNodePositionsById(cy) {
+  const positionsById = new Map()
+
+  cy.nodes().forEach((node) => {
+    positionsById.set(node.id(), node.position())
+  })
+
+  return positionsById
+}
+
+function computeOrbitRadius({ count, baseRadius, minSpacing, minimumAllowedRadius }) {
+  if (count <= 0) {
+    return baseRadius
+  }
+
+  const circumferenceFromSpacing = count * minSpacing
+  const radiusFromSpacing = circumferenceFromSpacing / (Math.PI * 2)
+  return Math.max(baseRadius, minimumAllowedRadius, radiusFromSpacing)
+}
+
+function buildElementsForGraph(focusTagId = null, showFocusedTagNotes = false) {
+  const seedNodeIdSet = getSeedNodeIdSet()
+  const visibleTagIds = seedNodeIdSet
+  const isExpandedFocus = Boolean(focusTagId) && showFocusedTagNotes
+  const visibleNoteIds = showFocusedTagNotes && focusTagId ? getNoteIdsForFocusedTag(focusTagId) : new Set()
+  const inferredCanopyEdges = buildInferredTagEdgesForVisibleTags(visibleTagIds)
+  const allRenderableEdges = [...mockGardenGraph.edges, ...inferredCanopyEdges]
+
+  const linkedTagIds = new Set([focusTagId].filter(Boolean))
+  if (focusTagId) {
+    allRenderableEdges.forEach((edge) => {
+      const sourceIsVisibleTag = visibleTagIds.has(edge.source) && nodeById.get(edge.source)?.type === "tag"
+      const targetIsVisibleTag = visibleTagIds.has(edge.target) && nodeById.get(edge.target)?.type === "tag"
+
+      if (!sourceIsVisibleTag || !targetIsVisibleTag) {
+        return
+      }
+
+      if (edge.source === focusTagId) {
+        linkedTagIds.add(edge.target)
+      }
+
+      if (edge.target === focusTagId) {
+        linkedTagIds.add(edge.source)
+      }
+    })
+  }
+
+  const highlightedTagIds = new Set([...linkedTagIds].filter(Boolean))
+  const dimmedTagIds = new Set(
+    [...visibleTagIds].filter((tagId) => focusTagId && !highlightedTagIds.has(tagId)),
+  )
+  const hiddenInExpandedTagIds = new Set(
+    [...visibleTagIds].filter((tagId) => isExpandedFocus && tagId !== focusTagId),
+  )
+
+  const nodes = [...visibleTagIds]
+    .map((tagId) => nodeById.get(tagId))
+    .filter(Boolean)
     .map((node) => ({
       data: {
         id: node.id,
@@ -110,15 +323,67 @@ function buildElementsForGraph() {
         type: node.type,
         size: computeNodeSize(node),
         sprite: node.type === "tag" ? getTagNodeSprite(node) : leafSvg,
+        depth: seedNodeIdSet.has(node.id) ? 0 : 1,
+        highlighted: highlightedTagIds.has(node.id) ? 1 : 0,
+        dimmed: dimmedTagIds.has(node.id) ? 1 : 0,
+        hiddenInExpanded: hiddenInExpandedTagIds.has(node.id) ? 1 : 0,
       },
     }))
 
+  visibleNoteIds.forEach((noteId) => {
+    const noteNode = nodeById.get(noteId)
+    if (!noteNode) {
+      return
+    }
+
+    nodes.push({
+      data: {
+        id: noteNode.id,
+        label: noteNode.label,
+        type: noteNode.type,
+        size: computeNodeSize(noteNode),
+        sprite: leafSvg,
+        depth: 2,
+        highlighted: focusTagId ? 1 : 0,
+        dimmed: 0,
+        hiddenInExpanded: 0,
+      },
+    })
+  })
+
+  const visibleNodeIdSet = new Set([...visibleTagIds, ...visibleNoteIds])
+
   const edgeCounterByKey = new Map()
-  const edges = mockGardenGraph.edges.map((edge) => {
+  const edges = allRenderableEdges
+    .filter((edge) => {
+      const sourceNode = nodeById.get(edge.source)
+      const targetNode = nodeById.get(edge.target)
+
+      if (!sourceNode || !targetNode) {
+        return false
+      }
+
+      // Render all valid relationships between nodes currently visible in the graph.
+      return visibleNodeIdSet.has(sourceNode.id) && visibleNodeIdSet.has(targetNode.id)
+    })
+    .map((edge) => {
     const edgeType = edge.type || "related"
     const edgeKey = `${edge.source}|${edge.target}|${edgeType}`
     const edgeIndex = edgeCounterByKey.get(edgeKey) || 0
     edgeCounterByKey.set(edgeKey, edgeIndex + 1)
+
+    const sourceNodeType = nodeById.get(edge.source)?.type
+    const targetNodeType = nodeById.get(edge.target)?.type
+
+    const edgeIsHighlighted = Boolean(focusTagId) && (
+      (sourceNodeType === "tag" && targetNodeType === "tag" && highlightedTagIds.has(edge.source) && highlightedTagIds.has(edge.target)) ||
+      (showFocusedTagNotes && sourceNodeType === "tag" && targetNodeType === "note" && edge.source === focusTagId) ||
+      (showFocusedTagNotes && sourceNodeType === "note" && targetNodeType === "tag" && edge.target === focusTagId)
+    )
+
+    const edgeHiddenInExpanded = isExpandedFocus && (
+      hiddenInExpandedTagIds.has(edge.source) || hiddenInExpandedTagIds.has(edge.target)
+    )
 
     return {
       data: {
@@ -126,6 +391,10 @@ function buildElementsForGraph() {
         source: edge.source,
         target: edge.target,
         type: edgeType,
+        inferred: edge.inferred ? 1 : 0,
+        support: edge.support || 0,
+        highlighted: edgeIsHighlighted ? 1 : 0,
+        hiddenInExpanded: edgeHiddenInExpanded ? 1 : 0,
       },
     }
   })
@@ -167,6 +436,80 @@ function computeNoteLabelOpacity(zoomLevel) {
   return (zoomLevel - NOTE_LABEL_FADE_END_ZOOM) / (NOTE_LABEL_FADE_START_ZOOM - NOTE_LABEL_FADE_END_ZOOM)
 }
 
+function getViewportCenterPosition(cy) {
+  const renderedCenter = {
+    x: cy.width() / 2,
+    y: cy.height() / 2,
+  }
+
+  return {
+    x: (renderedCenter.x - cy.pan().x) / cy.zoom(),
+    y: (renderedCenter.y - cy.pan().y) / cy.zoom(),
+  }
+}
+
+function getPrimaryTagIdForNote(noteId) {
+  const explicitParentEdge = mockGardenGraph.edges.find(
+    (edge) => edge.source === noteId && nodeById.get(edge.target)?.type === "tag",
+  )
+
+  if (explicitParentEdge) {
+    return explicitParentEdge.target
+  }
+
+  const reverseParentEdge = mockGardenGraph.edges.find(
+    (edge) => edge.target === noteId && nodeById.get(edge.source)?.type === "tag",
+  )
+
+  return reverseParentEdge?.source || null
+}
+
+function arrangeFocusedNotesAroundTag(cy, focusTagId) {
+  if (!focusTagId) {
+    return
+  }
+
+  const focusedTagNode = cy.getElementById(focusTagId)
+  if (focusedTagNode.empty()) {
+    return
+  }
+
+  const noteIds = [...getNoteIdsForFocusedTag(focusTagId)]
+    .filter((noteId) => cy.getElementById(noteId).nonempty())
+    .sort((firstId, secondId) => firstId.localeCompare(secondId))
+
+  if (noteIds.length === 0) {
+    return
+  }
+
+  const tagPosition = focusedTagNode.position()
+  const focusedTagRadius = Math.max(20, Number(focusedTagNode.data("size")) / 2 || TAG_NODE_MIN_SIZE / 2)
+
+  const notesRadius = computeOrbitRadius({
+    count: noteIds.length,
+    baseRadius: ORBIT_NOTES_BASE_RADIUS,
+    minSpacing: ORBIT_MIN_NODE_SPACING,
+    minimumAllowedRadius: focusedTagRadius + NOTE_NODE_SIZE / 2 + ORBIT_MAIN_CLEARANCE,
+  })
+
+  cy.batch(() => {
+    const noteAngleStep = (Math.PI * 2) / noteIds.length
+    noteIds.forEach((noteId, index) => {
+      const noteNode = cy.getElementById(noteId)
+
+      if (noteNode.empty()) {
+        return
+      }
+
+      const angle = -Math.PI / 2 + index * noteAngleStep
+      noteNode.position({
+        x: tagPosition.x + Math.cos(angle) * notesRadius,
+        y: tagPosition.y + Math.sin(angle) * notesRadius,
+      })
+    })
+  })
+}
+
 function GardenGraphView({
   initialFocusStack = [],
   initialFocusPathLabels = [],
@@ -180,11 +523,14 @@ function GardenGraphView({
   const cyRef = useRef(null)
   const focusedNodeIdRef = useRef(null)
   const syncGraphElementsRef = useRef(null)
+  const notesVisibleForFocusRef = useRef(false)
+  const zoomRevealInFlightRef = useRef(false)
   const velocityByNodeIdRef = useRef(new Map())
   const physicsRafRef = useRef(null)
   const settleTimeoutRef = useRef(null)
   const physicsRunningRef = useRef(false)
   const activeLayoutRef = useRef(null)
+  const initialSeedPositionsRef = useRef(new Map())
   const [focusedNodeSummary, setFocusedNodeSummary] = useState(null)
   const navigate = useNavigate()
 
@@ -224,11 +570,12 @@ function GardenGraphView({
 
         if (focusedNodeIdRef.current && !nodeById.has(focusedNodeIdRef.current)) {
           focusedNodeIdRef.current = null
+          notesVisibleForFocusRef.current = false
           setFocusedNodeSummary(null)
         }
 
         if (typeof syncGraphElementsRef.current === "function") {
-          syncGraphElementsRef.current({ shouldRunLayout: false })
+          syncGraphElementsRef.current({ shouldFit: false })
         }
       } catch {
         // Keep mock fallback if graph API fails.
@@ -244,7 +591,12 @@ function GardenGraphView({
 
   const handleResetFocus = () => {
     focusedNodeIdRef.current = null
+    notesVisibleForFocusRef.current = false
     setFocusedNodeSummary(null)
+
+    if (typeof syncGraphElementsRef.current === "function") {
+      syncGraphElementsRef.current({ shouldFit: false })
+    }
   }
 
   useEffect(() => {
@@ -317,9 +669,22 @@ function GardenGraphView({
           },
         },
         {
-          selector: "node[depth = 2]",
+          selector: "node[highlighted = 1]",
           style: {
-            opacity: 0.44,
+            opacity: 1,
+          },
+        },
+        {
+          selector: "node[dimmed = 1]",
+          style: {
+            opacity: 0.22,
+          },
+        },
+        {
+          selector: "node[hiddenInExpanded = 1]",
+          style: {
+            opacity: 0,
+            "text-opacity": 0,
           },
         },
         {
@@ -333,10 +698,24 @@ function GardenGraphView({
           },
         },
         {
-          selector: "edge[depth = 2]",
+          selector: "edge[highlighted = 1]",
           style: {
-            width: 1.5,
-            opacity: 0.42,
+            width: 2.4,
+            opacity: 1,
+          },
+        },
+        {
+          selector: "edge[inferred = 1]",
+          style: {
+            width: 1.2,
+            opacity: 0.85,
+            "line-style": "solid",
+          },
+        },
+        {
+          selector: "edge[hiddenInExpanded = 1]",
+          style: {
+            opacity: 0,
           },
         },
       ],
@@ -373,6 +752,9 @@ function GardenGraphView({
       const nodes = cy.nodes().toArray()
       const edges = cy.edges().toArray()
       const forcesByNodeId = new Map(nodes.map((node) => [node.id(), { x: 0, y: 0 }]))
+      const radiusByNodeId = new Map(
+        nodes.map((node) => [node.id(), Math.max(12, Number(node.data("size")) / 2 || NOTE_NODE_SIZE / 2)]),
+      )
 
       edges.forEach((edge) => {
         const sourceNode = edge.source()
@@ -399,6 +781,7 @@ function GardenGraphView({
       for (let index = 0; index < nodes.length; index += 1) {
         const nodeA = nodes[index]
         const positionA = nodeA.position()
+        const nodeARadius = radiusByNodeId.get(nodeA.id()) || NOTE_NODE_SIZE / 2
 
         for (let innerIndex = index + 1; innerIndex < nodes.length; innerIndex += 1) {
           const nodeB = nodes[innerIndex]
@@ -406,6 +789,24 @@ function GardenGraphView({
           const deltaX = positionB.x - positionA.x
           const deltaY = positionB.y - positionA.y
           const distance = Math.hypot(deltaX, deltaY)
+          const nodeBRadius = radiusByNodeId.get(nodeB.id()) || NOTE_NODE_SIZE / 2
+          const minDistance = nodeARadius + nodeBRadius + PHYSICS_NODE_BASE_GAP
+
+          if (distance > 0 && distance < minDistance) {
+            const normalizedX = deltaX / distance
+            const normalizedY = deltaY / distance
+            const overlap = minDistance - distance
+            const collisionForce = overlap * PHYSICS_NODE_COLLISION_STRENGTH
+
+            const nodeAForces = forcesByNodeId.get(nodeA.id())
+            const nodeBForces = forcesByNodeId.get(nodeB.id())
+
+            nodeAForces.x -= normalizedX * collisionForce
+            nodeAForces.y -= normalizedY * collisionForce
+            nodeBForces.x += normalizedX * collisionForce
+            nodeBForces.y += normalizedY * collisionForce
+            continue
+          }
 
           if (distance === 0 || distance > PHYSICS_REPULSION_RADIUS) {
             continue
@@ -425,10 +826,92 @@ function GardenGraphView({
         }
       }
 
+      edges.forEach((edge) => {
+        const sourceNode = edge.source()
+        const targetNode = edge.target()
+        const sourcePosition = sourceNode.position()
+        const targetPosition = targetNode.position()
+        const edgeDeltaX = targetPosition.x - sourcePosition.x
+        const edgeDeltaY = targetPosition.y - sourcePosition.y
+        const edgeLengthSquared = edgeDeltaX * edgeDeltaX + edgeDeltaY * edgeDeltaY
+
+        if (edgeLengthSquared === 0) {
+          return
+        }
+
+        nodes.forEach((node) => {
+          if (node.id() === sourceNode.id() || node.id() === targetNode.id()) {
+            return
+          }
+
+          const nodePosition = node.position()
+          const projectionFactor = Math.max(
+            0,
+            Math.min(
+              1,
+              ((nodePosition.x - sourcePosition.x) * edgeDeltaX + (nodePosition.y - sourcePosition.y) * edgeDeltaY) /
+                edgeLengthSquared,
+            ),
+          )
+          const closestPoint = {
+            x: sourcePosition.x + projectionFactor * edgeDeltaX,
+            y: sourcePosition.y + projectionFactor * edgeDeltaY,
+          }
+          let awayX = nodePosition.x - closestPoint.x
+          let awayY = nodePosition.y - closestPoint.y
+          let distanceToEdge = Math.hypot(awayX, awayY)
+
+          if (distanceToEdge === 0) {
+            const normalX = -edgeDeltaY
+            const normalY = edgeDeltaX
+            const normalMagnitude = Math.hypot(normalX, normalY) || 1
+            awayX = normalX / normalMagnitude
+            awayY = normalY / normalMagnitude
+            distanceToEdge = 1
+          } else {
+            awayX /= distanceToEdge
+            awayY /= distanceToEdge
+          }
+
+          const nodeRadius = radiusByNodeId.get(node.id()) || NOTE_NODE_SIZE / 2
+          const minEdgeDistance = nodeRadius + PHYSICS_EDGE_CLEARANCE
+
+          if (distanceToEdge >= minEdgeDistance) {
+            return
+          }
+
+          const edgeRepulsionForce = (minEdgeDistance - distanceToEdge) * PHYSICS_EDGE_REPULSION_STRENGTH
+          const nodeForces = forcesByNodeId.get(node.id())
+          const sourceForces = forcesByNodeId.get(sourceNode.id())
+          const targetForces = forcesByNodeId.get(targetNode.id())
+
+          nodeForces.x += awayX * edgeRepulsionForce
+          nodeForces.y += awayY * edgeRepulsionForce
+
+          const edgeBackForce = edgeRepulsionForce * 0.25
+          sourceForces.x -= awayX * edgeBackForce
+          sourceForces.y -= awayY * edgeBackForce
+          targetForces.x -= awayX * edgeBackForce
+          targetForces.y -= awayY * edgeBackForce
+        })
+      })
+
       cy.batch(() => {
         nodes.forEach((node) => {
           const nodeId = node.id()
           const forces = forcesByNodeId.get(nodeId)
+          const nodeType = node.data("type")
+          const nodeIsHighlighted = node.data("highlighted") === 1
+
+          if (notesVisibleForFocusRef.current && nodeType === "tag" && nodeIsHighlighted) {
+            velocityByNodeIdRef.current.set(nodeId, { x: 0, y: 0 })
+            return
+          }
+
+          if (notesVisibleForFocusRef.current && nodeType === "tag" && !nodeIsHighlighted) {
+            forces.x *= 0.42
+            forces.y *= 0.42
+          }
 
           if (node.grabbed()) {
             velocityByNodeIdRef.current.set(nodeId, { x: 0, y: 0 })
@@ -482,7 +965,7 @@ function GardenGraphView({
       physicsRafRef.current = requestAnimationFrame(runPhysicsStep)
     }
 
-    const schedulePhysicsStop = () => {
+    const schedulePhysicsStop = (delayMs = PHYSICS_SETTLE_MS) => {
       if (settleTimeoutRef.current !== null) {
         clearTimeout(settleTimeoutRef.current)
       }
@@ -490,7 +973,7 @@ function GardenGraphView({
       settleTimeoutRef.current = setTimeout(() => {
         settleTimeoutRef.current = null
         stopPhysicsLoop()
-      }, PHYSICS_SETTLE_MS)
+      }, delayMs)
     }
 
     const updateNoteLabelOpacity = () => {
@@ -502,12 +985,15 @@ function GardenGraphView({
       cy.nodes('node[type = "note"]').style("text-opacity", opacity)
     }
 
-    const rerenderFocusGraph = ({ shouldFit = true } = {}) => {
+    const rerenderFocusGraph = ({ shouldFit = false } = {}) => {
       if (isCyDestroyed || cy.destroyed()) {
         return
       }
 
-      const [nextNodes, nextEdges] = buildElementsForGraph().reduce(
+      const [nextNodes, nextEdges] = buildElementsForGraph(
+        focusedNodeIdRef.current,
+        Boolean(focusedNodeIdRef.current) && notesVisibleForFocusRef.current,
+      ).reduce(
         (accumulator, element) => {
           if (element.data.source && element.data.target) {
             accumulator[1].push(element)
@@ -524,6 +1010,7 @@ function GardenGraphView({
       const nextEdgeIds = new Set(nextEdges.map((edgeElement) => edgeElement.data.id))
       const viewportZoom = cy.zoom()
       const viewportPan = cy.pan()
+      const previousPositionsByNodeId = captureNodePositionsById(cy)
 
       stopActiveLayout()
       stopPhysicsLoop()
@@ -551,12 +1038,15 @@ function GardenGraphView({
           }
 
           cy.add(nodeElement)
-          const graphExtent = cy.extent()
-          const centerX = (graphExtent.x1 + graphExtent.x2) / 2
-          const centerY = (graphExtent.y1 + graphExtent.y2) / 2
-          cy.getElementById(nodeElement.data.id).position({
-            x: centerX + (Math.random() - 0.5) * 90,
-            y: centerY + (Math.random() - 0.5) * 90,
+
+          const addedNode = cy.getElementById(nodeElement.data.id)
+          const viewportCenter = getViewportCenterPosition(cy)
+          const parentTagId = nodeElement.data.type === "note" ? getPrimaryTagIdForNote(nodeElement.data.id) : null
+          const parentTagNode = parentTagId ? cy.getElementById(parentTagId) : null
+          const spawnCenter = parentTagNode && parentTagNode.nonempty() ? parentTagNode.position() : viewportCenter
+          addedNode.position({
+            x: spawnCenter.x + (Math.random() - 0.5) * 90,
+            y: spawnCenter.y + (Math.random() - 0.5) * 90,
           })
         })
 
@@ -569,6 +1059,15 @@ function GardenGraphView({
           }
 
           cy.add(edgeElement)
+        })
+
+        cy.nodes().forEach((node) => {
+          const previousPosition = previousPositionsByNodeId.get(node.id())
+          if (!previousPosition) {
+            return
+          }
+
+          node.position(previousPosition)
         })
       })
 
@@ -591,6 +1090,12 @@ function GardenGraphView({
             activeLayoutRef.current = null
           }
 
+          arrangeFocusedNotesAroundTag(
+            cy,
+            Boolean(focusedNodeIdRef.current) && notesVisibleForFocusRef.current ? focusedNodeIdRef.current : null,
+          )
+          startPhysicsLoop()
+          schedulePhysicsStop(PHYSICS_AUTO_SETTLE_MS)
           updateNoteLabelOpacity()
         })
         layout.run()
@@ -599,6 +1104,36 @@ function GardenGraphView({
 
       cy.zoom(viewportZoom)
       cy.pan(viewportPan)
+
+      const hasFocusNotesVisible = Boolean(focusedNodeIdRef.current) && notesVisibleForFocusRef.current
+      arrangeFocusedNotesAroundTag(
+        cy,
+        hasFocusNotesVisible ? focusedNodeIdRef.current : null,
+      )
+
+      if (!hasFocusNotesVisible) {
+        stopPhysicsLoop()
+
+        if (!focusedNodeIdRef.current && initialSeedPositionsRef.current.size > 0) {
+          cy.nodes().forEach((node) => {
+            const targetPosition = initialSeedPositionsRef.current.get(node.id())
+            if (!targetPosition) {
+              return
+            }
+
+            node.animate({
+              position: targetPosition,
+              duration: 260,
+              easing: "ease-out-cubic",
+            })
+          })
+        }
+
+        updateNoteLabelOpacity()
+        return
+      }
+
+      stopPhysicsLoop()
       updateNoteLabelOpacity()
     }
 
@@ -610,7 +1145,7 @@ function GardenGraphView({
       }
 
       cy.resize()
-      cy.fit(undefined, 40)
+      updateNoteLabelOpacity()
     }
 
     cy.on("grab", "node", () => {
@@ -622,6 +1157,22 @@ function GardenGraphView({
     })
 
     cy.on("zoom", updateNoteLabelOpacity)
+
+    cy.on("zoom", () => {
+      if (
+        !focusedNodeIdRef.current ||
+        notesVisibleForFocusRef.current ||
+        zoomRevealInFlightRef.current ||
+        cy.zoom() < ZOOM_AUTO_REVEAL_THRESHOLD
+      ) {
+        return
+      }
+
+      zoomRevealInFlightRef.current = true
+      notesVisibleForFocusRef.current = true
+      rerenderFocusGraph({ shouldFit: false })
+      zoomRevealInFlightRef.current = false
+    })
 
     cy.on("free", "node", () => {
       const hasGrabbedNodes = cy.nodes().some((node) => node.grabbed())
@@ -660,7 +1211,16 @@ function GardenGraphView({
         return
       }
 
-      focusedNodeIdRef.current = focusedNodeIdRef.current === nodeData.id ? null : nodeData.id
+      const previousFocusedNodeId = focusedNodeIdRef.current
+
+      if (previousFocusedNodeId === nodeData.id) {
+        focusedNodeIdRef.current = nodeData.id
+        notesVisibleForFocusRef.current = !notesVisibleForFocusRef.current
+      } else {
+        focusedNodeIdRef.current = nodeData.id
+        notesVisibleForFocusRef.current = false
+      }
+
       setFocusedNodeSummary(
         focusedNodeIdRef.current
           ? {
@@ -670,9 +1230,35 @@ function GardenGraphView({
             }
           : null,
       )
+
+      rerenderFocusGraph({ shouldFit: false })
     })
 
     window.addEventListener("resize", handleResize)
+
+    cy.one("layoutstop", () => {
+      if (isCyDestroyed || cy.destroyed()) {
+        return
+      }
+
+      const seedNodeIds = getSeedNodeIdSet()
+      initialSeedPositionsRef.current = new Map()
+      seedNodeIds.forEach((seedId) => {
+        const seedNode = cy.getElementById(seedId)
+        if (seedNode.nonempty()) {
+          initialSeedPositionsRef.current.set(seedId, seedNode.position())
+        }
+      })
+
+      arrangeFocusedNotesAroundTag(
+        cy,
+        Boolean(focusedNodeIdRef.current) && notesVisibleForFocusRef.current ? focusedNodeIdRef.current : null,
+      )
+      startPhysicsLoop()
+      schedulePhysicsStop(PHYSICS_AUTO_SETTLE_MS)
+      updateNoteLabelOpacity()
+    })
+
     updateNoteLabelOpacity()
 
     return () => {
