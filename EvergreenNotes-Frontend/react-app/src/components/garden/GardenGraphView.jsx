@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import cytoscape from "cytoscape"
+import { forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation, forceX, forceY } from "d3-force"
 import { mockGardenGraph } from "../../data/mockGardenGraph"
 import leafSvg from "../../assets/images/leaf.svg"
 import sproutttt from "../../assets/images/sproutttt.png"
@@ -14,19 +15,25 @@ const NOTE_NODE_SIZE = 30
 const TAG_NODE_MIN_SIZE = 60
 const TAG_NODE_MAX_SIZE = 104
 const GRAPH_EDGE_LENGTH = 105
-const GRAPH_NODE_REPULSION = 5200
-const PHYSICS_SPRING_STRENGTH = 0.0038
-const PHYSICS_REPULSION_RADIUS = 120
-const PHYSICS_REPULSION_STRENGTH = 0.0142
-const PHYSICS_DAMPING = 0.86
-const PHYSICS_MAX_SPEED = 8
-const PHYSICS_SETTLE_MS = 260
-const PHYSICS_AUTO_SETTLE_MS = 1200
-const PHYSICS_NODE_BASE_GAP = 18
-const PHYSICS_NODE_COLLISION_STRENGTH = 0.06
-const PHYSICS_EDGE_CLEARANCE = 20
-const PHYSICS_EDGE_REPULSION_STRENGTH = 0.08
-const PHYSICS_NOTE_REVEAL_SETTLE_MS = 520
+const D3_ALPHA_INITIAL = 0.78
+const D3_ALPHA_REHEAT = 0.42
+const D3_ALPHA_DECAY = 0.028
+const D3_ALPHA_MIN = 0.004
+const D3_VELOCITY_DECAY = 0.50
+const D3_DRAG_ALPHA_TARGET = 0.28
+const D3_IDLE_ALPHA_TARGET = 0
+const D3_CENTER_STRENGTH = 0.065
+const D3_MANY_BODY_DISTANCE_MAX = 50
+const D3_COLLIDE_STRENGTH = 0.92
+const COLLISION_BASE_PADDING = 16
+const HIGH_DEGREE_PADDING_FACTOR = 1.55
+const HIGH_DEGREE_PADDING_MAX = 22
+const TAG_TEXT_MAX_WIDTH = 110
+const NOTE_TEXT_MAX_WIDTH = 90
+const TAG_FONT_SIZE = 15
+const NOTE_FONT_SIZE = 13
+const TAG_TEXT_MARGIN_Y = 18
+const NOTE_TEXT_MARGIN_Y = 16
 const NOTE_LABEL_FADE_START_ZOOM = 1.2
 const NOTE_LABEL_FADE_END_ZOOM = 0.8
 const ZOOM_AUTO_REVEAL_THRESHOLD = 0.95
@@ -85,6 +92,44 @@ function computeNodeSize(node) {
   return TAG_NODE_MIN_SIZE + ratio * (TAG_NODE_MAX_SIZE - TAG_NODE_MIN_SIZE)
 }
 
+function estimateLabelHeight(label, maxWidth, fontSize) {
+  const safeLabel = String(label || "")
+  const approxCharWidth = fontSize * 0.56
+  const estimatedTextWidth = Math.min(maxWidth, Math.max(fontSize, safeLabel.length * approxCharWidth))
+  const lineCount = Math.max(1, Math.ceil(estimatedTextWidth / maxWidth))
+  return lineCount * fontSize * 1.25
+}
+
+function computeNodeCollisionRadius(nodeId) {
+  const node = nodeById.get(nodeId)
+  const nodeSize = computeNodeSize(node || { type: "note", id: nodeId })
+  const isNote = node?.type === "note"
+  const labelHeight = estimateLabelHeight(
+    node?.label,
+    isNote ? NOTE_TEXT_MAX_WIDTH : TAG_TEXT_MAX_WIDTH,
+    isNote ? NOTE_FONT_SIZE : TAG_FONT_SIZE,
+  )
+  const labelMargin = isNote ? NOTE_TEXT_MARGIN_Y : TAG_TEXT_MARGIN_Y
+  const labelWidth = isNote ? NOTE_TEXT_MAX_WIDTH : TAG_TEXT_MAX_WIDTH
+  const totalHeight = nodeSize + labelMargin + labelHeight
+  const totalWidth = Math.max(nodeSize, labelWidth)
+  const degreePadding = Math.min(
+    HIGH_DEGREE_PADDING_MAX,
+    getNodeConnectionCount(nodeId) * HIGH_DEGREE_PADDING_FACTOR,
+  )
+
+  return Math.hypot(totalWidth * 0.5, totalHeight * 0.5) + COLLISION_BASE_PADDING + degreePadding
+}
+
+function computeLinkTargetDistance(sourceId, targetId) {
+  const sourceDegree = getNodeConnectionCount(sourceId)
+  const targetDegree = getNodeConnectionCount(targetId)
+  const sourceRadius = computeNodeCollisionRadius(sourceId)
+  const targetRadius = computeNodeCollisionRadius(targetId)
+  const degreeBreathingRoom = Math.min(42, (sourceDegree + targetDegree) * 1.35)
+  return Math.max(GRAPH_EDGE_LENGTH, sourceRadius + targetRadius + degreeBreathingRoom)
+}
+
 function getTagNodeSprite(node) {
   const linkedNotesCount = Number(node.noteCount) || 0
 
@@ -101,26 +146,44 @@ function getTagNodeSprite(node) {
 
 function selectDefaultSeedNodeIds() {
   const payloadSeeds = Array.isArray(mockGardenGraph.seedNodeIds)
-    ? mockGardenGraph.seedNodeIds.filter((nodeId) => nodeById.has(nodeId))
+    ? mockGardenGraph.seedNodeIds.filter((nodeId) => nodeById.get(nodeId)?.type === "tag")
     : []
 
   if (payloadSeeds.length > 0) {
     return payloadSeeds
   }
 
-  return nodesSortedByConnectivity.slice(0, 18).map((node) => node.id)
+  return nodesSortedByConnectivity
+    .filter((node) => node.type === "tag")
+    .slice(0, 18)
+    .map((node) => node.id)
+}
+
+function getStandaloneTagSeedIds() {
+  return [...nodeById.values()]
+    .filter((node) => node.type === "tag")
+    .filter((tagNode) => {
+      const neighborIds = adjacencyByNodeId.get(tagNode.id) || new Set()
+      if (neighborIds.size === 0) {
+        return true
+      }
+
+      return [...neighborIds].every((neighborId) => nodeById.get(neighborId)?.type !== "note")
+    })
+    .map((tagNode) => tagNode.id)
 }
 
 function getSeedNodeIdSet() {
-  const payloadSeeds = Array.isArray(mockGardenGraph.seedNodeIds)
+  const providedSeedTagIds = Array.isArray(mockGardenGraph.seedNodeIds)
     ? mockGardenGraph.seedNodeIds.filter((seedId) => nodeById.get(seedId)?.type === "tag")
     : []
+  const standaloneTagSeedIds = getStandaloneTagSeedIds()
 
-  if (payloadSeeds.length > 0) {
-    return new Set(payloadSeeds)
+  if (providedSeedTagIds.length > 0) {
+    return new Set([...providedSeedTagIds, ...standaloneTagSeedIds])
   }
 
-  return new Set(selectDefaultSeedNodeIds())
+  return new Set([...selectDefaultSeedNodeIds(), ...standaloneTagSeedIds])
 }
 
 function getRelatedTagIdsForTag(tagId) {
@@ -525,12 +588,10 @@ function GardenGraphView({
   const syncGraphElementsRef = useRef(null)
   const notesVisibleForFocusRef = useRef(false)
   const zoomRevealInFlightRef = useRef(false)
-  const velocityByNodeIdRef = useRef(new Map())
-  const physicsRafRef = useRef(null)
-  const settleTimeoutRef = useRef(null)
-  const physicsRunningRef = useRef(false)
+  const forceSimulationRef = useRef(null)
+  const forceNodeByIdRef = useRef(new Map())
+  const forceNodeStateByIdRef = useRef(new Map())
   const activeLayoutRef = useRef(null)
-  const initialSeedPositionsRef = useRef(new Map())
   const [focusedNodeSummary, setFocusedNodeSummary] = useState(null)
   const navigate = useNavigate()
 
@@ -559,11 +620,11 @@ function GardenGraphView({
         const payload = userId
           ? await fetchPublicGardenGraph(userId, authUser.token)
           : await fetchGardenGraph(authUser.token)
-        if (!isMounted || !payload?.nodes || !payload?.edges || !payload?.seedNodeIds) {
+        if (!isMounted || !Array.isArray(payload?.nodes) || !Array.isArray(payload?.edges)) {
           return
         }
 
-        mockGardenGraph.seedNodeIds = payload.seedNodeIds
+        mockGardenGraph.seedNodeIds = Array.isArray(payload.seedNodeIds) ? payload.seedNodeIds : []
         mockGardenGraph.nodes = payload.nodes
         mockGardenGraph.edges = payload.edges
         rebuildGraphIndexes()
@@ -620,15 +681,11 @@ function GardenGraphView({
       container: graphContainerRef.current,
       elements: buildElementsForGraph(),
       layout: {
-        name: "cose",
+        name: "circle",
         animate: true,
-        animationDuration: 500,
+        animationDuration: 360,
         fit: true,
-        randomize: true,
-        idealEdgeLength: GRAPH_EDGE_LENGTH,
-        nodeRepulsion: GRAPH_NODE_REPULSION,
-        gravity: 0.08,
-        padding: 40,
+        padding: 56,
       },
       wheelSensitivity: 0.6,
       minZoom: 0.25,
@@ -722,19 +779,6 @@ function GardenGraphView({
     })
     cyRef.current = cy
 
-    const clearVelocities = () => {
-      velocityByNodeIdRef.current = new Map()
-    }
-
-    const stopPhysicsLoop = () => {
-      physicsRunningRef.current = false
-
-      if (physicsRafRef.current !== null) {
-        cancelAnimationFrame(physicsRafRef.current)
-        physicsRafRef.current = null
-      }
-    }
-
     const stopActiveLayout = () => {
       if (activeLayoutRef.current) {
         activeLayoutRef.current.stop()
@@ -742,238 +786,161 @@ function GardenGraphView({
       }
     }
 
-    const runPhysicsStep = () => {
-      if (!physicsRunningRef.current || isCyDestroyed || cy.destroyed()) {
-        physicsRunningRef.current = false
-        physicsRafRef.current = null
-        return
+    const stopForceSimulation = () => {
+      if (forceSimulationRef.current) {
+        forceSimulationRef.current.stop()
+        forceSimulationRef.current = null
       }
 
-      const nodes = cy.nodes().toArray()
-      const edges = cy.edges().toArray()
-      const forcesByNodeId = new Map(nodes.map((node) => [node.id(), { x: 0, y: 0 }]))
-      const radiusByNodeId = new Map(
-        nodes.map((node) => [node.id(), Math.max(12, Number(node.data("size")) / 2 || NOTE_NODE_SIZE / 2)]),
-      )
-
-      edges.forEach((edge) => {
-        const sourceNode = edge.source()
-        const targetNode = edge.target()
-        const sourcePosition = sourceNode.position()
-        const targetPosition = targetNode.position()
-        const deltaX = targetPosition.x - sourcePosition.x
-        const deltaY = targetPosition.y - sourcePosition.y
-        const distance = Math.max(1, Math.hypot(deltaX, deltaY))
-        const normalizedX = deltaX / distance
-        const normalizedY = deltaY / distance
-        const stretch = distance - GRAPH_EDGE_LENGTH
-        const springForce = stretch * PHYSICS_SPRING_STRENGTH
-
-        const sourceForces = forcesByNodeId.get(sourceNode.id())
-        const targetForces = forcesByNodeId.get(targetNode.id())
-
-        sourceForces.x += normalizedX * springForce
-        sourceForces.y += normalizedY * springForce
-        targetForces.x -= normalizedX * springForce
-        targetForces.y -= normalizedY * springForce
-      })
-
-      for (let index = 0; index < nodes.length; index += 1) {
-        const nodeA = nodes[index]
-        const positionA = nodeA.position()
-        const nodeARadius = radiusByNodeId.get(nodeA.id()) || NOTE_NODE_SIZE / 2
-
-        for (let innerIndex = index + 1; innerIndex < nodes.length; innerIndex += 1) {
-          const nodeB = nodes[innerIndex]
-          const positionB = nodeB.position()
-          const deltaX = positionB.x - positionA.x
-          const deltaY = positionB.y - positionA.y
-          const distance = Math.hypot(deltaX, deltaY)
-          const nodeBRadius = radiusByNodeId.get(nodeB.id()) || NOTE_NODE_SIZE / 2
-          const minDistance = nodeARadius + nodeBRadius + PHYSICS_NODE_BASE_GAP
-
-          if (distance > 0 && distance < minDistance) {
-            const normalizedX = deltaX / distance
-            const normalizedY = deltaY / distance
-            const overlap = minDistance - distance
-            const collisionForce = overlap * PHYSICS_NODE_COLLISION_STRENGTH
-
-            const nodeAForces = forcesByNodeId.get(nodeA.id())
-            const nodeBForces = forcesByNodeId.get(nodeB.id())
-
-            nodeAForces.x -= normalizedX * collisionForce
-            nodeAForces.y -= normalizedY * collisionForce
-            nodeBForces.x += normalizedX * collisionForce
-            nodeBForces.y += normalizedY * collisionForce
-            continue
-          }
-
-          if (distance === 0 || distance > PHYSICS_REPULSION_RADIUS) {
-            continue
-          }
-
-          const normalizedX = deltaX / distance
-          const normalizedY = deltaY / distance
-          const repulsionForce = (PHYSICS_REPULSION_RADIUS - distance) * PHYSICS_REPULSION_STRENGTH
-
-          const nodeAForces = forcesByNodeId.get(nodeA.id())
-          const nodeBForces = forcesByNodeId.get(nodeB.id())
-
-          nodeAForces.x -= normalizedX * repulsionForce
-          nodeAForces.y -= normalizedY * repulsionForce
-          nodeBForces.x += normalizedX * repulsionForce
-          nodeBForces.y += normalizedY * repulsionForce
-        }
-      }
-
-      edges.forEach((edge) => {
-        const sourceNode = edge.source()
-        const targetNode = edge.target()
-        const sourcePosition = sourceNode.position()
-        const targetPosition = targetNode.position()
-        const edgeDeltaX = targetPosition.x - sourcePosition.x
-        const edgeDeltaY = targetPosition.y - sourcePosition.y
-        const edgeLengthSquared = edgeDeltaX * edgeDeltaX + edgeDeltaY * edgeDeltaY
-
-        if (edgeLengthSquared === 0) {
-          return
-        }
-
-        nodes.forEach((node) => {
-          if (node.id() === sourceNode.id() || node.id() === targetNode.id()) {
-            return
-          }
-
-          const nodePosition = node.position()
-          const projectionFactor = Math.max(
-            0,
-            Math.min(
-              1,
-              ((nodePosition.x - sourcePosition.x) * edgeDeltaX + (nodePosition.y - sourcePosition.y) * edgeDeltaY) /
-                edgeLengthSquared,
-            ),
-          )
-          const closestPoint = {
-            x: sourcePosition.x + projectionFactor * edgeDeltaX,
-            y: sourcePosition.y + projectionFactor * edgeDeltaY,
-          }
-          let awayX = nodePosition.x - closestPoint.x
-          let awayY = nodePosition.y - closestPoint.y
-          let distanceToEdge = Math.hypot(awayX, awayY)
-
-          if (distanceToEdge === 0) {
-            const normalX = -edgeDeltaY
-            const normalY = edgeDeltaX
-            const normalMagnitude = Math.hypot(normalX, normalY) || 1
-            awayX = normalX / normalMagnitude
-            awayY = normalY / normalMagnitude
-            distanceToEdge = 1
-          } else {
-            awayX /= distanceToEdge
-            awayY /= distanceToEdge
-          }
-
-          const nodeRadius = radiusByNodeId.get(node.id()) || NOTE_NODE_SIZE / 2
-          const minEdgeDistance = nodeRadius + PHYSICS_EDGE_CLEARANCE
-
-          if (distanceToEdge >= minEdgeDistance) {
-            return
-          }
-
-          const edgeRepulsionForce = (minEdgeDistance - distanceToEdge) * PHYSICS_EDGE_REPULSION_STRENGTH
-          const nodeForces = forcesByNodeId.get(node.id())
-          const sourceForces = forcesByNodeId.get(sourceNode.id())
-          const targetForces = forcesByNodeId.get(targetNode.id())
-
-          nodeForces.x += awayX * edgeRepulsionForce
-          nodeForces.y += awayY * edgeRepulsionForce
-
-          const edgeBackForce = edgeRepulsionForce * 0.25
-          sourceForces.x -= awayX * edgeBackForce
-          sourceForces.y -= awayY * edgeBackForce
-          targetForces.x -= awayX * edgeBackForce
-          targetForces.y -= awayY * edgeBackForce
-        })
-      })
-
-      cy.batch(() => {
-        nodes.forEach((node) => {
-          const nodeId = node.id()
-          const forces = forcesByNodeId.get(nodeId)
-          const nodeType = node.data("type")
-          const nodeIsHighlighted = node.data("highlighted") === 1
-
-          if (notesVisibleForFocusRef.current && nodeType === "tag" && nodeIsHighlighted) {
-            velocityByNodeIdRef.current.set(nodeId, { x: 0, y: 0 })
-            return
-          }
-
-          if (notesVisibleForFocusRef.current && nodeType === "tag" && !nodeIsHighlighted) {
-            forces.x *= 0.42
-            forces.y *= 0.42
-          }
-
-          if (node.grabbed()) {
-            velocityByNodeIdRef.current.set(nodeId, { x: 0, y: 0 })
-            return
-          }
-
-          const previousVelocity = velocityByNodeIdRef.current.get(nodeId) || { x: 0, y: 0 }
-          let velocityX = (previousVelocity.x + forces.x) * PHYSICS_DAMPING
-          let velocityY = (previousVelocity.y + forces.y) * PHYSICS_DAMPING
-          const velocityMagnitude = Math.hypot(velocityX, velocityY)
-
-          if (velocityMagnitude > PHYSICS_MAX_SPEED) {
-            const clampScale = PHYSICS_MAX_SPEED / velocityMagnitude
-            velocityX *= clampScale
-            velocityY *= clampScale
-          }
-
-          velocityByNodeIdRef.current.set(nodeId, { x: velocityX, y: velocityY })
-
-          const position = node.position()
-          node.position({
-            x: position.x + velocityX,
-            y: position.y + velocityY,
-          })
-        })
-      })
-
-      if (!isCyDestroyed && !cy.destroyed() && physicsRunningRef.current) {
-        physicsRafRef.current = requestAnimationFrame(runPhysicsStep)
-      } else {
-        physicsRunningRef.current = false
-        physicsRafRef.current = null
-      }
+      forceNodeByIdRef.current = new Map()
     }
 
-    const startPhysicsLoop = () => {
+    const startForceSimulation = ({ alpha = D3_ALPHA_INITIAL } = {}) => {
       if (isCyDestroyed || cy.destroyed()) {
         return
       }
 
-      if (settleTimeoutRef.current !== null) {
-        clearTimeout(settleTimeoutRef.current)
-        settleTimeoutRef.current = null
-      }
+      stopForceSimulation()
 
-      if (physicsRunningRef.current) {
+      const viewportCenter = getViewportCenterPosition(cy)
+      const previousNodeStateById = forceNodeStateByIdRef.current
+      const simulationNodes = cy.nodes().toArray().map((cyNode) => {
+        const nodeId = cyNode.id()
+        const previousState = previousNodeStateById.get(nodeId)
+        const position = cyNode.position()
+
+        return {
+          id: nodeId,
+          x: position.x,
+          y: position.y,
+          vx: previousState?.vx ?? 0,
+          vy: previousState?.vy ?? 0,
+          collisionRadius: computeNodeCollisionRadius(nodeId),
+          chargeStrength: -380 - Math.min(340, getNodeConnectionCount(nodeId) * 18),
+        }
+      })
+
+      const simulationLinks = cy.edges().toArray().map((cyEdge) => {
+        const sourceId = cyEdge.source().id()
+        const targetId = cyEdge.target().id()
+        const sourceDegree = getNodeConnectionCount(sourceId)
+        const targetDegree = getNodeConnectionCount(targetId)
+
+        return {
+          source: sourceId,
+          target: targetId,
+          distance: computeLinkTargetDistance(sourceId, targetId),
+          strength: 0.12 + Math.min(0.2, (sourceDegree + targetDegree) * 0.01),
+        }
+      })
+
+      const simulation = forceSimulation(simulationNodes)
+        .alpha(Math.max(alpha, D3_ALPHA_MIN))
+        .alphaTarget(D3_IDLE_ALPHA_TARGET)
+        .alphaDecay(D3_ALPHA_DECAY)
+        .alphaMin(D3_ALPHA_MIN)
+        .velocityDecay(D3_VELOCITY_DECAY)
+        .force("charge", forceManyBody().strength((node) => node.chargeStrength).distanceMax(D3_MANY_BODY_DISTANCE_MAX))
+        .force("link", forceLink(simulationLinks).id((node) => node.id).distance((link) => link.distance).strength((link) => link.strength))
+        .force("center", forceCenter(viewportCenter.x, viewportCenter.y))
+        .force("centerX", forceX(viewportCenter.x).strength(D3_CENTER_STRENGTH))
+        .force("centerY", forceY(viewportCenter.y).strength(D3_CENTER_STRENGTH))
+        .force("collision", forceCollide().radius((node) => node.collisionRadius).strength(D3_COLLIDE_STRENGTH).iterations(2))
+
+      simulation.on("tick", () => {
+        if (isCyDestroyed || cy.destroyed()) {
+          simulation.stop()
+          return
+        }
+
+        cy.batch(() => {
+          simulationNodes.forEach((simulationNode) => {
+            const cyNode = cy.getElementById(simulationNode.id)
+            if (cyNode.empty()) {
+              return
+            }
+
+            if (cyNode.grabbed()) {
+              const grabbedPosition = cyNode.position()
+              simulationNode.x = grabbedPosition.x
+              simulationNode.y = grabbedPosition.y
+              simulationNode.fx = grabbedPosition.x
+              simulationNode.fy = grabbedPosition.y
+              return
+            }
+
+            cyNode.position({
+              x: simulationNode.x,
+              y: simulationNode.y,
+            })
+          })
+        })
+      })
+
+      simulation.on("end", () => {
+        forceNodeStateByIdRef.current = new Map(
+          simulationNodes.map((node) => [
+            node.id,
+            {
+              x: node.x,
+              y: node.y,
+              vx: node.vx,
+              vy: node.vy,
+            },
+          ]),
+        )
+      })
+
+      forceSimulationRef.current = simulation
+      forceNodeByIdRef.current = new Map(simulationNodes.map((node) => [node.id, node]))
+    }
+
+    const reheatForceSimulation = ({ alpha = D3_ALPHA_REHEAT, alphaTarget = D3_DRAG_ALPHA_TARGET } = {}) => {
+      const simulation = forceSimulationRef.current
+
+      if (!simulation) {
+        startForceSimulation({ alpha })
         return
       }
 
-      physicsRunningRef.current = true
-      physicsRafRef.current = requestAnimationFrame(runPhysicsStep)
+      simulation
+        .alpha(Math.max(simulation.alpha(), alpha))
+        .alphaTarget(alphaTarget)
+        .restart()
     }
 
-    const schedulePhysicsStop = (delayMs = PHYSICS_SETTLE_MS) => {
-      if (settleTimeoutRef.current !== null) {
-        clearTimeout(settleTimeoutRef.current)
+    const pinNodeInSimulation = (cyNode) => {
+      if (!cyNode || cyNode.empty()) {
+        return
       }
 
-      settleTimeoutRef.current = setTimeout(() => {
-        settleTimeoutRef.current = null
-        stopPhysicsLoop()
-      }, delayMs)
+      const simulationNode = forceNodeByIdRef.current.get(cyNode.id())
+      if (!simulationNode) {
+        return
+      }
+
+      const position = cyNode.position()
+      simulationNode.x = position.x
+      simulationNode.y = position.y
+      simulationNode.fx = position.x
+      simulationNode.fy = position.y
+    }
+
+    const releaseNodeInSimulation = (cyNode) => {
+      if (!cyNode || cyNode.empty()) {
+        return
+      }
+
+      const simulationNode = forceNodeByIdRef.current.get(cyNode.id())
+      if (!simulationNode) {
+        return
+      }
+
+      const position = cyNode.position()
+      simulationNode.x = position.x
+      simulationNode.y = position.y
+      simulationNode.fx = null
+      simulationNode.fy = null
     }
 
     const updateNoteLabelOpacity = () => {
@@ -1013,8 +980,7 @@ function GardenGraphView({
       const previousPositionsByNodeId = captureNodePositionsById(cy)
 
       stopActiveLayout()
-      stopPhysicsLoop()
-      clearVelocities()
+      stopForceSimulation()
 
       cy.batch(() => {
         cy.edges().forEach((edge) => {
@@ -1073,15 +1039,11 @@ function GardenGraphView({
 
       if (shouldFit) {
         const layout = cy.layout({
-          name: "cose",
+          name: "circle",
           animate: true,
-          animationDuration: 420,
+          animationDuration: 300,
           fit: true,
-          randomize: true,
-          idealEdgeLength: GRAPH_EDGE_LENGTH,
-          nodeRepulsion: GRAPH_NODE_REPULSION,
-          gravity: 0.08,
-          padding: 40,
+          padding: 56,
         })
 
         activeLayoutRef.current = layout
@@ -1094,8 +1056,7 @@ function GardenGraphView({
             cy,
             Boolean(focusedNodeIdRef.current) && notesVisibleForFocusRef.current ? focusedNodeIdRef.current : null,
           )
-          startPhysicsLoop()
-          schedulePhysicsStop(PHYSICS_AUTO_SETTLE_MS)
+          startForceSimulation({ alpha: D3_ALPHA_REHEAT })
           updateNoteLabelOpacity()
         })
         layout.run()
@@ -1111,29 +1072,7 @@ function GardenGraphView({
         hasFocusNotesVisible ? focusedNodeIdRef.current : null,
       )
 
-      if (!hasFocusNotesVisible) {
-        stopPhysicsLoop()
-
-        if (!focusedNodeIdRef.current && initialSeedPositionsRef.current.size > 0) {
-          cy.nodes().forEach((node) => {
-            const targetPosition = initialSeedPositionsRef.current.get(node.id())
-            if (!targetPosition) {
-              return
-            }
-
-            node.animate({
-              position: targetPosition,
-              duration: 260,
-              easing: "ease-out-cubic",
-            })
-          })
-        }
-
-        updateNoteLabelOpacity()
-        return
-      }
-
-      stopPhysicsLoop()
+      startForceSimulation({ alpha: hasFocusNotesVisible ? D3_ALPHA_REHEAT : D3_ALPHA_INITIAL })
       updateNoteLabelOpacity()
     }
 
@@ -1145,15 +1084,18 @@ function GardenGraphView({
       }
 
       cy.resize()
+      reheatForceSimulation({ alpha: D3_ALPHA_REHEAT, alphaTarget: 0.18 })
       updateNoteLabelOpacity()
     }
 
-    cy.on("grab", "node", () => {
-      startPhysicsLoop()
+    cy.on("grab", "node", (event) => {
+      reheatForceSimulation({ alpha: D3_ALPHA_REHEAT, alphaTarget: D3_DRAG_ALPHA_TARGET })
+      pinNodeInSimulation(event.target)
     })
 
-    cy.on("drag", "node", () => {
-      startPhysicsLoop()
+    cy.on("drag", "node", (event) => {
+      pinNodeInSimulation(event.target)
+      reheatForceSimulation({ alpha: D3_ALPHA_REHEAT, alphaTarget: D3_DRAG_ALPHA_TARGET })
     })
 
     cy.on("zoom", updateNoteLabelOpacity)
@@ -1174,13 +1116,9 @@ function GardenGraphView({
       zoomRevealInFlightRef.current = false
     })
 
-    cy.on("free", "node", () => {
-      const hasGrabbedNodes = cy.nodes().some((node) => node.grabbed())
-      if (hasGrabbedNodes) {
-        return
-      }
-
-      schedulePhysicsStop()
+    cy.on("free", "node", (event) => {
+      releaseNodeInSimulation(event.target)
+      reheatForceSimulation({ alpha: D3_ALPHA_REHEAT, alphaTarget: D3_IDLE_ALPHA_TARGET })
     })
 
     cy.on("tap", "node", (event) => {
@@ -1241,21 +1179,11 @@ function GardenGraphView({
         return
       }
 
-      const seedNodeIds = getSeedNodeIdSet()
-      initialSeedPositionsRef.current = new Map()
-      seedNodeIds.forEach((seedId) => {
-        const seedNode = cy.getElementById(seedId)
-        if (seedNode.nonempty()) {
-          initialSeedPositionsRef.current.set(seedId, seedNode.position())
-        }
-      })
-
       arrangeFocusedNotesAroundTag(
         cy,
         Boolean(focusedNodeIdRef.current) && notesVisibleForFocusRef.current ? focusedNodeIdRef.current : null,
       )
-      startPhysicsLoop()
-      schedulePhysicsStop(PHYSICS_AUTO_SETTLE_MS)
+      startForceSimulation({ alpha: D3_ALPHA_INITIAL })
       updateNoteLabelOpacity()
     })
 
@@ -1266,12 +1194,7 @@ function GardenGraphView({
       syncGraphElementsRef.current = null
       cyRef.current = null
       stopActiveLayout()
-      stopPhysicsLoop()
-
-      if (settleTimeoutRef.current !== null) {
-        clearTimeout(settleTimeoutRef.current)
-        settleTimeoutRef.current = null
-      }
+      stopForceSimulation()
 
       window.removeEventListener("resize", handleResize)
       cy.removeListener("zoom", updateNoteLabelOpacity)
