@@ -31,6 +31,7 @@ export function mapNoteToViewModel(note) {
 
   return {
     id: note.id,
+    authorId: note.userId || note.authorId || null,
     title: note.title,
     text: note.content,
     body: note.content,

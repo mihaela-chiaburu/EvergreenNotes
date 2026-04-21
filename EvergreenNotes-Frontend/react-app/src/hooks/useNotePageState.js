@@ -11,6 +11,7 @@ export function useNotePageState() {
   const statePayload = location.state ?? {}
   const initialNoteId = statePayload.noteId || queryParams.get("noteId") || null
   const isReadOnly = statePayload.readOnly === true || queryParams.get("readOnly") === "1"
+  const gardenUserId = statePayload.gardenUserId || queryParams.get("gardenUserId") || null
   const isGardenReview = statePayload.isGardenReview === true || queryParams.get("review") === "1"
   const reviewQuestion = statePayload.reviewQuestion?.trim() || queryParams.get("reviewQuestion")?.trim() || ""
 
@@ -38,8 +39,9 @@ export function useNotePageState() {
 
   const handleTagNavigation = () => {
     const focusStack = Array.isArray(statePayload.focusStack) ? statePayload.focusStack : []
+    const gardenPath = gardenUserId ? `/garden/${encodeURIComponent(gardenUserId)}` : "/garden"
 
-    navigate("/garden", {
+    navigate(gardenPath, {
       state: {
         view: "graph",
         focusStack,

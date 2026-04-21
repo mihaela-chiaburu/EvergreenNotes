@@ -63,6 +63,10 @@ function NotePage() {
 	const [error, setError] = useState("")
 	const [reviewStatus, setReviewStatus] = useState("")
 	const [tagSuggestions, setTagSuggestions] = useState([])
+	const [activeNoteAuthorId, setActiveNoteAuthorId] = useState(null)
+
+	const isOwner = !noteId || String(activeNoteAuthorId ?? "") === String(authUser?.id ?? "")
+	const isEffectiveReadOnly = isReadOnly || !isOwner
 
 	const buildTagSubmissionPaths = () => {
 		const normalizedTags = tags.map((tag) => tag?.trim()).filter(Boolean)
@@ -92,7 +96,7 @@ function NotePage() {
 		let isMounted = true
 
 		const loadNote = async () => {
-			if (!noteId || !authUser?.token) {
+			if (!noteId) {
 				setIsLoading(false)
 				return
 			}
@@ -101,12 +105,13 @@ function NotePage() {
 			setError("")
 
 			try {
-				const note = await fetchNoteById(authUser.token, noteId)
+				const note = await fetchNoteById(authUser?.token, noteId)
 				if (!isMounted) {
 					return
 				}
 
 				setActiveNoteId(note.id)
+				setActiveNoteAuthorId(note.authorId ? String(note.authorId) : null)
 				setTitle(note.title)
 				setBody(note.body)
 				setSource(note.source)
@@ -145,7 +150,7 @@ function NotePage() {
 	])
 
 	const handleSave = async () => {
-		if (isReadOnly || !authUser?.token || isSaving) {
+		if (isEffectiveReadOnly || !authUser?.token || isSaving) {
 			return
 		}
 
@@ -196,7 +201,7 @@ function NotePage() {
 	}
 
 	const handleTagInputChange = async (event) => {
-		if (isReadOnly) {
+		if (isEffectiveReadOnly) {
 			return
 		}
 
@@ -217,7 +222,7 @@ function NotePage() {
 	}
 
 	const handleTagSuggestionSelect = (path) => {
-		if (isReadOnly) {
+		if (isEffectiveReadOnly) {
 			return
 		}
 
@@ -226,7 +231,7 @@ function NotePage() {
 	}
 
 	const handleDelete = async () => {
-		if (isReadOnly || !authUser?.token || !activeNoteId) {
+		if (isEffectiveReadOnly || !authUser?.token || !activeNoteId) {
 			return
 		}
 
@@ -239,7 +244,7 @@ function NotePage() {
 	}
 
 	const handleStatusChange = async (nextStatus) => {
-		if (isReadOnly) {
+		if (isEffectiveReadOnly) {
 			return
 		}
 
@@ -259,7 +264,7 @@ function NotePage() {
 	}
 
 	const handleVisibilityChange = async (nextVisibility) => {
-		if (isReadOnly) {
+		if (isEffectiveReadOnly) {
 			return
 		}
 
@@ -298,7 +303,7 @@ function NotePage() {
 						isOptionsOpen={isOptionsOpen}
 						onToggleOptions={() => setIsOptionsOpen((isOpen) => !isOpen)}
 						onNavigateToTag={handleTagNavigation}
-						readOnly={isReadOnly}
+						readOnly={isEffectiveReadOnly}
 					/>
 				</div>
 
@@ -311,8 +316,8 @@ function NotePage() {
 							onChange={(event) => setTitle(event.target.value)}
 							placeholder="Note title"
 							aria-label="Note title"
-							readOnly={isReadOnly}
-							disabled={isReadOnly}
+							readOnly={isEffectiveReadOnly}
+							disabled={isEffectiveReadOnly}
 						/>
 					</div>
 					<NoteMeta
@@ -329,17 +334,17 @@ function NotePage() {
 						onRemoveTag={removeTag}
 						tagSuggestions={tagSuggestions}
 						onSelectTagSuggestion={handleTagSuggestionSelect}
-						readOnly={isReadOnly}
+						readOnly={isEffectiveReadOnly}
 					/>
 					<NoteEditor
 						body={body}
 						onBodyChange={(event) => setBody(event.target.value)}
 						bodyRef={bodyTextareaRef}
-						readOnly={isReadOnly}
+						readOnly={isEffectiveReadOnly}
 					/>
 				</section>
 
-				{!isReadOnly && <footer className="note-page__actions" aria-label="Note actions">
+				{!isEffectiveReadOnly && <footer className="note-page__actions" aria-label="Note actions">
 					<Button type="button" className="note-page__action-btn" onClick={handleSave} disabled={isSaving}>
 						{isSaving ? "Saving..." : "Save note"}
 					</Button>
@@ -413,7 +418,7 @@ function NotePage() {
 						)}
 					</div>
 				</footer>}
-				{isReadOnly ? <p className="note-page__status-message">Read-only mode: this note cannot be edited.</p> : null}
+				{isEffectiveReadOnly ? <p className="note-page__status-message">Read-only mode: this note cannot be edited.</p> : null}
 			</div>
 		</Layout>
 	)

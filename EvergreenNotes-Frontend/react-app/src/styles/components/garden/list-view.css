@@ -175,6 +175,11 @@
   line-height: 1.45;
   color: rgba(243, 249, 246, 0.92);
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .garden-list-view__list::-webkit-scrollbar {

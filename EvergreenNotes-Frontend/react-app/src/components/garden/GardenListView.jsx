@@ -60,14 +60,16 @@ function GardenListView({ userId = null, isReadOnly = false }) {
 
   const handleOpenNote = (note) => {
     const primaryTag = note.tags[0] || "Garden"
+    const encodedGardenUserId = userId ? `&gardenUserId=${encodeURIComponent(userId)}` : ""
 
     navigate(
-      `/note?noteId=${encodeURIComponent(note.id)}&title=${encodeURIComponent(note.title)}&tag=${encodeURIComponent(primaryTag)}${isReadOnly ? "&readOnly=1" : ""}`,
+      `/note?noteId=${encodeURIComponent(note.id)}&title=${encodeURIComponent(note.title)}&tag=${encodeURIComponent(primaryTag)}${isReadOnly ? "&readOnly=1" : ""}${encodedGardenUserId}`,
       {
         state: {
           noteId: note.id,
           noteTitle: note.title,
           readOnly: isReadOnly,
+          gardenUserId: userId || null,
           tagName: primaryTag,
           tags: note.tags,
           status: note.status === "Polished" ? "Polished" : "Rough",

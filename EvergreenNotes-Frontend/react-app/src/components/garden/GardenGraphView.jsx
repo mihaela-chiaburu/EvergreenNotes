@@ -43,6 +43,8 @@ const ORBIT_MAIN_CLEARANCE = 26
 const ORBIT_MIN_NODE_SPACING = 34
 const ORBIT_NOTES_BASE_RADIUS = 130
 const DEFAULT_FALLBACK_TAG_NAME = "Uncategorized"
+const EMPTY_FOCUS_STACK = []
+const EMPTY_FOCUS_PATH_LABELS = []
 
 let nodeById = new Map()
 let adjacencyByNodeId = new Map()
@@ -601,8 +603,8 @@ function arrangeFocusedNotesAroundTag(cy, focusTagId) {
 }
 
 function GardenGraphView({
-  initialFocusStack = [],
-  initialFocusPathLabels = [],
+  initialFocusStack = EMPTY_FOCUS_STACK,
+  initialFocusPathLabels = EMPTY_FOCUS_PATH_LABELS,
   onFocusPathChange,
   refreshTick = 0,
   userId = null,
@@ -1630,15 +1632,17 @@ function GardenGraphView({
           .map((neighborId) => nodeById.get(neighborId))
           .filter((neighborNode) => neighborNode?.type === "tag")
         const fallbackTagName = connectedTags[0]?.label || "Garden"
+        const encodedGardenUserId = userId ? `&gardenUserId=${encodeURIComponent(userId)}` : ""
 
         navigate(
-          `/note${noteId ? `?noteId=${encodeURIComponent(noteId)}` : `?title=${encodeURIComponent(nodeData.label || "Untitled note")}&tag=${encodeURIComponent(fallbackTagName)}`}${isReadOnly ? "&readOnly=1" : ""}`,
+          `/note${noteId ? `?noteId=${encodeURIComponent(noteId)}` : `?title=${encodeURIComponent(nodeData.label || "Untitled note")}&tag=${encodeURIComponent(fallbackTagName)}`}${isReadOnly ? "&readOnly=1" : ""}${encodedGardenUserId}`,
           {
             state: {
               noteId,
               noteTitle: nodeData.label || "Untitled note",
               tagName: fallbackTagName,
               readOnly: isReadOnly,
+              gardenUserId: userId || null,
               focusStack: focusedNodeIdRef.current ? [focusedNodeIdRef.current] : [],
               focusTagId: focusedNodeIdRef.current,
               tags: connectedTags.map((tagNode) => tagNode.label),
