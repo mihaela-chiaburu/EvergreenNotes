@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import cytoscape from "cytoscape"
 import { forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation, forceX, forceY } from "d3-force"
@@ -8,7 +8,9 @@ import sproutttt from "../../assets/images/sproutttt.png"
 import noteFlowerMedium2 from "../../assets/images/note-flower-medium2.png"
 import noteTreeBig1 from "../../assets/images/note-tree-big1.png"
 import { useAuth } from "../../context/AuthContext"
-import { fetchGardenGraph, fetchPublicGardenGraph } from "../../utils/garden"
+import { deleteNote, fetchNoteById, updateNote } from "../../utils/notes"
+import { createTaxonomyTag, searchTaxonomyTags } from "../../utils/taxonomy"
+import { deleteTagNode, fetchGardenGraph, fetchPublicGardenGraph, renameTagNode } from "../../utils/garden"
 import "../../styles/components/garden/graph-view.css"
 
 const NOTE_NODE_SIZE = 30
@@ -40,6 +42,7 @@ const ZOOM_AUTO_REVEAL_THRESHOLD = 0.95
 const ORBIT_MAIN_CLEARANCE = 26
 const ORBIT_MIN_NODE_SPACING = 34
 const ORBIT_NOTES_BASE_RADIUS = 130
+const DEFAULT_FALLBACK_TAG_NAME = "Uncategorized"
 
 let nodeById = new Map()
 let adjacencyByNodeId = new Map()
@@ -226,6 +229,30 @@ function getNoteIdsForFocusedTag(tagId) {
   })
 
   return noteIds
+}
+
+function getEntityIdFromNodeId(nodeId, type) {
+  if (!nodeId || !type) {
+    return null
+  }
+
+  if (type === "tag" && nodeId.startsWith("tag-")) {
+    return nodeId.slice(4)
+  }
+
+  if (type === "note" && nodeId.startsWith("note-")) {
+    return nodeId.slice(5)
+  }
+
+  return null
+}
+
+function getTagLinkedNoteCount(tagNodeId) {
+  if (!tagNodeId || nodeById.get(tagNodeId)?.type !== "tag") {
+    return 0
+  }
+
+  return getNoteIdsForFocusedTag(tagNodeId).size
 }
 
 function buildInferredTagEdgesForVisibleTags(visibleTagIds) {
@@ -592,8 +619,31 @@ function GardenGraphView({
   const forceNodeByIdRef = useRef(new Map())
   const forceNodeStateByIdRef = useRef(new Map())
   const activeLayoutRef = useRef(null)
+  const pinNodeInSimulationRef = useRef(null)
+  const releaseNodeInSimulationRef = useRef(null)
+  const pauseSimulationRef = useRef(null)
+  const resumeSimulationRef = useRef(null)
+  const updateNoteLabelOpacityRef = useRef(null)
+  const isMountedRef = useRef(true)
+  const contextMenuRef = useRef(null)
+
+  const [contextMenuState, setContextMenuState] = useState(null)
+  const [editingNodeState, setEditingNodeState] = useState(null)
+  const [deleteDialogState, setDeleteDialogState] = useState(null)
+  const editingNodeIdRef = useRef(null)
   const [focusedNodeSummary, setFocusedNodeSummary] = useState(null)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    editingNodeIdRef.current = editingNodeState?.nodeId || null
+  }, [editingNodeState?.nodeId])
 
   useEffect(() => {
     if (typeof onFocusPathChange !== "function") {
@@ -608,47 +658,41 @@ function GardenGraphView({
     onFocusPathChange([focusedNodeSummary.label])
   }, [focusedNodeSummary, onFocusPathChange])
 
-  useEffect(() => {
-    let isMounted = true
+  const loadGraphData = useCallback(async () => {
+    if (!authUser?.token) {
+      return
+    }
 
-    const loadGraph = async () => {
-      if (!authUser?.token) {
+    try {
+      const payload = userId
+        ? await fetchPublicGardenGraph(userId, authUser.token)
+        : await fetchGardenGraph(authUser.token)
+      if (!isMountedRef.current || !Array.isArray(payload?.nodes) || !Array.isArray(payload?.edges)) {
         return
       }
 
-      try {
-        const payload = userId
-          ? await fetchPublicGardenGraph(userId, authUser.token)
-          : await fetchGardenGraph(authUser.token)
-        if (!isMounted || !Array.isArray(payload?.nodes) || !Array.isArray(payload?.edges)) {
-          return
-        }
+      mockGardenGraph.seedNodeIds = Array.isArray(payload.seedNodeIds) ? payload.seedNodeIds : []
+      mockGardenGraph.nodes = payload.nodes
+      mockGardenGraph.edges = payload.edges
+      rebuildGraphIndexes()
 
-        mockGardenGraph.seedNodeIds = Array.isArray(payload.seedNodeIds) ? payload.seedNodeIds : []
-        mockGardenGraph.nodes = payload.nodes
-        mockGardenGraph.edges = payload.edges
-        rebuildGraphIndexes()
-
-        if (focusedNodeIdRef.current && !nodeById.has(focusedNodeIdRef.current)) {
-          focusedNodeIdRef.current = null
-          notesVisibleForFocusRef.current = false
-          setFocusedNodeSummary(null)
-        }
-
-        if (typeof syncGraphElementsRef.current === "function") {
-          syncGraphElementsRef.current({ shouldFit: false })
-        }
-      } catch {
-        // Keep mock fallback if graph API fails.
+      if (focusedNodeIdRef.current && !nodeById.has(focusedNodeIdRef.current)) {
+        focusedNodeIdRef.current = null
+        notesVisibleForFocusRef.current = false
+        setFocusedNodeSummary(null)
       }
-    }
 
-    loadGraph()
-
-    return () => {
-      isMounted = false
+      if (typeof syncGraphElementsRef.current === "function") {
+        syncGraphElementsRef.current({ shouldFit: false })
+      }
+    } catch {
+      // Keep mock fallback if graph API fails.
     }
-  }, [authUser?.token, refreshTick, userId])
+  }, [authUser?.token, userId])
+
+  useEffect(() => {
+    loadGraphData()
+  }, [loadGraphData, refreshTick])
 
   const handleResetFocus = () => {
     focusedNodeIdRef.current = null
@@ -659,6 +703,375 @@ function GardenGraphView({
       syncGraphElementsRef.current({ shouldFit: false })
     }
   }
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenuState(null)
+  }, [])
+
+  useEffect(() => {
+    if (!contextMenuState) {
+      return undefined
+    }
+
+    const handleWindowPointerDown = (event) => {
+      if (contextMenuRef.current?.contains(event.target)) {
+        return
+      }
+
+      setContextMenuState(null)
+    }
+
+    window.addEventListener("pointerdown", handleWindowPointerDown)
+    return () => {
+      window.removeEventListener("pointerdown", handleWindowPointerDown)
+    }
+  }, [contextMenuState])
+
+  const getEditingInputAnchor = useCallback((nodeId) => {
+    const cy = cyRef.current
+    if (!cy || !graphContainerRef.current) {
+      return null
+    }
+
+    const node = cy.getElementById(nodeId)
+    if (node.empty()) {
+      return null
+    }
+
+    const rendered = node.renderedPosition()
+    const nodeSize = Number(node.data("size")) || NOTE_NODE_SIZE
+
+    return {
+      left: rendered.x,
+      top: rendered.y + nodeSize * 0.72,
+    }
+  }, [])
+
+  const endInlineEditMode = useCallback((nodeId) => {
+    const cy = cyRef.current
+    if (cy && nodeId) {
+      const node = cy.getElementById(nodeId)
+      if (node.nonempty()) {
+        node.style("text-opacity", 1)
+        releaseNodeInSimulationRef.current?.(node)
+      }
+
+      updateNoteLabelOpacityRef.current?.()
+    }
+
+    resumeSimulationRef.current?.()
+  }, [])
+
+  const startInlineRename = useCallback((nodeId) => {
+    const node = nodeById.get(nodeId)
+    if (!node) {
+      return
+    }
+
+    setContextMenuState(null)
+
+    const cy = cyRef.current
+    if (cy) {
+      const cyNode = cy.getElementById(nodeId)
+      if (cyNode.nonempty()) {
+        pinNodeInSimulationRef.current?.(cyNode)
+        pauseSimulationRef.current?.()
+        cyNode.style("text-opacity", 0)
+      }
+    }
+
+    setEditingNodeState({
+      nodeId,
+      nodeType: node.type,
+      draftName: node.label || "",
+      anchor: getEditingInputAnchor(nodeId),
+      isSaving: false,
+      error: "",
+    })
+  }, [getEditingInputAnchor])
+
+  const cancelInlineRename = useCallback(() => {
+    const editingNodeId = editingNodeState?.nodeId
+    setEditingNodeState(null)
+    endInlineEditMode(editingNodeId)
+  }, [editingNodeState?.nodeId, endInlineEditMode])
+
+  const commitInlineRename = useCallback(async () => {
+    const activeEdit = editingNodeState
+    if (!activeEdit || !authUser?.token) {
+      return
+    }
+
+    const nextName = activeEdit.draftName.trim()
+    if (!nextName) {
+      setEditingNodeState((previousState) => (previousState
+        ? {
+            ...previousState,
+            error: "Name cannot be empty.",
+          }
+        : previousState))
+      return
+    }
+
+    const previousLabel = nodeById.get(activeEdit.nodeId)?.label?.trim() || ""
+    if (nextName === previousLabel) {
+      setEditingNodeState(null)
+      endInlineEditMode(activeEdit.nodeId)
+      return
+    }
+
+    setEditingNodeState((previousState) => (previousState
+      ? {
+          ...previousState,
+          isSaving: true,
+          error: "",
+        }
+      : previousState))
+
+    try {
+      const entityId = getEntityIdFromNodeId(activeEdit.nodeId, activeEdit.nodeType)
+      if (!entityId) {
+        throw new Error("Invalid node id")
+      }
+
+      if (activeEdit.nodeType === "tag") {
+        await renameTagNode(authUser.token, entityId, nextName)
+      } else if (activeEdit.nodeType === "note") {
+        const notePayload = await fetchNoteById(authUser.token, entityId)
+        await updateNote(authUser.token, entityId, {
+          title: nextName,
+          body: notePayload.body || notePayload.text || "",
+        })
+      }
+
+      await loadGraphData()
+
+      if (focusedNodeSummary?.id === activeEdit.nodeId) {
+        setFocusedNodeSummary((previousState) => (previousState
+          ? {
+              ...previousState,
+              label: nextName,
+            }
+          : previousState))
+      }
+
+      setEditingNodeState(null)
+      endInlineEditMode(activeEdit.nodeId)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to rename node."
+      setEditingNodeState((previousState) => (previousState
+        ? {
+            ...previousState,
+            isSaving: false,
+            error: message,
+          }
+        : previousState))
+    }
+  }, [authUser?.token, editingNodeState, endInlineEditMode, focusedNodeSummary?.id, loadGraphData])
+
+  const ensureFallbackTagId = useCallback(async () => {
+    if (!authUser?.token) {
+      return null
+    }
+
+    const searchMatches = await searchTaxonomyTags(authUser.token, DEFAULT_FALLBACK_TAG_NAME, 10)
+    const exactMatch = searchMatches.find((item) => item?.name?.toLowerCase() === DEFAULT_FALLBACK_TAG_NAME.toLowerCase())
+
+    if (exactMatch?.id) {
+      return exactMatch.id
+    }
+
+    const createdTag = await createTaxonomyTag(authUser.token, {
+      name: DEFAULT_FALLBACK_TAG_NAME,
+    })
+
+    return createdTag?.id || null
+  }, [authUser?.token])
+
+  const deleteNodeByType = useCallback(async (nodeId, nodeType, { moveNotesToTagId = null, cascadeDeleteNotes = false } = {}) => {
+    if (!authUser?.token) {
+      return
+    }
+
+    const entityId = getEntityIdFromNodeId(nodeId, nodeType)
+    if (!entityId) {
+      throw new Error("Invalid node id")
+    }
+
+    if (nodeType === "note") {
+      await deleteNote(authUser.token, entityId)
+    } else if (nodeType === "tag") {
+      await deleteTagNode(authUser.token, entityId, {
+        moveNotesToTagId,
+        cascadeDeleteNotes,
+      })
+    }
+
+    if (focusedNodeIdRef.current === nodeId) {
+      focusedNodeIdRef.current = null
+      notesVisibleForFocusRef.current = false
+      setFocusedNodeSummary(null)
+    }
+
+    await loadGraphData()
+  }, [authUser?.token, loadGraphData])
+
+  const handleDeleteNodeAction = useCallback(async (targetNode) => {
+    if (!targetNode || isReadOnly) {
+      return
+    }
+
+    setContextMenuState(null)
+
+    if (targetNode.type === "note") {
+      const shouldDelete = window.confirm(`Delete note \"${targetNode.label}\"?`)
+      if (!shouldDelete) {
+        return
+      }
+
+      await deleteNodeByType(targetNode.id, "note")
+      return
+    }
+
+    const linkedNotes = getTagLinkedNoteCount(targetNode.id)
+    if (linkedNotes === 0) {
+      const shouldDelete = window.confirm(`Delete node \"${targetNode.label}\"?`)
+      if (!shouldDelete) {
+        return
+      }
+
+      await deleteNodeByType(targetNode.id, "tag")
+      return
+    }
+
+    setDeleteDialogState({
+      nodeId: targetNode.id,
+      nodeLabel: targetNode.label,
+      noteCount: linkedNotes,
+      strategy: "move",
+      targetTagId: "__uncategorized__",
+      isSubmitting: false,
+      error: "",
+    })
+  }, [deleteNodeByType, isReadOnly])
+
+  const submitDeleteDialog = useCallback(async () => {
+    if (!deleteDialogState) {
+      return
+    }
+
+    setDeleteDialogState((previousState) => (previousState
+      ? {
+          ...previousState,
+          isSubmitting: true,
+          error: "",
+        }
+      : previousState))
+
+    try {
+      if (deleteDialogState.strategy === "cascade") {
+        await deleteNodeByType(deleteDialogState.nodeId, "tag", {
+          cascadeDeleteNotes: true,
+        })
+      } else {
+        let targetTagId = deleteDialogState.targetTagId
+
+        if (!targetTagId) {
+          throw new Error("Choose where to move notes before deleting this node.")
+        }
+
+        if (targetTagId === "__uncategorized__") {
+          targetTagId = await ensureFallbackTagId()
+        }
+
+        if (!targetTagId) {
+          throw new Error("Failed to resolve the destination tag.")
+        }
+
+        await deleteNodeByType(deleteDialogState.nodeId, "tag", {
+          moveNotesToTagId: targetTagId,
+        })
+      }
+
+      setDeleteDialogState(null)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Delete action failed."
+      setDeleteDialogState((previousState) => (previousState
+        ? {
+            ...previousState,
+            isSubmitting: false,
+            error: message,
+          }
+        : previousState))
+    }
+  }, [deleteDialogState, deleteNodeByType, ensureFallbackTagId])
+
+  useEffect(() => {
+    if (!editingNodeState?.nodeId) {
+      return undefined
+    }
+
+    const cy = cyRef.current
+    if (!cy) {
+      return undefined
+    }
+
+    let rafId = null
+    const updateAnchor = () => {
+      if (rafId) {
+        cancelAnimationFrame(rafId)
+      }
+
+      rafId = requestAnimationFrame(() => {
+        setEditingNodeState((previousState) => {
+          if (!previousState) {
+            return previousState
+          }
+
+          const nextAnchor = getEditingInputAnchor(previousState.nodeId)
+          if (!nextAnchor) {
+            return previousState
+          }
+
+          if (
+            previousState.anchor &&
+            Math.abs(previousState.anchor.left - nextAnchor.left) < 0.5 &&
+            Math.abs(previousState.anchor.top - nextAnchor.top) < 0.5
+          ) {
+            return previousState
+          }
+
+          return {
+            ...previousState,
+            anchor: nextAnchor,
+          }
+        })
+      })
+    }
+
+    updateAnchor()
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault()
+        cancelInlineRename()
+      }
+    }
+
+    cy.on("pan zoom render", updateAnchor)
+    window.addEventListener("resize", updateAnchor)
+    window.addEventListener("keydown", handleEscape)
+
+    return () => {
+      if (rafId) {
+        cancelAnimationFrame(rafId)
+      }
+
+      cy.removeListener("pan zoom render", updateAnchor)
+      window.removeEventListener("resize", updateAnchor)
+      window.removeEventListener("keydown", handleEscape)
+    }
+  }, [cancelInlineRename, editingNodeState?.nodeId, getEditingInputAnchor])
 
   useEffect(() => {
     if (!graphContainerRef.current) {
@@ -676,6 +1089,26 @@ function GardenGraphView({
     } else {
       setFocusedNodeSummary(null)
     }
+
+    const handleNativeContextMenu = (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+
+    const handleWindowContextMenuCapture = (event) => {
+      const container = graphContainerRef.current
+      if (!container) {
+        return
+      }
+
+      if (container.contains(event.target)) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+
+    graphContainerRef.current.addEventListener("contextmenu", handleNativeContextMenu, { capture: true })
+    window.addEventListener("contextmenu", handleWindowContextMenuCapture, { capture: true })
 
     const cy = cytoscape({
       container: graphContainerRef.current,
@@ -952,6 +1385,19 @@ function GardenGraphView({
       cy.nodes('node[type = "note"]').style("text-opacity", opacity)
     }
 
+    pinNodeInSimulationRef.current = pinNodeInSimulation
+    releaseNodeInSimulationRef.current = releaseNodeInSimulation
+    pauseSimulationRef.current = () => {
+      const simulation = forceSimulationRef.current
+      if (simulation) {
+        simulation.alphaTarget(D3_IDLE_ALPHA_TARGET).stop()
+      }
+    }
+    resumeSimulationRef.current = () => {
+      reheatForceSimulation({ alpha: D3_ALPHA_REHEAT, alphaTarget: D3_IDLE_ALPHA_TARGET })
+    }
+    updateNoteLabelOpacityRef.current = updateNoteLabelOpacity
+
     const rerenderFocusGraph = ({ shouldFit = false } = {}) => {
       if (isCyDestroyed || cy.destroyed()) {
         return
@@ -1089,11 +1535,19 @@ function GardenGraphView({
     }
 
     cy.on("grab", "node", (event) => {
+      if (editingNodeIdRef.current === event.target.id()) {
+        return
+      }
+
       reheatForceSimulation({ alpha: D3_ALPHA_REHEAT, alphaTarget: D3_DRAG_ALPHA_TARGET })
       pinNodeInSimulation(event.target)
     })
 
     cy.on("drag", "node", (event) => {
+      if (editingNodeIdRef.current === event.target.id()) {
+        return
+      }
+
       pinNodeInSimulation(event.target)
       reheatForceSimulation({ alpha: D3_ALPHA_REHEAT, alphaTarget: D3_DRAG_ALPHA_TARGET })
     })
@@ -1117,11 +1571,56 @@ function GardenGraphView({
     })
 
     cy.on("free", "node", (event) => {
+      if (editingNodeIdRef.current === event.target.id()) {
+        return
+      }
+
       releaseNodeInSimulation(event.target)
       reheatForceSimulation({ alpha: D3_ALPHA_REHEAT, alphaTarget: D3_IDLE_ALPHA_TARGET })
     })
 
+    cy.on("cxttapstart", "node", (event) => {
+      event.originalEvent?.preventDefault?.()
+      event.originalEvent?.stopPropagation?.()
+    })
+
+    cy.on("cxttap", "node", (event) => {
+      if (isReadOnly) {
+        return
+      }
+
+      event.originalEvent?.preventDefault?.()
+      event.originalEvent?.stopPropagation?.()
+
+      const nodeData = event.target.data()
+      const containerRect = graphContainerRef.current?.getBoundingClientRect()
+      const clientX = event.originalEvent?.clientX
+      const clientY = event.originalEvent?.clientY
+      const fallbackRenderedPosition = event.renderedPosition || event.target.renderedPosition()
+      const left = containerRect && typeof clientX === "number"
+        ? clientX - containerRect.left
+        : fallbackRenderedPosition.x
+      const top = containerRect && typeof clientY === "number"
+        ? clientY - containerRect.top
+        : fallbackRenderedPosition.y
+
+      setContextMenuState({
+        nodeId: nodeData.id,
+        nodeType: nodeData.type,
+        nodeLabel: nodeData.label,
+        noteCount: nodeData.type === "tag" ? getTagLinkedNoteCount(nodeData.id) : 0,
+        left,
+        top,
+      })
+    })
+
     cy.on("tap", "node", (event) => {
+      setContextMenuState(null)
+
+      if (editingNodeIdRef.current) {
+        return
+      }
+
       const nodeData = event.target.data()
 
       if (nodeData.type === "note") {
@@ -1193,14 +1692,27 @@ function GardenGraphView({
       isCyDestroyed = true
       syncGraphElementsRef.current = null
       cyRef.current = null
+      pinNodeInSimulationRef.current = null
+      releaseNodeInSimulationRef.current = null
+      pauseSimulationRef.current = null
+      resumeSimulationRef.current = null
+      updateNoteLabelOpacityRef.current = null
       stopActiveLayout()
       stopForceSimulation()
 
       window.removeEventListener("resize", handleResize)
+      graphContainerRef.current?.removeEventListener("contextmenu", handleNativeContextMenu, { capture: true })
+      window.removeEventListener("contextmenu", handleWindowContextMenuCapture, { capture: true })
       cy.removeListener("zoom", updateNoteLabelOpacity)
       cy.destroy()
     }
   }, [initialFocusPathLabels, initialFocusStack, isReadOnly, navigate])
+
+  const moveTargetOptions = deleteDialogState
+    ? [...nodeById.values()]
+      .filter((node) => node.type === "tag" && node.id !== deleteDialogState.nodeId)
+      .sort((firstNode, secondNode) => firstNode.label.localeCompare(secondNode.label))
+    : []
 
   return (
     <div className="garden-view garden-graph-view" aria-label="Garden graph view">
@@ -1223,7 +1735,199 @@ function GardenGraphView({
         ref={graphContainerRef}
         className="garden-graph-view__canvas"
         aria-label="Knowledge graph"
+        onContextMenu={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+        }}
       />
+
+      {contextMenuState ? (
+        <div
+          ref={contextMenuRef}
+          className="garden-graph-view__context-menu"
+          role="menu"
+          style={{ left: contextMenuState.left, top: contextMenuState.top }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onContextMenu={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+          }}
+        >
+          <button
+            type="button"
+            className="garden-graph-view__context-action"
+            onClick={() => startInlineRename(contextMenuState.nodeId)}
+          >
+            Edit Name
+          </button>
+          <button
+            type="button"
+            className="garden-graph-view__context-action garden-graph-view__context-action--danger"
+            onClick={() => {
+              const targetNode = nodeById.get(contextMenuState.nodeId)
+              handleDeleteNodeAction(targetNode).catch((error) => {
+                const message = error instanceof Error ? error.message : "Delete action failed."
+                window.alert(message)
+              })
+            }}
+          >
+            Delete Node
+          </button>
+          <button
+            type="button"
+            className="garden-graph-view__context-action"
+            onClick={closeContextMenu}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
+
+      {editingNodeState?.anchor ? (
+        <div
+          className="garden-graph-view__rename-overlay"
+          style={{ left: editingNodeState.anchor.left, top: editingNodeState.anchor.top }}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <input
+            className="garden-graph-view__rename-input"
+            value={editingNodeState.draftName}
+            disabled={editingNodeState.isSaving}
+            autoFocus
+            onChange={(event) => {
+              const nextValue = event.target.value
+              setEditingNodeState((previousState) => (previousState
+                ? {
+                    ...previousState,
+                    draftName: nextValue,
+                    error: "",
+                  }
+                : previousState))
+            }}
+            onBlur={() => {
+              commitInlineRename().catch(() => {
+                // Inline error is shown in the overlay.
+              })
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault()
+                event.currentTarget.blur()
+              }
+
+              if (event.key === "Escape") {
+                event.preventDefault()
+                cancelInlineRename()
+              }
+            }}
+          />
+          {editingNodeState.error ? (
+            <p className="garden-graph-view__rename-error">{editingNodeState.error}</p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {deleteDialogState ? (
+        <div className="garden-graph-view__modal-backdrop" role="presentation">
+          <div className="garden-graph-view__modal" role="dialog" aria-modal="true" aria-label="Delete node options">
+            <h3>Delete &quot;{deleteDialogState.nodeLabel}&quot;</h3>
+            <p>
+              This node contains {deleteDialogState.noteCount} note{deleteDialogState.noteCount === 1 ? "" : "s"}.
+            </p>
+
+            <div className="garden-graph-view__delete-strategy">
+              <label>
+                <input
+                  type="radio"
+                  name="deleteStrategy"
+                  checked={deleteDialogState.strategy === "move"}
+                  disabled={deleteDialogState.isSubmitting}
+                  onChange={() => {
+                    setDeleteDialogState((previousState) => (previousState
+                      ? {
+                          ...previousState,
+                          strategy: "move",
+                          error: "",
+                        }
+                      : previousState))
+                  }}
+                />
+                Move notes to another node
+              </label>
+
+              {deleteDialogState.strategy === "move" ? (
+                <select
+                  value={deleteDialogState.targetTagId || ""}
+                  disabled={deleteDialogState.isSubmitting}
+                  onChange={(event) => {
+                    const nextValue = event.target.value
+                    setDeleteDialogState((previousState) => (previousState
+                      ? {
+                          ...previousState,
+                          targetTagId: nextValue,
+                          error: "",
+                        }
+                      : previousState))
+                  }}
+                >
+                  <option value="__uncategorized__">Uncategorized (default)</option>
+                  {moveTargetOptions.map((node) => (
+                    <option key={node.id} value={getEntityIdFromNodeId(node.id, "tag") || ""}>
+                      {node.label}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+
+              <label>
+                <input
+                  type="radio"
+                  name="deleteStrategy"
+                  checked={deleteDialogState.strategy === "cascade"}
+                  disabled={deleteDialogState.isSubmitting}
+                  onChange={() => {
+                    setDeleteDialogState((previousState) => (previousState
+                      ? {
+                          ...previousState,
+                          strategy: "cascade",
+                          error: "",
+                        }
+                      : previousState))
+                  }}
+                />
+                Delete everything (move {deleteDialogState.noteCount} note{deleteDialogState.noteCount === 1 ? "" : "s"} to trash)
+              </label>
+            </div>
+
+            {deleteDialogState.error ? (
+              <p className="garden-graph-view__modal-error">{deleteDialogState.error}</p>
+            ) : null}
+
+            <div className="garden-graph-view__modal-actions">
+              <button
+                type="button"
+                className="garden-graph-view__modal-button garden-graph-view__modal-button--ghost"
+                disabled={deleteDialogState.isSubmitting}
+                onClick={() => setDeleteDialogState(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="garden-graph-view__modal-button garden-graph-view__modal-button--danger"
+                disabled={deleteDialogState.isSubmitting}
+                onClick={() => {
+                  submitDeleteDialog().catch(() => {
+                    // Modal shows action errors.
+                  })
+                }}
+              >
+                {deleteDialogState.strategy === "move" ? "Move and Delete" : "Delete Everything"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

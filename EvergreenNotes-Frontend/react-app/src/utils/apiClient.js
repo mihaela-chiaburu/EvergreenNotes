@@ -16,7 +16,13 @@ async function parseResponse(response) {
   const payload = await response.json().catch(() => null)
 
   if (!response.ok) {
-    throw new Error(payload?.error ?? "Request failed. Please try again.")
+    const errorMessage = payload?.error
+      || payload?.message
+      || payload?.detail
+      || payload?.title
+      || "Request failed. Please try again."
+
+    throw new Error(errorMessage)
   }
 
   return payload

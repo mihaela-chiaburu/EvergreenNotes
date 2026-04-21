@@ -14,6 +14,8 @@ namespace EvergreenNotes.Domain.Interfaces
         Task<List<TagResponse>> GetAllTagsAsync(Guid userId);
         Task<List<TaxonomyTagNodeResponse>> GetTagTreeAsync(Guid userId);
         Task<List<TaxonomyTagSearchItemResponse>> SearchTagsAsync(Guid userId, string query, Guid? parentTagId = null, int limit = 20);
+        Task<TagResponse> UpdateTagNameAsync(Guid userId, Guid tagId, string name);
+        Task DeleteTagAsync(Guid userId, Guid tagId, Guid? moveNotesToTagId = null, bool cascadeDeleteNotes = false);
         Task AddTagToNoteAsync(Guid userId, Guid noteId, Guid tagId);
         Task ReplaceNoteTagsAsync(Guid userId, Guid noteId, List<string> tagNames);
         Task RemoveTagFromNoteAsync(Guid userId, Guid noteId, Guid tagId);

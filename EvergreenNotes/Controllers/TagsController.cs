@@ -63,6 +63,71 @@ namespace EvergreenNotes.Controllers
             }
         }
 
+        [HttpPatch("tags/{tagId}")]
+        public async Task<IActionResult> UpdateTagName(Guid tagId, [FromBody] UpdateTagNameRequest request)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var result = await _tagService.UpdateTagNameAsync(userId, tagId, request.Name);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete("tags/{tagId}")]
+        public async Task<IActionResult> DeleteTag(Guid tagId, [FromBody] DeleteTagRequest? request = null)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var moveTargetTagId = ParseMoveTargetTagId(request?.MoveNotesToTagId);
+                await _tagService.DeleteTagAsync(
+                    userId,
+                    tagId,
+                    moveTargetTagId,
+                    request?.CascadeDeleteNotes ?? false
+                );
+                return Ok(new { message = "Tag deleted successfully" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("tags/{tagId}/delete")]
+        public async Task<IActionResult> DeleteTagWithStrategy(Guid tagId, [FromBody] DeleteTagRequest request)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var moveTargetTagId = ParseMoveTargetTagId(request.MoveNotesToTagId);
+                await _tagService.DeleteTagAsync(
+                    userId,
+                    tagId,
+                    moveTargetTagId,
+                    request.CascadeDeleteNotes
+                );
+                return Ok(new { message = "Tag deleted successfully" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         [HttpPost("notes/{noteId}/tags")]
         public async Task<IActionResult> AddTagToNote(Guid noteId, [FromBody] AddTagToNoteRequest request)
         {
@@ -115,6 +180,32 @@ namespace EvergreenNotes.Controllers
                 throw new UnauthorizedAccessException("User not authenticated");
 
             return Guid.Parse(userId);
+        }
+
+        private static Guid? ParseMoveTargetTagId(string? rawTagId)
+        {
+            if (string.IsNullOrWhiteSpace(rawTagId))
+            {
+                return null;
+            }
+
+            var normalized = rawTagId.Trim();
+            if (normalized.StartsWith("tag-", StringComparison.OrdinalIgnoreCase))
+            {
+                normalized = normalized.Substring(4);
+            }
+
+            if (string.Equals(normalized, "null", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            if (!Guid.TryParse(normalized, out var parsedTagId))
+            {
+                throw new ArgumentException("Invalid target tag id format.");
+            }
+
+            return parsedTagId;
         }
     }
 }

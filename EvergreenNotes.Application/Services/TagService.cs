@@ -122,6 +122,136 @@ namespace EvergreenNotes.Application.Services
                 .ToList();
         }
 
+        public async Task<TagResponse> UpdateTagNameAsync(Guid userId, Guid tagId, string name)
+        {
+            var normalizedName = NormalizeTagName(name);
+
+            if (string.IsNullOrWhiteSpace(normalizedName))
+                throw new Exception("Tag name cannot be empty");
+
+            var tag = await _db.Tags
+                .FirstOrDefaultAsync(t => t.Id == tagId && t.UserId == userId);
+
+            if (tag == null)
+                throw new Exception("Tag not found or access denied");
+
+            var duplicateTag = await _db.Tags
+                .FirstOrDefaultAsync(t =>
+                    t.Id != tag.Id &&
+                    t.UserId == userId &&
+                    t.ParentTagId == tag.ParentTagId &&
+                    t.Name.ToLower() == normalizedName.ToLower());
+
+            if (duplicateTag != null)
+                throw new Exception("A tag with this name already exists at the same level");
+
+            tag.Name = normalizedName;
+            await _db.SaveChangesAsync();
+
+            return MapToResponse(tag);
+        }
+
+        public async Task DeleteTagAsync(Guid userId, Guid tagId, Guid? moveNotesToTagId = null, bool cascadeDeleteNotes = false)
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync();
+
+            try
+            {
+                var tag = await _db.Tags
+                    .Include(t => t.NoteTags)
+                    .FirstOrDefaultAsync(t => t.Id == tagId && t.UserId == userId);
+
+                if (tag == null)
+                    throw new Exception("Tag not found or access denied");
+
+                if (moveNotesToTagId == Guid.Empty)
+                {
+                    moveNotesToTagId = null;
+                }
+
+                Tag? targetTag = null;
+                if (moveNotesToTagId.HasValue)
+                {
+                    if (moveNotesToTagId.Value == tagId)
+                        throw new Exception("Cannot move notes to the same tag being deleted");
+
+                    targetTag = await _db.Tags
+                        .FirstOrDefaultAsync(t => t.Id == moveNotesToTagId.Value && t.UserId == userId);
+
+                    if (targetTag == null)
+                        throw new Exception("Target tag not found or access denied");
+                }
+
+                var linkedNoteIds = tag.NoteTags
+                    .Select(nt => nt.NoteId)
+                    .Distinct()
+                    .ToList();
+
+                if (linkedNoteIds.Count > 0)
+                {
+                    if (targetTag != null)
+                    {
+                        var existingTargetLinks = await _db.NoteTags
+                            .Where(nt => nt.TagId == targetTag.Id && linkedNoteIds.Contains(nt.NoteId))
+                            .Select(nt => nt.NoteId)
+                            .ToListAsync();
+
+                        var existingTargetLinkSet = existingTargetLinks.ToHashSet();
+                        var linksToAdd = linkedNoteIds
+                            .Where(noteId => !existingTargetLinkSet.Contains(noteId))
+                            .Select(noteId => new NoteTag
+                            {
+                                NoteId = noteId,
+                                TagId = targetTag.Id,
+                                CreatedAt = DateTime.UtcNow
+                            });
+
+                        await _db.NoteTags.AddRangeAsync(linksToAdd);
+                    }
+                    else if (cascadeDeleteNotes)
+                    {
+                        var notesToDelete = await _db.Notes
+                            .Where(n => n.UserId == userId && linkedNoteIds.Contains(n.Id) && !n.IsDeleted)
+                            .ToListAsync();
+
+                        var deletedAt = DateTime.UtcNow;
+                        foreach (var note in notesToDelete)
+                        {
+                            note.IsDeleted = true;
+                            note.DeletedAt = deletedAt;
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception("This tag contains notes. Move notes to another tag or use cascade delete.");
+                    }
+                }
+
+                var childTags = await _db.Tags
+                    .Where(t => t.UserId == userId && t.ParentTagId == tagId)
+                    .ToListAsync();
+
+                foreach (var childTag in childTags)
+                {
+                    childTag.ParentTagId = null;
+                }
+
+                var noteLinksForDeletedTag = await _db.NoteTags
+                    .Where(nt => nt.TagId == tagId)
+                    .ToListAsync();
+
+                _db.NoteTags.RemoveRange(noteLinksForDeletedTag);
+                _db.Tags.Remove(tag);
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
         public async Task AddTagToNoteAsync(Guid userId, Guid noteId, Guid tagId)
         {
             var note = await _db.Notes.FindAsync(noteId);

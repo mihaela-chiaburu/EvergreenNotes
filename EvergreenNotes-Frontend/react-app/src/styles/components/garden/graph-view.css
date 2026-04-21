@@ -65,6 +65,162 @@
 	box-shadow: none;
 }
 
+.garden-graph-view__context-menu {
+	position: absolute;
+	z-index: 7;
+	min-width: 170px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 8px;
+	border-radius: 12px;
+	border: 1px solid rgba(225, 240, 221, 0.28);
+	background: rgba(25, 44, 28, 0.94);
+	box-shadow: 0 14px 26px rgba(0, 0, 0, 0.35);
+	transform: translate(-12px, -12px);
+}
+
+.garden-graph-view__context-action {
+	border: 0;
+	border-radius: 8px;
+	padding: 8px 10px;
+	background: rgba(232, 244, 230, 0.1);
+	color: #f5fff3;
+	text-align: left;
+	font: inherit;
+	cursor: pointer;
+}
+
+.garden-graph-view__context-action:hover {
+	background: rgba(232, 244, 230, 0.2);
+}
+
+.garden-graph-view__context-action--danger {
+	color: #ffd3d3;
+	background: rgba(200, 61, 61, 0.2);
+}
+
+.garden-graph-view__rename-overlay {
+	position: absolute;
+	z-index: 8;
+	min-width: 230px;
+	transform: translate(-50%, -50%);
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 8px;
+	border-radius: 10px;
+	background: rgba(18, 31, 20, 0.95);
+	border: 1px solid rgba(206, 224, 201, 0.34);
+	box-shadow: 0 12px 24px rgba(0, 0, 0, 0.34);
+}
+
+.garden-graph-view__rename-input {
+	width: 100%;
+	padding: 8px 10px;
+	border-radius: 8px;
+	border: 1px solid rgba(214, 233, 209, 0.5);
+	background: rgba(7, 14, 8, 0.9);
+	color: #eff8ed;
+	font: inherit;
+	outline: none;
+}
+
+.garden-graph-view__rename-input:focus {
+	border-color: #d3e8cd;
+}
+
+.garden-graph-view__rename-error,
+.garden-graph-view__modal-error {
+	margin: 0;
+	font-size: 0.84rem;
+	color: #ffbbbb;
+}
+
+.garden-graph-view__modal-backdrop {
+	position: absolute;
+	inset: 0;
+	z-index: 9;
+	display: grid;
+	place-items: center;
+	padding: 16px;
+	background: rgba(5, 12, 6, 0.6);
+	backdrop-filter: blur(2px);
+}
+
+.garden-graph-view__modal {
+	width: min(460px, calc(100vw - 40px));
+	padding: 18px;
+	border-radius: 14px;
+	border: 1px solid rgba(216, 230, 212, 0.34);
+	background: linear-gradient(180deg, rgba(25, 44, 28, 0.97), rgba(13, 26, 15, 0.97));
+	color: #f2f8f0;
+	box-shadow: 0 24px 46px rgba(0, 0, 0, 0.34);
+}
+
+.garden-graph-view__modal h3 {
+	margin: 0 0 8px;
+	font-size: 1.15rem;
+}
+
+.garden-graph-view__modal p {
+	margin: 0 0 12px;
+	color: #d7e7d3;
+}
+
+.garden-graph-view__delete-strategy {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+
+.garden-graph-view__delete-strategy label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.95rem;
+}
+
+.garden-graph-view__delete-strategy select {
+	padding: 8px 10px;
+	border-radius: 8px;
+	border: 1px solid rgba(214, 233, 209, 0.45);
+	background: rgba(7, 14, 8, 0.85);
+	color: #eff8ed;
+	font: inherit;
+}
+
+.garden-graph-view__modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 14px;
+}
+
+.garden-graph-view__modal-button {
+	border: 0;
+	border-radius: 9px;
+	padding: 9px 12px;
+	font: inherit;
+	cursor: pointer;
+}
+
+.garden-graph-view__modal-button--ghost {
+	background: rgba(227, 239, 223, 0.13);
+	color: #f1f9ef;
+}
+
+.garden-graph-view__modal-button--danger {
+	background: #b84444;
+	color: #ffffff;
+}
+
+.garden-graph-view__modal-button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
 @media (max-width: 960px) {
 	.garden-graph-view {
 		padding: 0;
@@ -72,5 +228,13 @@
 
 	.garden-graph-view__canvas {
 		min-height: 100%;
+	}
+
+	.garden-graph-view__context-menu {
+		min-width: 150px;
+	}
+
+	.garden-graph-view__rename-overlay {
+		min-width: 200px;
 	}
 }
