@@ -10,6 +10,18 @@ import "../../styles/components/explore/explore-section.css"
 const TAB_OPTIONS = ["Trending", "New", "Following"]
 const PAGE_SIZE = 6
 
+function resolveGardenSizeState(noteCount) {
+  if (noteCount >= 20) {
+    return "blooming"
+  }
+
+  if (noteCount >= 10) {
+    return "growing"
+  }
+
+  return "fresh"
+}
+
 function ExploreSection({ isPublicView = false, filters = {} }) {
   const navigate = useNavigate()
   const { authUser } = useAuth()
@@ -82,6 +94,9 @@ function ExploreSection({ isPublicView = false, filters = {} }) {
   const parsedMaxNotes = Number.parseInt(filters?.maxNotes, 10)
   const hasMinFilter = Number.isFinite(parsedMinNotes)
   const hasMaxFilter = Number.isFinite(parsedMaxNotes)
+  const selectedStates = Array.isArray(filters?.states)
+    ? filters.states.map((state) => String(state || "").trim().toLowerCase()).filter(Boolean)
+    : []
 
   const filteredByTopic = selectedTopic
     ? activeGardens.filter((garden) =>
@@ -103,6 +118,13 @@ function ExploreSection({ isPublicView = false, filters = {} }) {
     if (selectedTags.length > 0) {
       const hasMatchingTag = garden.tags.some((tag) => selectedTags.includes(tag.toLowerCase()))
       if (!hasMatchingTag) {
+        return false
+      }
+    }
+
+    if (selectedStates.length > 0) {
+      const gardenStateByCount = resolveGardenSizeState(noteCount)
+      if (!selectedStates.includes(gardenStateByCount)) {
         return false
       }
     }

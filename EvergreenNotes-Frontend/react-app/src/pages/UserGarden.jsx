@@ -143,7 +143,7 @@ function UserGarden() {
 				/>
 
 				{view === "graph" && <GardenGraphView userId={activeUser.userId} isReadOnly graphSettings={graphSettings} />}
-				{view === "list" && <GardenListView userId={activeUser.userId} isReadOnly />}
+				{view === "list" && <GardenListView userId={activeUser.userId} isReadOnly graphSettings={graphSettings} />}
 
 				<GraphSettingsPanel
 					setView={setView}

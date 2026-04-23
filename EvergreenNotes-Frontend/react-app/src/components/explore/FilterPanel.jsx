@@ -3,19 +3,17 @@ import "../../styles/components/explore/explore-filter.css"
 
 function FilterPanel({ filters, onFiltersChange }) {
   const [tagInput, setTagInput] = useState("")
-  const [stateFilters, setStateFilters] = useState([])
   const tags = Array.isArray(filters?.tags) ? filters.tags : []
   const minNotes = filters?.minNotes ?? ""
   const maxNotes = filters?.maxNotes ?? ""
+  const stateFilters = Array.isArray(filters?.states) ? filters.states : []
 
   const toggleCheckboxValue = (value) => {
-    setStateFilters((previousValues) => {
-      if (previousValues.includes(value)) {
-        return previousValues.filter((item) => item !== value)
-      }
+    const nextStateFilters = stateFilters.includes(value)
+      ? stateFilters.filter((item) => item !== value)
+      : [...stateFilters, value]
 
-      return [...previousValues, value]
-    })
+    onFiltersChange({ states: nextStateFilters })
   }
 
   const addTag = (rawValue) => {
@@ -125,10 +123,10 @@ function FilterPanel({ filters, onFiltersChange }) {
           <label className="explore-filter-panel__check-item">
             <input
               type="checkbox"
-              checked={stateFilters.includes("new")}
-              onChange={() => toggleCheckboxValue("new")}
+              checked={stateFilters.includes("fresh")}
+              onChange={() => toggleCheckboxValue("fresh")}
             />
-            <span>New</span>
+            <span>Fresh</span>
           </label>
           <label className="explore-filter-panel__check-item">
             <input
@@ -141,10 +139,10 @@ function FilterPanel({ filters, onFiltersChange }) {
           <label className="explore-filter-panel__check-item">
             <input
               type="checkbox"
-              checked={stateFilters.includes("big")}
-              onChange={() => toggleCheckboxValue("big")}
+              checked={stateFilters.includes("blooming")}
+              onChange={() => toggleCheckboxValue("blooming")}
             />
-            <span>Big</span>
+            <span>Blooming</span>
           </label>
         </div>
       </section>

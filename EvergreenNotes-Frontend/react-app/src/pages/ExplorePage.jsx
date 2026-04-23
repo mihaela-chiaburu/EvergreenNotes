@@ -20,6 +20,7 @@ function ExplorePage() {
     minNotes: "",
     maxNotes: "",
     tags: [],
+    states: [],
   })
 
   const handleFiltersChange = (nextFilters) => {

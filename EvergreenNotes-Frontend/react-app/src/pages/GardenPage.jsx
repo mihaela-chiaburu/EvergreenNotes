@@ -56,7 +56,7 @@ function GardenPage() {
             graphSettings={graphSettings}
           />
         )}
-        {view === "list" && <GardenListView />}
+        {view === "list" && <GardenListView graphSettings={graphSettings} />}
 
         <GraphSettingsPanel
           setView={setView}
