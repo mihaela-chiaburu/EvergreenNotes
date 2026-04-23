@@ -1,5 +1,6 @@
 .floating-control-panel {
     width: min(340px, calc(100vw - 40px));
+    max-height: calc(100% - 24px);
     display: flex;
     flex-direction: column;
     border-radius: 16px;
@@ -15,6 +16,13 @@
 .floating-control-panel--collapsed {
     width: auto;
     min-width: 0;
+    max-height: none;
+}
+
+.floating-control-panel__body {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .floating-control-panel__toolbar {

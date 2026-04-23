@@ -15,11 +15,26 @@ import {
 } from "../utils/explore"
 import "../styles/pages/garden.css"
 
+const DEFAULT_GRAPH_SETTINGS = {
+	filters: {
+		visibility: [],
+		noteStatus: [],
+		careStatus: [],
+		tags: [],
+	},
+	display: {
+		nodeSize: 50,
+		labelFontSize: 16,
+		showLabels: true,
+	},
+}
+
 function UserGarden() {
 	const [view, setView] = useState("graph")
 	const [activeUser, setActiveUser] = useState(null)
 	const [isFollowLoading, setIsFollowLoading] = useState(false)
 	const [followError, setFollowError] = useState("")
+	const [graphSettings, setGraphSettings] = useState(DEFAULT_GRAPH_SETTINGS)
 	const { userId } = useParams()
 	const location = useLocation()
 	const { authUser } = useAuth()
@@ -127,10 +142,15 @@ function UserGarden() {
 					isOwnGarden={isOwnGarden}
 				/>
 
-				{view === "graph" && <GardenGraphView userId={activeUser.userId} isReadOnly />}
+				{view === "graph" && <GardenGraphView userId={activeUser.userId} isReadOnly graphSettings={graphSettings} />}
 				{view === "list" && <GardenListView userId={activeUser.userId} isReadOnly />}
 
-				<GraphSettingsPanel setView={setView} isAnotherUserGarden />
+				<GraphSettingsPanel
+					setView={setView}
+					isAnotherUserGarden
+					graphSettings={graphSettings}
+					onGraphSettingsChange={setGraphSettings}
+				/>
 			</div>
 		</Layout>
 	)

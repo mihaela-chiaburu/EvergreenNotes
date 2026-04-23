@@ -8,14 +8,13 @@ import sproutttt from "../../assets/images/sproutttt.png"
 import noteFlowerMedium2 from "../../assets/images/note-flower-medium2.png"
 import noteTreeBig1 from "../../assets/images/note-tree-big1.png"
 import { useAuth } from "../../context/AuthContext"
-import { deleteNote, fetchNoteById, updateNote } from "../../utils/notes"
+import { deleteNote, fetchNoteById, fetchNotes, fetchPublicUserNotes, updateNote } from "../../utils/notes"
 import { createTaxonomyTag, searchTaxonomyTags } from "../../utils/taxonomy"
 import { deleteTagNode, fetchGardenGraph, fetchPublicGardenGraph, renameTagNode } from "../../utils/garden"
 import "../../styles/components/garden/graph-view.css"
 
 const NOTE_NODE_SIZE = 30
 const TAG_NODE_MIN_SIZE = 60
-const TAG_NODE_MAX_SIZE = 104
 const GRAPH_EDGE_LENGTH = 105
 const D3_ALPHA_INITIAL = 0.78
 const D3_ALPHA_REHEAT = 0.42
@@ -32,10 +31,6 @@ const HIGH_DEGREE_PADDING_FACTOR = 1.55
 const HIGH_DEGREE_PADDING_MAX = 22
 const TAG_TEXT_MAX_WIDTH = 110
 const NOTE_TEXT_MAX_WIDTH = 90
-const TAG_FONT_SIZE = 15
-const NOTE_FONT_SIZE = 13
-const TAG_TEXT_MARGIN_Y = 18
-const NOTE_TEXT_MARGIN_Y = 16
 const NOTE_LABEL_FADE_START_ZOOM = 1.2
 const NOTE_LABEL_FADE_END_ZOOM = 0.8
 const ZOOM_AUTO_REVEAL_THRESHOLD = 0.95
@@ -45,6 +40,120 @@ const ORBIT_NOTES_BASE_RADIUS = 130
 const DEFAULT_FALLBACK_TAG_NAME = "Uncategorized"
 const EMPTY_FOCUS_STACK = []
 const EMPTY_FOCUS_PATH_LABELS = []
+const DEFAULT_GRAPH_SETTINGS = {
+  filters: {
+    visibility: [],
+    noteStatus: [],
+    careStatus: [],
+    tags: [],
+  },
+  display: {
+    nodeSize: 50,
+    labelFontSize: 16,
+    showLabels: true,
+  },
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value))
+}
+
+function normalizeStatusValue(rawValue) {
+  const normalized = String(rawValue || "").trim().toLowerCase().replace(/\s+/g, "-")
+  if (!normalized) {
+    return ""
+  }
+
+  if (normalized === "needscare") {
+    return "needs-care"
+  }
+
+  return normalized
+}
+
+function normalizeCareStateValue(rawValue) {
+  return String(rawValue || "").trim().toLowerCase().replace(/\s+/g, "-")
+}
+
+function normalizeVisibilityValue(rawValue) {
+  return String(rawValue || "").trim().toLowerCase()
+}
+
+function normalizeGraphSettings(settings) {
+  const filters = settings?.filters || {}
+  const display = settings?.display || {}
+
+  return {
+    filters: {
+      visibility: Array.isArray(filters.visibility)
+        ? [...new Set(filters.visibility.map((value) => normalizeVisibilityValue(value)).filter(Boolean))]
+        : [],
+      noteStatus: Array.isArray(filters.noteStatus)
+        ? [...new Set(filters.noteStatus.map((value) => normalizeStatusValue(value)).filter(Boolean))]
+        : [],
+      careStatus: Array.isArray(filters.careStatus)
+        ? [...new Set(filters.careStatus.map((value) => normalizeCareStateValue(value)).filter(Boolean))]
+        : [],
+      tags: Array.isArray(filters.tags)
+        ? [...new Set(filters.tags.map((tag) => String(tag || "").trim().toLowerCase()).filter(Boolean))]
+        : [],
+    },
+    display: {
+      nodeSize: clamp(Number(display.nodeSize) || DEFAULT_GRAPH_SETTINGS.display.nodeSize, 1, 100),
+      labelFontSize: clamp(Number(display.labelFontSize) || DEFAULT_GRAPH_SETTINGS.display.labelFontSize, 8, 40),
+      showLabels: display.showLabels !== false,
+    },
+  }
+}
+
+function resolveDisplaySettings(graphSettings) {
+  const normalizedSettings = normalizeGraphSettings(graphSettings)
+  return normalizedSettings.display
+}
+
+function createNoteMetadataMapByNodeId(notes = [], graphNodes = []) {
+  const metadataByNodeId = new Map()
+
+  notes.forEach((note) => {
+    const rawId = String(note?.id || "").trim()
+    if (!rawId) {
+      return
+    }
+
+    const compactId = rawId.replace(/-/g, "")
+    const candidateNodeIds = [...new Set([`note-${rawId}`, `note-${compactId}`])]
+
+    const noteMetadata = {
+      visibility: normalizeVisibilityValue(note.visibility),
+      noteStatus: normalizeStatusValue(note.status),
+      careStatus: normalizeCareStateValue(note.plantState),
+      tags: Array.isArray(note.tags)
+        ? note.tags.map((tag) => String(tag || "").trim().toLowerCase()).filter(Boolean)
+        : [],
+    }
+
+    candidateNodeIds.forEach((nodeId) => {
+      metadataByNodeId.set(nodeId, noteMetadata)
+    })
+  })
+
+  graphNodes.forEach((node) => {
+    if (node?.type !== "note" || metadataByNodeId.has(node.id)) {
+      return
+    }
+
+    metadataByNodeId.set(node.id, {
+      visibility: normalizeVisibilityValue(node.visibility),
+      noteStatus: normalizeStatusValue(node.status),
+      careStatus: normalizeCareStateValue(node.plantState || node.careState),
+      tags: Array.isArray(node.tags)
+        ? node.tags.map((tag) => String(tag || "").trim().toLowerCase()).filter(Boolean)
+        : [],
+    })
+  })
+
+  return metadataByNodeId
+}
 
 let nodeById = new Map()
 let adjacencyByNodeId = new Map()
@@ -87,14 +196,18 @@ function getNodeConnectionCount(nodeId) {
   return Math.max(adjacencyCount, node?.connectionCount || 0)
 }
 
-function computeNodeSize(node) {
+function computeNodeSize(node, displaySettings = DEFAULT_GRAPH_SETTINGS.display) {
+  const noteSize = 18 + (displaySettings.nodeSize / 100) * 36
+  const tagMinSize = 34 + (displaySettings.nodeSize / 100) * 56
+  const tagMaxSize = tagMinSize + 40
+
   if (node.type === "note") {
-    return NOTE_NODE_SIZE
+    return noteSize
   }
 
   const boundedConnectionCount = Math.max(1, Math.min(getNodeConnectionCount(node.id), 18))
   const ratio = (boundedConnectionCount - 1) / 17
-  return TAG_NODE_MIN_SIZE + ratio * (TAG_NODE_MAX_SIZE - TAG_NODE_MIN_SIZE)
+  return tagMinSize + ratio * (tagMaxSize - tagMinSize)
 }
 
 function estimateLabelHeight(label, maxWidth, fontSize) {
@@ -105,16 +218,20 @@ function estimateLabelHeight(label, maxWidth, fontSize) {
   return lineCount * fontSize * 1.25
 }
 
-function computeNodeCollisionRadius(nodeId) {
+function computeNodeCollisionRadius(nodeId, displaySettings = DEFAULT_GRAPH_SETTINGS.display) {
   const node = nodeById.get(nodeId)
-  const nodeSize = computeNodeSize(node || { type: "note", id: nodeId })
+  const nodeSize = computeNodeSize(node || { type: "note", id: nodeId }, displaySettings)
   const isNote = node?.type === "note"
+  const tagFontSize = clamp(displaySettings.labelFontSize, 8, 40)
+  const noteFontSize = clamp(tagFontSize - 2, 8, 38)
+  const tagLabelMargin = Math.max(8, Math.round(tagFontSize * 1.2))
+  const noteLabelMargin = Math.max(8, Math.round(noteFontSize * 1.2))
   const labelHeight = estimateLabelHeight(
     node?.label,
     isNote ? NOTE_TEXT_MAX_WIDTH : TAG_TEXT_MAX_WIDTH,
-    isNote ? NOTE_FONT_SIZE : TAG_FONT_SIZE,
+    isNote ? noteFontSize : tagFontSize,
   )
-  const labelMargin = isNote ? NOTE_TEXT_MARGIN_Y : TAG_TEXT_MARGIN_Y
+  const labelMargin = isNote ? noteLabelMargin : tagLabelMargin
   const labelWidth = isNote ? NOTE_TEXT_MAX_WIDTH : TAG_TEXT_MAX_WIDTH
   const totalHeight = nodeSize + labelMargin + labelHeight
   const totalWidth = Math.max(nodeSize, labelWidth)
@@ -126,11 +243,11 @@ function computeNodeCollisionRadius(nodeId) {
   return Math.hypot(totalWidth * 0.5, totalHeight * 0.5) + COLLISION_BASE_PADDING + degreePadding
 }
 
-function computeLinkTargetDistance(sourceId, targetId) {
+function computeLinkTargetDistanceWithSettings(sourceId, targetId, displaySettings = DEFAULT_GRAPH_SETTINGS.display) {
   const sourceDegree = getNodeConnectionCount(sourceId)
   const targetDegree = getNodeConnectionCount(targetId)
-  const sourceRadius = computeNodeCollisionRadius(sourceId)
-  const targetRadius = computeNodeCollisionRadius(targetId)
+  const sourceRadius = computeNodeCollisionRadius(sourceId, displaySettings)
+  const targetRadius = computeNodeCollisionRadius(targetId, displaySettings)
   const degreeBreathingRoom = Math.min(42, (sourceDegree + targetDegree) * 1.35)
   return Math.max(GRAPH_EDGE_LENGTH, sourceRadius + targetRadius + degreeBreathingRoom)
 }
@@ -189,24 +306,6 @@ function getSeedNodeIdSet() {
   }
 
   return new Set([...selectDefaultSeedNodeIds(), ...standaloneTagSeedIds])
-}
-
-function getRelatedTagIdsForTag(tagId) {
-  if (!tagId || !nodeById.has(tagId)) {
-    return new Set()
-  }
-
-  const relatedTagIds = new Set([tagId])
-  const firstLevelNeighbors = adjacencyByNodeId.get(tagId) || new Set()
-
-  firstLevelNeighbors.forEach((neighborId) => {
-    const neighborNode = nodeById.get(neighborId)
-    if (neighborNode?.type === "tag") {
-      relatedTagIds.add(neighborId)
-    }
-  })
-
-  return relatedTagIds
 }
 
 function getNoteIdsForFocusedTag(tagId) {
@@ -314,41 +413,6 @@ function buildInferredTagEdgesForVisibleTags(visibleTagIds) {
   })
 }
 
-function recenterGraphToViewport(cy) {
-  const nodes = cy.nodes().toArray()
-  if (nodes.length === 0) {
-    return
-  }
-
-  const viewportCenter = getViewportCenterPosition(cy)
-  const centroid = nodes.reduce(
-    (accumulator, node) => {
-      const position = node.position()
-      return {
-        x: accumulator.x + position.x,
-        y: accumulator.y + position.y,
-      }
-    },
-    { x: 0, y: 0 },
-  )
-
-  centroid.x /= nodes.length
-  centroid.y /= nodes.length
-
-  const shiftX = viewportCenter.x - centroid.x
-  const shiftY = viewportCenter.y - centroid.y
-
-  cy.batch(() => {
-    nodes.forEach((node) => {
-      const position = node.position()
-      node.position({
-        x: position.x + shiftX,
-        y: position.y + shiftY,
-      })
-    })
-  })
-}
-
 function captureNodePositionsById(cy) {
   const positionsById = new Map()
 
@@ -369,11 +433,100 @@ function computeOrbitRadius({ count, baseRadius, minSpacing, minimumAllowedRadiu
   return Math.max(baseRadius, minimumAllowedRadius, radiusFromSpacing)
 }
 
-function buildElementsForGraph(focusTagId = null, showFocusedTagNotes = false) {
+function buildElementsForGraph(
+  focusTagId = null,
+  showFocusedTagNotes = false,
+  graphSettings = DEFAULT_GRAPH_SETTINGS,
+  noteMetadataByNodeId = new Map(),
+) {
+  const normalizedSettings = normalizeGraphSettings(graphSettings)
+  const displaySettings = normalizedSettings.display
+  const { visibility, noteStatus, careStatus, tags } = normalizedSettings.filters
+  const hasActiveFilters = visibility.length > 0 || noteStatus.length > 0 || careStatus.length > 0 || tags.length > 0
+
   const seedNodeIdSet = getSeedNodeIdSet()
-  const visibleTagIds = seedNodeIdSet
+  const allNoteIds = [...nodeById.values()].filter((node) => node.type === "note").map((node) => node.id)
+
+  const noteMatchesFilters = (noteId) => {
+    if (!hasActiveFilters) {
+      return true
+    }
+
+    const metadata = noteMetadataByNodeId.get(noteId) || {
+      visibility: "",
+      noteStatus: "",
+      careStatus: "",
+      tags: [],
+    }
+
+    if (visibility.length > 0 && !visibility.includes(metadata.visibility)) {
+      return false
+    }
+
+    if (noteStatus.length > 0 && !noteStatus.includes(metadata.noteStatus)) {
+      const isNeedsCareMatch = noteStatus.includes("needs-care")
+        && (metadata.noteStatus === "rough" || metadata.careStatus === "pale" || metadata.careStatus === "dry")
+
+      if (!isNeedsCareMatch) {
+        return false
+      }
+    }
+
+    if (careStatus.length > 0 && !careStatus.includes(metadata.careStatus)) {
+      return false
+    }
+
+    if (tags.length > 0) {
+      const noteTagSet = new Set((metadata.tags || []).map((tag) => String(tag || "").trim().toLowerCase()))
+      const hasRequestedTag = tags.some((selectedTag) => noteTagSet.has(selectedTag))
+      if (!hasRequestedTag) {
+        return false
+      }
+    }
+
+    return true
+  }
+
+  const filteredNoteIds = new Set(allNoteIds.filter((noteId) => noteMatchesFilters(noteId)))
+  const tagIdsLinkedToFilteredNotes = new Set()
+
+  mockGardenGraph.edges.forEach((edge) => {
+    const sourceNode = nodeById.get(edge.source)
+    const targetNode = nodeById.get(edge.target)
+
+    if (sourceNode?.type === "note" && targetNode?.type === "tag" && filteredNoteIds.has(sourceNode.id)) {
+      tagIdsLinkedToFilteredNotes.add(targetNode.id)
+      return
+    }
+
+    if (targetNode?.type === "note" && sourceNode?.type === "tag" && filteredNoteIds.has(targetNode.id)) {
+      tagIdsLinkedToFilteredNotes.add(sourceNode.id)
+    }
+  })
+
+  const selectedTagNodeIds = new Set(
+    [...nodeById.values()]
+      .filter((node) => node.type === "tag" && tags.includes(String(node.label || "").trim().toLowerCase()))
+      .map((node) => node.id),
+  )
+
+  const visibleTagIds = new Set(
+    [...seedNodeIdSet].filter((tagId) => {
+      if (!hasActiveFilters) {
+        return true
+      }
+
+      return tagIdsLinkedToFilteredNotes.has(tagId) || selectedTagNodeIds.has(tagId)
+    }),
+  )
+
+  selectedTagNodeIds.forEach((tagId) => {
+    visibleTagIds.add(tagId)
+  })
+
   const isExpandedFocus = Boolean(focusTagId) && showFocusedTagNotes
-  const visibleNoteIds = showFocusedTagNotes && focusTagId ? getNoteIdsForFocusedTag(focusTagId) : new Set()
+  const focusedTagNoteIds = showFocusedTagNotes && focusTagId ? getNoteIdsForFocusedTag(focusTagId) : new Set()
+  const visibleNoteIds = new Set([...focusedTagNoteIds].filter((noteId) => filteredNoteIds.has(noteId)))
   const inferredCanopyEdges = buildInferredTagEdgesForVisibleTags(visibleTagIds)
   const allRenderableEdges = [...mockGardenGraph.edges, ...inferredCanopyEdges]
 
@@ -413,7 +566,10 @@ function buildElementsForGraph(focusTagId = null, showFocusedTagNotes = false) {
         id: node.id,
         label: node.label,
         type: node.type,
-        size: computeNodeSize(node),
+        size: computeNodeSize(node, displaySettings),
+        labelFontSize: displaySettings.labelFontSize,
+        labelVisible: displaySettings.showLabels ? 1 : 0,
+        labelMarginY: Math.max(8, Math.round(displaySettings.labelFontSize * 1.2)),
         sprite: node.type === "tag" ? getTagNodeSprite(node) : leafSvg,
         depth: seedNodeIdSet.has(node.id) ? 0 : 1,
         highlighted: highlightedTagIds.has(node.id) ? 1 : 0,
@@ -433,7 +589,10 @@ function buildElementsForGraph(focusTagId = null, showFocusedTagNotes = false) {
         id: noteNode.id,
         label: noteNode.label,
         type: noteNode.type,
-        size: computeNodeSize(noteNode),
+        size: computeNodeSize(noteNode, displaySettings),
+        labelFontSize: Math.max(8, displaySettings.labelFontSize - 2),
+        labelVisible: displaySettings.showLabels ? 1 : 0,
+        labelMarginY: Math.max(8, Math.round((displaySettings.labelFontSize - 2) * 1.2)),
         sprite: leafSvg,
         depth: 2,
         highlighted: focusTagId ? 1 : 0,
@@ -609,6 +768,7 @@ function GardenGraphView({
   refreshTick = 0,
   userId = null,
   isReadOnly = false,
+  graphSettings = DEFAULT_GRAPH_SETTINGS,
 }) {
   const { authUser } = useAuth()
   const graphContainerRef = useRef(null)
@@ -626,6 +786,8 @@ function GardenGraphView({
   const pauseSimulationRef = useRef(null)
   const resumeSimulationRef = useRef(null)
   const updateNoteLabelOpacityRef = useRef(null)
+  const graphSettingsRef = useRef(normalizeGraphSettings(graphSettings))
+  const noteMetadataByNodeIdRef = useRef(new Map())
   const isMountedRef = useRef(true)
   const contextMenuRef = useRef(null)
 
@@ -642,6 +804,14 @@ function GardenGraphView({
       isMountedRef.current = false
     }
   }, [])
+
+  useEffect(() => {
+    graphSettingsRef.current = normalizeGraphSettings(graphSettings)
+
+    if (typeof syncGraphElementsRef.current === "function") {
+      syncGraphElementsRef.current({ shouldFit: false })
+    }
+  }, [graphSettings])
 
   useEffect(() => {
     editingNodeIdRef.current = editingNodeState?.nodeId || null
@@ -666,9 +836,14 @@ function GardenGraphView({
     }
 
     try {
-      const payload = userId
-        ? await fetchPublicGardenGraph(userId, authUser.token)
-        : await fetchGardenGraph(authUser.token)
+      const [payload, noteList] = await Promise.all([
+        userId
+          ? fetchPublicGardenGraph(userId, authUser.token)
+          : fetchGardenGraph(authUser.token),
+        userId
+          ? fetchPublicUserNotes(userId, authUser.token)
+          : fetchNotes(authUser.token),
+      ])
       if (!isMountedRef.current || !Array.isArray(payload?.nodes) || !Array.isArray(payload?.edges)) {
         return
       }
@@ -676,6 +851,10 @@ function GardenGraphView({
       mockGardenGraph.seedNodeIds = Array.isArray(payload.seedNodeIds) ? payload.seedNodeIds : []
       mockGardenGraph.nodes = payload.nodes
       mockGardenGraph.edges = payload.edges
+      noteMetadataByNodeIdRef.current = createNoteMetadataMapByNodeId(
+        Array.isArray(noteList) ? noteList : [],
+        payload.nodes,
+      )
       rebuildGraphIndexes()
 
       if (focusedNodeIdRef.current && !nodeById.has(focusedNodeIdRef.current)) {
@@ -926,7 +1105,7 @@ function GardenGraphView({
     setContextMenuState(null)
 
     if (targetNode.type === "note") {
-      const shouldDelete = window.confirm(`Delete note \"${targetNode.label}\"?`)
+      const shouldDelete = window.confirm(`Delete note "${targetNode.label}"?`)
       if (!shouldDelete) {
         return
       }
@@ -937,7 +1116,7 @@ function GardenGraphView({
 
     const linkedNotes = getTagLinkedNoteCount(targetNode.id)
     if (linkedNotes === 0) {
-      const shouldDelete = window.confirm(`Delete node \"${targetNode.label}\"?`)
+      const shouldDelete = window.confirm(`Delete node "${targetNode.label}"?`)
       if (!shouldDelete) {
         return
       }
@@ -1109,12 +1288,18 @@ function GardenGraphView({
       }
     }
 
-    graphContainerRef.current.addEventListener("contextmenu", handleNativeContextMenu, { capture: true })
+    const containerElement = graphContainerRef.current
+    containerElement?.addEventListener("contextmenu", handleNativeContextMenu, { capture: true })
     window.addEventListener("contextmenu", handleWindowContextMenuCapture, { capture: true })
 
     const cy = cytoscape({
       container: graphContainerRef.current,
-      elements: buildElementsForGraph(),
+      elements: buildElementsForGraph(
+        focusedNodeIdRef.current,
+        Boolean(focusedNodeIdRef.current) && notesVisibleForFocusRef.current,
+        graphSettingsRef.current,
+        noteMetadataByNodeIdRef.current,
+      ),
       layout: {
         name: "circle",
         animate: true,
@@ -1137,16 +1322,17 @@ function GardenGraphView({
             "background-height": "100%",
             label: "data(label)",
             color: "#ffffff",
-            "font-size": 15,
             "font-family": "Poppins, Segoe UI, sans-serif",
             "text-wrap": "wrap",
             "text-max-width": 110,
             "text-valign": "bottom",
             "text-halign": "center",
-            "text-margin-y": 18,
+            "text-margin-y": "data(labelMarginY)",
             "line-height": 1.2,
             width: "data(size)",
             height: "data(size)",
+            "font-size": "data(labelFontSize)",
+            "text-opacity": "mapData(labelVisible, 0, 1, 0, 1)",
             opacity: 1,
             "transition-property": "width height opacity",
             "transition-duration": "120ms",
@@ -1156,8 +1342,6 @@ function GardenGraphView({
           selector: 'node[type = "note"]',
           style: {
             "text-max-width": 90,
-            "font-size": 13,
-            "text-margin-y": 16,
           },
         },
         {
@@ -1239,6 +1423,7 @@ function GardenGraphView({
 
       const viewportCenter = getViewportCenterPosition(cy)
       const previousNodeStateById = forceNodeStateByIdRef.current
+      const displaySettings = resolveDisplaySettings(graphSettingsRef.current)
       const simulationNodes = cy.nodes().toArray().map((cyNode) => {
         const nodeId = cyNode.id()
         const previousState = previousNodeStateById.get(nodeId)
@@ -1250,7 +1435,7 @@ function GardenGraphView({
           y: position.y,
           vx: previousState?.vx ?? 0,
           vy: previousState?.vy ?? 0,
-          collisionRadius: computeNodeCollisionRadius(nodeId),
+          collisionRadius: computeNodeCollisionRadius(nodeId, displaySettings),
           chargeStrength: -380 - Math.min(340, getNodeConnectionCount(nodeId) * 18),
         }
       })
@@ -1264,7 +1449,7 @@ function GardenGraphView({
         return {
           source: sourceId,
           target: targetId,
-          distance: computeLinkTargetDistance(sourceId, targetId),
+          distance: computeLinkTargetDistanceWithSettings(sourceId, targetId, displaySettings),
           strength: 0.12 + Math.min(0.2, (sourceDegree + targetDegree) * 0.01),
         }
       })
@@ -1383,7 +1568,14 @@ function GardenGraphView({
         return
       }
 
+      const displaySettings = resolveDisplaySettings(graphSettingsRef.current)
+      if (!displaySettings.showLabels) {
+        cy.nodes().style("text-opacity", 0)
+        return
+      }
+
       const opacity = computeNoteLabelOpacity(cy.zoom())
+      cy.nodes('node[type != "note"]').style("text-opacity", 1)
       cy.nodes('node[type = "note"]').style("text-opacity", opacity)
     }
 
@@ -1408,6 +1600,8 @@ function GardenGraphView({
       const [nextNodes, nextEdges] = buildElementsForGraph(
         focusedNodeIdRef.current,
         Boolean(focusedNodeIdRef.current) && notesVisibleForFocusRef.current,
+        graphSettingsRef.current,
+        noteMetadataByNodeIdRef.current,
       ).reduce(
         (accumulator, element) => {
           if (element.data.source && element.data.target) {
@@ -1705,12 +1899,12 @@ function GardenGraphView({
       stopForceSimulation()
 
       window.removeEventListener("resize", handleResize)
-      graphContainerRef.current?.removeEventListener("contextmenu", handleNativeContextMenu, { capture: true })
+      containerElement?.removeEventListener("contextmenu", handleNativeContextMenu, { capture: true })
       window.removeEventListener("contextmenu", handleWindowContextMenuCapture, { capture: true })
       cy.removeListener("zoom", updateNoteLabelOpacity)
       cy.destroy()
     }
-  }, [initialFocusPathLabels, initialFocusStack, isReadOnly, navigate])
+  }, [initialFocusPathLabels, initialFocusStack, isReadOnly, navigate, userId])
 
   const moveTargetOptions = deleteDialogState
     ? [...nodeById.values()]

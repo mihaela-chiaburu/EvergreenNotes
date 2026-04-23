@@ -1,33 +1,122 @@
 import { useState } from "react"
 import "../../styles/components/garden/filter-panel.css"
 import arrow from "../../assets/images/arrow-down.png"
-import { useTagInput } from "../../hooks/useTagInput"
 
-function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
+const DEFAULT_GRAPH_SETTINGS = {
+  filters: {
+    visibility: [],
+    noteStatus: [],
+    careStatus: [],
+    tags: [],
+  },
+  display: {
+    nodeSize: 50,
+    labelFontSize: 16,
+    showLabels: true,
+  },
+}
+
+function GraphSettingsPanel({
+  setView,
+  isAnotherUserGarden = false,
+  graphSettings = DEFAULT_GRAPH_SETTINGS,
+  onGraphSettingsChange,
+}) {
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false)
   const [isViewOpen, setIsViewOpen] = useState(true)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
 
   const [selectedView, setSelectedView] = useState("graph")
+  const [tagInput, setTagInput] = useState("")
 
-  const [visibilityFilters, setVisibilityFilters] = useState([])
-  const [noteStatusFilters, setNoteStatusFilters] = useState([])
-  const [careStatusFilters, setCareStatusFilters] = useState([])
-  const { tags, tagInput, setTagInput, handleTagKeyDown, removeTag } = useTagInput([])
+  const visibilityFilters = graphSettings?.filters?.visibility || []
+  const noteStatusFilters = graphSettings?.filters?.noteStatus || []
+  const careStatusFilters = graphSettings?.filters?.careStatus || []
+  const tags = graphSettings?.filters?.tags || []
+  const nodeSize = graphSettings?.display?.nodeSize ?? DEFAULT_GRAPH_SETTINGS.display.nodeSize
+  const labelFontSize = graphSettings?.display?.labelFontSize ?? DEFAULT_GRAPH_SETTINGS.display.labelFontSize
+  const showLabels = graphSettings?.display?.showLabels ?? DEFAULT_GRAPH_SETTINGS.display.showLabels
 
-  const [nodeSize, setNodeSize] = useState(50)
-  const [labelFontSize, setLabelFontSize] = useState(16)
-  const [showLabels, setShowLabels] = useState(true)
+  const updateGraphSettings = (updater) => {
+    if (typeof onGraphSettingsChange !== "function") {
+      return
+    }
 
-  const toggleCheckboxValue = (value, setter) => {
-    setter((previousValues) => {
+    onGraphSettingsChange((previousSettings) => {
+      const safePrevious = previousSettings || DEFAULT_GRAPH_SETTINGS
+      return updater(safePrevious)
+    })
+  }
+
+  const toggleFilterValue = (value, filterKey) => {
+    updateGraphSettings((previousSettings) => {
+      const previousValues = previousSettings?.filters?.[filterKey] || []
       if (previousValues.includes(value)) {
-        return previousValues.filter((item) => item !== value)
+        return {
+          ...previousSettings,
+          filters: {
+            ...previousSettings.filters,
+            [filterKey]: previousValues.filter((item) => item !== value),
+          },
+        }
       }
 
-      return [...previousValues, value]
+      return {
+        ...previousSettings,
+        filters: {
+          ...previousSettings.filters,
+          [filterKey]: [...previousValues, value],
+        },
+      }
     })
+  }
+
+  const addTagFilter = () => {
+    const normalizedTag = tagInput.trim()
+    const normalizedTagSet = new Set(tags.map((tag) => String(tag).trim().toLowerCase()).filter(Boolean))
+
+    if (!normalizedTag || normalizedTagSet.has(normalizedTag.toLowerCase())) {
+      return
+    }
+
+    updateGraphSettings((previousSettings) => ({
+      ...previousSettings,
+      filters: {
+        ...previousSettings.filters,
+        tags: [...(previousSettings.filters?.tags || []), normalizedTag],
+      },
+    }))
+    setTagInput("")
+  }
+
+  const handleTagKeyDown = (event) => {
+    if (event.key !== "Enter") {
+      return
+    }
+
+    event.preventDefault()
+    addTagFilter()
+  }
+
+  const removeTag = (tagToRemove) => {
+    updateGraphSettings((previousSettings) => ({
+      ...previousSettings,
+      filters: {
+        ...previousSettings.filters,
+        tags: (previousSettings.filters?.tags || []).filter((tag) => tag !== tagToRemove),
+      },
+    }))
+  }
+
+  const updateDisplaySetting = (displayKey, value) => {
+    updateGraphSettings((previousSettings) => ({
+      ...previousSettings,
+      display: {
+        ...previousSettings.display,
+        [displayKey]: value,
+      },
+    }))
   }
 
   const handleViewSelection = (viewValue) => {
@@ -57,7 +146,7 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
       </div>
 
       {!isPanelCollapsed && (
-        <>
+        <div className="floating-control-panel__body">
           <section className="floating-control-panel__section">
         <button
           className="floating-control-panel__header"
@@ -125,7 +214,7 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
                   <input
                     type="checkbox"
                     checked={visibilityFilters.includes("public")}
-                    onChange={() => toggleCheckboxValue("public", setVisibilityFilters)}
+                    onChange={() => toggleFilterValue("public", "visibility")}
                   />
                   <span>Public</span>
                 </label>
@@ -133,7 +222,7 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
                   <input
                     type="checkbox"
                     checked={visibilityFilters.includes("private")}
-                    onChange={() => toggleCheckboxValue("private", setVisibilityFilters)}
+                    onChange={() => toggleFilterValue("private", "visibility")}
                   />
                   <span>Private</span>
                 </label>
@@ -147,7 +236,7 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
                   <input
                     type="checkbox"
                     checked={noteStatusFilters.includes("rough")}
-                    onChange={() => toggleCheckboxValue("rough", setNoteStatusFilters)}
+                    onChange={() => toggleFilterValue("rough", "noteStatus")}
                   />
                   <span>Rough</span>
                 </label>
@@ -155,7 +244,7 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
                   <input
                     type="checkbox"
                     checked={noteStatusFilters.includes("polished")}
-                    onChange={() => toggleCheckboxValue("polished", setNoteStatusFilters)}
+                    onChange={() => toggleFilterValue("polished", "noteStatus")}
                   />
                   <span>Polished</span>
                 </label>
@@ -163,7 +252,7 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
                   <input
                     type="checkbox"
                     checked={noteStatusFilters.includes("needs-care")}
-                    onChange={() => toggleCheckboxValue("needs-care", setNoteStatusFilters)}
+                    onChange={() => toggleFilterValue("needs-care", "noteStatus")}
                   />
                   <span>Needs care</span>
                 </label>
@@ -176,7 +265,7 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
                 <input
                   type="checkbox"
                   checked={careStatusFilters.includes("fresh")}
-                  onChange={() => toggleCheckboxValue("fresh", setCareStatusFilters)}
+                  onChange={() => toggleFilterValue("fresh", "careStatus")}
                 />
                 <span>Fresh</span>
               </label>
@@ -184,15 +273,23 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
                 <input
                   type="checkbox"
                   checked={careStatusFilters.includes("healthy")}
-                  onChange={() => toggleCheckboxValue("healthy", setCareStatusFilters)}
+                  onChange={() => toggleFilterValue("healthy", "careStatus")}
                 />
                 <span>Healthy</span>
               </label>
               <label className="floating-control-panel__check-item">
                 <input
                   type="checkbox"
+                  checked={careStatusFilters.includes("pale")}
+                  onChange={() => toggleFilterValue("pale", "careStatus")}
+                />
+                <span>Pale</span>
+              </label>
+              <label className="floating-control-panel__check-item">
+                <input
+                  type="checkbox"
                   checked={careStatusFilters.includes("dry")}
-                  onChange={() => toggleCheckboxValue("dry", setCareStatusFilters)}
+                  onChange={() => toggleFilterValue("dry", "careStatus")}
                 />
                 <span>Dry</span>
               </label>
@@ -254,7 +351,7 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
                 min="1"
                 max="100"
                 value={nodeSize}
-                onChange={(event) => setNodeSize(Number(event.target.value))}
+                onChange={(event) => updateDisplaySetting("nodeSize", Number(event.target.value))}
               />
             </label>
 
@@ -266,7 +363,7 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
                 min="8"
                 max="40"
                 value={labelFontSize}
-                onChange={(event) => setLabelFontSize(Number(event.target.value))}
+                onChange={(event) => updateDisplaySetting("labelFontSize", Number(event.target.value))}
               />
             </label>
 
@@ -276,7 +373,7 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
                 <input
                   type="checkbox"
                   checked={showLabels}
-                  onChange={() => setShowLabels((currentValue) => !currentValue)}
+                  onChange={() => updateDisplaySetting("showLabels", !showLabels)}
                 />
                 <span className="floating-control-panel__switch-track" />
               </label>
@@ -284,7 +381,7 @@ function GraphSettingsPanel({ setView, isAnotherUserGarden = false }) {
           </div>
         )}
           </section>
-        </>
+        </div>
       )}
     </aside>
   )
