@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom"
 import "../styles/navbar.css"
 import { useDismiss } from "../hooks/useDismiss"
 import { useAuth } from "../context/AuthContext"
+import { useSearch } from "../context/SearchContext"
+import DebouncedSearchInput from "./search/DebouncedSearchInput"
 
 import sprout from "../assets/images/sprout.png"
 import explore from "../assets/images/application (1).png"
@@ -18,7 +20,8 @@ import avatar from "../assets/images/avatar.jpg"
 function Navbar({ onOpenSettingsModal }) {
   const location = useLocation()
   const navigate = useNavigate()
-  const { authUser, isAuthenticated, logout } = useAuth()
+  const { authUser, logout } = useAuth()
+  const { gardenSearchQuery, setGardenSearchQuery, exploreSearchQuery, setExploreSearchQuery, viewMode, setViewMode } = useSearch()
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isVisibilityMenuOpen, setIsVisibilityMenuOpen] = useState(false)
   const [visibility, setVisibility] = useState("Private")
@@ -60,10 +63,30 @@ function Navbar({ onOpenSettingsModal }) {
   }
 
   const currentPath = location.pathname.replace(/\/+$/, "") || "/"
-  const isGardenSelected = currentPath === "/" || currentPath === "/garden"
+  const isGardenSelected = currentPath === "/" || currentPath.startsWith("/garden")
+  const isGardenContext = currentPath === "/" || currentPath.startsWith("/garden")
   const isExploreSelected = currentPath === "/explore"
   const isGardenCareSelected = currentPath === "/garden-care"
-  const searchPlaceholder = isExploreSelected ? "Search users..." : "Search notes..."
+  const isSearchVisible = isGardenContext || isExploreSelected
+  const searchPlaceholder = isExploreSelected ? "Search users..." : "Search notes in your garden..."
+  const searchValue = isExploreSelected ? exploreSearchQuery : gardenSearchQuery
+
+  const handleSearchChange = (nextValue) => {
+    if (isExploreSelected) {
+      setExploreSearchQuery(nextValue)
+      return
+    }
+
+    if (isGardenContext) {
+      // when user starts typing, force list view; when cleared, revert to graph
+      if (nextValue?.trim()) {
+        setViewMode("list")
+      } else {
+        setViewMode("graph")
+      }
+      setGardenSearchQuery(nextValue)
+    }
+  }
 
   return (
     <nav className="navbar">
@@ -135,14 +158,17 @@ function Navbar({ onOpenSettingsModal }) {
         </Link>
       </div>
       <div className="navbar__search-wrapper">
-        <div className="navbar__search">
-          <img src={search} alt="search icon" className="navbar__search-icon" />
-          <input 
-            type="text" 
+        {isSearchVisible ? (
+          <DebouncedSearchInput
+            value={searchValue}
             placeholder={searchPlaceholder}
-            className="navbar__search-input" 
+            debounceMs={300}
+            onDebouncedChange={handleSearchChange}
+            iconSrc={search}
+            iconAlt="search icon"
+            inputClassName="navbar__search"
           />
-        </div>
+        ) : null}
         <div className="dropdown dropdown--visibility" ref={visibilityDropdownRef}>
           <button
             type="button"

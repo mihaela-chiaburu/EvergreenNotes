@@ -6,6 +6,7 @@ import GardenGraphView from "../components/garden/GardenGraphView"
 import GraphSettingsPanel from "../components/garden/GraphSettingsPanel"
 import AddNoteInput from "../components/garden/AddNoteInput"
 import UserBio from "../components/garden/UserBio"
+import { useSearch } from "../context/SearchContext"
 import "../styles/pages/garden.css"
 
 const DEFAULT_GRAPH_SETTINGS = {
@@ -24,7 +25,7 @@ const DEFAULT_GRAPH_SETTINGS = {
 
 function GardenPage() {
   const location = useLocation()
-  const [view, setView] = useState(location.state?.view || "graph")
+  const { gardenSearchQuery, viewMode, setViewMode } = useSearch()
   const [focusPathLabels, setFocusPathLabels] = useState(Array.isArray(location.state?.focusPathLabels) ? location.state.focusPathLabels : [])
   const [graphRefreshTick, setGraphRefreshTick] = useState(0)
   const [graphSettings, setGraphSettings] = useState(DEFAULT_GRAPH_SETTINGS)
@@ -47,7 +48,7 @@ function GardenPage() {
       <div className="garden-page">
         <UserBio />
 
-        {view === "graph" && (
+        {viewMode === "graph" && (
           <GardenGraphView
             initialFocusStack={initialFocusStack}
             initialFocusPathLabels={initialFocusPathLabels}
@@ -56,16 +57,16 @@ function GardenPage() {
             graphSettings={graphSettings}
           />
         )}
-        {view === "list" && <GardenListView graphSettings={graphSettings} />}
+        {viewMode === "list" && <GardenListView graphSettings={graphSettings} searchQuery={gardenSearchQuery} />}
 
         <GraphSettingsPanel
-          setView={setView}
+          setView={setViewMode}
           graphSettings={graphSettings}
           onGraphSettingsChange={setGraphSettings}
         />
 
         <AddNoteInput
-          contextPathTags={view === "graph" ? focusPathLabels : []}
+          contextPathTags={viewMode === "graph" ? focusPathLabels : []}
           onCreated={() => setGraphRefreshTick((currentValue) => currentValue + 1)}
         />
       </div>

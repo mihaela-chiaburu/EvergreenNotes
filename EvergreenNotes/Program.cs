@@ -74,6 +74,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<INoteService, NoteService>();
+builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<IConnectionService, ConnectionService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<IGardenService, GardenService>();

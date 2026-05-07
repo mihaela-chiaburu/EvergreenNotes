@@ -6,6 +6,7 @@ import ExploreSection from "../components/explore/ExploreSection"
 import LoginModal from "../components/modals/LoginModal"
 import RegisterModal from "../components/modals/RegisterModal"
 import { useAuth } from "../context/AuthContext"
+import { useSearch } from "../context/SearchContext"
 import logo from "../assets/images/logo.png"
 import exploreIcon from "../assets/images/application (1).png"
 import sproutIcon from "../assets/images/sprout.png"
@@ -15,6 +16,7 @@ import "../styles/pages/landing.css"
 function ExplorePage() {
   const navigate = useNavigate()
   const { isAuthenticated, establishSession, logout } = useAuth()
+  const { exploreSearchQuery } = useSearch()
   const [authModal, setAuthModal] = useState(null)
   const [filters, setFilters] = useState({
     minNotes: "",
@@ -94,7 +96,7 @@ function ExplorePage() {
 
         <div className="explore-page">
           <FilterPanel filters={filters} onFiltersChange={handleFiltersChange} />
-          <ExploreSection isPublicView filters={filters} />
+          <ExploreSection isPublicView filters={filters} searchQuery={exploreSearchQuery} />
         </div>
 
         <LoginModal
@@ -118,7 +120,7 @@ function ExplorePage() {
     <Layout>
       <div className="explore-page">
         <FilterPanel filters={filters} onFiltersChange={handleFiltersChange} />
-        <ExploreSection filters={filters} />
+        <ExploreSection filters={filters} searchQuery={exploreSearchQuery} />
       </div>
     </Layout>
   )

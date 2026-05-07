@@ -71,6 +71,25 @@ export async function fetchPublicUserNotes(userId, token) {
   return Array.isArray(payload) ? payload.map(mapNoteToViewModel) : []
 }
 
+export async function searchGardenNotes(token, { query = "", userId } = {}) {
+  const normalizedUserId = String(userId || "").trim()
+  if (!normalizedUserId) {
+    return []
+  }
+
+  const queryValue = typeof query === "string" ? query : ""
+  const params = new URLSearchParams({
+    userId: normalizedUserId,
+    query: queryValue,
+  })
+
+  const payload = await apiRequest(`/api/search/notes?${params.toString()}`, {
+    token,
+  })
+
+  return Array.isArray(payload) ? payload.map(mapNoteToViewModel) : []
+}
+
 export async function fetchNoteById(token, noteId) {
   const payload = await apiRequest(`/api/notes/${noteId}`, {
     token,

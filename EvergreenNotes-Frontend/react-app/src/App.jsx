@@ -10,12 +10,14 @@ import NotePage from "./pages/NotePage"
 import HelpPage from "./pages/HelpPage"
 import ProtectedRoute from "./components/auth/ProtectedRoute"
 import { AuthProvider } from "./context/AuthContext"
+import { SearchProvider } from "./context/SearchContext"
 
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+      <SearchProvider>
+        <BrowserRouter>
+          <Routes>
           {/* Garden */}
           <Route path="/" element={
             <LandingPage />
@@ -76,8 +78,9 @@ function App() {
               <UserPage />
             </Layout>
           } />*/}
-        </Routes>
-      </BrowserRouter>
+          </Routes>
+        </BrowserRouter>
+      </SearchProvider>
     </AuthProvider>
   )
 }

@@ -6,6 +6,7 @@ import GardenGraphView from "../components/garden/GardenGraphView"
 import GraphSettingsPanel from "../components/garden/GraphSettingsPanel"
 import AnotherUserCardDropdown from "../components/garden/AnotherUserCardDropdown"
 import { useAuth } from "../context/AuthContext"
+import { useSearch } from "../context/SearchContext"
 import { fetchPublicGarden } from "../utils/garden"
 import {
 	fetchFollowingUsers,
@@ -30,7 +31,6 @@ const DEFAULT_GRAPH_SETTINGS = {
 }
 
 function UserGarden() {
-	const [view, setView] = useState("graph")
 	const [activeUser, setActiveUser] = useState(null)
 	const [isFollowLoading, setIsFollowLoading] = useState(false)
 	const [followError, setFollowError] = useState("")
@@ -38,6 +38,7 @@ function UserGarden() {
 	const { userId } = useParams()
 	const location = useLocation()
 	const { authUser } = useAuth()
+	const { gardenSearchQuery, viewMode, setViewMode } = useSearch()
 	const isOwnGarden = String(activeUser?.userId ?? "") === String(authUser?.id ?? "")
 
 	useEffect(() => {
@@ -142,11 +143,11 @@ function UserGarden() {
 					isOwnGarden={isOwnGarden}
 				/>
 
-				{view === "graph" && <GardenGraphView userId={activeUser.userId} isReadOnly graphSettings={graphSettings} />}
-				{view === "list" && <GardenListView userId={activeUser.userId} isReadOnly graphSettings={graphSettings} />}
+				{viewMode === "graph" && <GardenGraphView userId={activeUser.userId} isReadOnly graphSettings={graphSettings} />}
+				{viewMode === "list" && <GardenListView userId={activeUser.userId} isReadOnly graphSettings={graphSettings} searchQuery={gardenSearchQuery} />}
 
 				<GraphSettingsPanel
-					setView={setView}
+					setView={setViewMode}
 					isAnotherUserGarden
 					graphSettings={graphSettings}
 					onGraphSettingsChange={setGraphSettings}

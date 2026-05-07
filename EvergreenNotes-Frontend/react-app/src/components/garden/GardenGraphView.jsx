@@ -8,7 +8,7 @@ import sproutttt from "../../assets/images/sproutttt.png"
 import noteFlowerMedium2 from "../../assets/images/note-flower-medium2.png"
 import noteTreeBig1 from "../../assets/images/note-tree-big1.png"
 import { useAuth } from "../../context/AuthContext"
-import { deleteNote, fetchNoteById, fetchNotes, fetchPublicUserNotes, updateNote } from "../../utils/notes"
+import { deleteNote, fetchNoteById, updateNote } from "../../utils/notes"
 import { createTaxonomyTag, searchTaxonomyTags } from "../../utils/taxonomy"
 import { deleteTagNode, fetchGardenGraph, fetchPublicGardenGraph, renameTagNode } from "../../utils/garden"
 import "../../styles/components/garden/graph-view.css"
@@ -109,6 +109,16 @@ function normalizeGraphSettings(settings) {
 function resolveDisplaySettings(graphSettings) {
   const normalizedSettings = normalizeGraphSettings(graphSettings)
   return normalizedSettings.display
+}
+
+function toGraphNodeIdCandidates(noteId) {
+  const rawId = String(noteId || "").trim().toLowerCase()
+  if (!rawId) {
+    return []
+  }
+
+  const compactId = rawId.replace(/-/g, "")
+  return [...new Set([`note-${rawId}`, `note-${compactId}`])]
 }
 
 function createNoteMetadataMapByNodeId(notes = [], graphNodes = []) {
@@ -438,11 +448,14 @@ function buildElementsForGraph(
   showFocusedTagNotes = false,
   graphSettings = DEFAULT_GRAPH_SETTINGS,
   noteMetadataByNodeId = new Map(),
+  searchMatchedNoteNodeIds = null,
 ) {
   const normalizedSettings = normalizeGraphSettings(graphSettings)
   const displaySettings = normalizedSettings.display
   const { visibility, noteStatus, careStatus, tags } = normalizedSettings.filters
-  const hasActiveFilters = visibility.length > 0 || noteStatus.length > 0 || careStatus.length > 0 || tags.length > 0
+  // Graph does not react to search filtering — list view is canonical for search results.
+  const hasSearchFilter = false
+  const hasActiveFilters = visibility.length > 0 || noteStatus.length > 0 || careStatus.length > 0 || tags.length > 0 || hasSearchFilter
 
   const seedNodeIdSet = getSeedNodeIdSet()
   const allNoteIds = [...nodeById.values()].filter((node) => node.type === "note").map((node) => node.id)
@@ -450,6 +463,10 @@ function buildElementsForGraph(
   const noteMatchesFilters = (noteId) => {
     if (!hasActiveFilters) {
       return true
+    }
+
+    if (hasSearchFilter && !searchMatchedNoteNodeIds.has(noteId)) {
+      return false
     }
 
     const metadata = noteMetadataByNodeId.get(noteId) || {
@@ -519,6 +536,10 @@ function buildElementsForGraph(
       return tagIdsLinkedToFilteredNotes.has(tagId) || selectedTagNodeIds.has(tagId)
     }),
   )
+
+  if (focusTagId) {
+    visibleTagIds.add(focusTagId)
+  }
 
   selectedTagNodeIds.forEach((tagId) => {
     visibleTagIds.add(tagId)
@@ -789,11 +810,13 @@ function GardenGraphView({
   const graphSettingsRef = useRef(normalizeGraphSettings(graphSettings))
   const noteMetadataByNodeIdRef = useRef(new Map())
   const isMountedRef = useRef(true)
+  const initialFocusAppliedRef = useRef(false)
   const contextMenuRef = useRef(null)
 
   const [contextMenuState, setContextMenuState] = useState(null)
   const [editingNodeState, setEditingNodeState] = useState(null)
   const [deleteDialogState, setDeleteDialogState] = useState(null)
+
   const editingNodeIdRef = useRef(null)
   const [focusedNodeSummary, setFocusedNodeSummary] = useState(null)
   const navigate = useNavigate()
@@ -835,15 +858,16 @@ function GardenGraphView({
       return
     }
 
+    const gardenOwnerId = userId || authUser?.id
+    if (!gardenOwnerId) {
+      return
+    }
+
     try {
-      const [payload, noteList] = await Promise.all([
-        userId
-          ? fetchPublicGardenGraph(userId, authUser.token)
-          : fetchGardenGraph(authUser.token),
-        userId
-          ? fetchPublicUserNotes(userId, authUser.token)
-          : fetchNotes(authUser.token),
-      ])
+      const payload = userId
+        ? await fetchPublicGardenGraph(userId, authUser.token)
+        : await fetchGardenGraph(authUser.token)
+
       if (!isMountedRef.current || !Array.isArray(payload?.nodes) || !Array.isArray(payload?.edges)) {
         return
       }
@@ -851,10 +875,8 @@ function GardenGraphView({
       mockGardenGraph.seedNodeIds = Array.isArray(payload.seedNodeIds) ? payload.seedNodeIds : []
       mockGardenGraph.nodes = payload.nodes
       mockGardenGraph.edges = payload.edges
-      noteMetadataByNodeIdRef.current = createNoteMetadataMapByNodeId(
-        Array.isArray(noteList) ? noteList : [],
-        payload.nodes,
-      )
+      // Keep graph independent from search results — no filtering based on search.
+      noteMetadataByNodeIdRef.current = createNoteMetadataMapByNodeId([], payload.nodes)
       rebuildGraphIndexes()
 
       if (focusedNodeIdRef.current && !nodeById.has(focusedNodeIdRef.current)) {
@@ -869,7 +891,7 @@ function GardenGraphView({
     } catch {
       // Keep mock fallback if graph API fails.
     }
-  }, [authUser?.token, userId])
+  }, [authUser?.id, authUser?.token, userId])
 
   useEffect(() => {
     loadGraphData()
@@ -1255,6 +1277,37 @@ function GardenGraphView({
   }, [cancelInlineRename, editingNodeState?.nodeId, getEditingInputAnchor])
 
   useEffect(() => {
+    if (!cyRef.current) {
+      return
+    }
+
+    if (initialFocusAppliedRef.current) {
+      return
+    }
+
+    initialFocusAppliedRef.current = true
+
+    const nextFocusNodeId = resolveInitialFocusNodeId(initialFocusStack, initialFocusPathLabels)
+    if (focusedNodeIdRef.current === nextFocusNodeId) {
+      return
+    }
+
+    focusedNodeIdRef.current = nextFocusNodeId
+    notesVisibleForFocusRef.current = Boolean(nextFocusNodeId)
+
+    if (nextFocusNodeId && nodeById.has(nextFocusNodeId)) {
+      const focusNode = nodeById.get(nextFocusNodeId)
+      setFocusedNodeSummary({ id: focusNode.id, label: focusNode.label, type: focusNode.type })
+    } else {
+      setFocusedNodeSummary(null)
+    }
+
+    if (typeof syncGraphElementsRef.current === "function") {
+      syncGraphElementsRef.current({ shouldFit: false })
+    }
+  }, [initialFocusPathLabels, initialFocusStack])
+
+  useEffect(() => {
     if (!graphContainerRef.current) {
       return undefined
     }
@@ -1299,6 +1352,7 @@ function GardenGraphView({
         Boolean(focusedNodeIdRef.current) && notesVisibleForFocusRef.current,
         graphSettingsRef.current,
         noteMetadataByNodeIdRef.current,
+        null,
       ),
       layout: {
         name: "circle",
@@ -1474,7 +1528,7 @@ function GardenGraphView({
         }
 
         cy.batch(() => {
-          simulationNodes.forEach((simulationNode) => {
+          simulation.nodes().forEach((simulationNode) => {
             const cyNode = cy.getElementById(simulationNode.id)
             if (cyNode.empty()) {
               return
@@ -1499,7 +1553,7 @@ function GardenGraphView({
 
       simulation.on("end", () => {
         forceNodeStateByIdRef.current = new Map(
-          simulationNodes.map((node) => [
+          simulation.nodes().map((node) => [
             node.id,
             {
               x: node.x,
@@ -1513,6 +1567,77 @@ function GardenGraphView({
 
       forceSimulationRef.current = simulation
       forceNodeByIdRef.current = new Map(simulationNodes.map((node) => [node.id, node]))
+    }
+
+    const updateForceSimulation = ({ alpha = D3_ALPHA_REHEAT, alphaTarget = D3_IDLE_ALPHA_TARGET } = {}) => {
+      if (isCyDestroyed || cy.destroyed()) {
+        return
+      }
+
+      const existingSimulation = forceSimulationRef.current
+      if (!existingSimulation) {
+        startForceSimulation({ alpha })
+        return
+      }
+
+      const viewportCenter = getViewportCenterPosition(cy)
+      const displaySettings = resolveDisplaySettings(graphSettingsRef.current)
+      const previousNodeStateById = forceNodeStateByIdRef.current
+      const previousSimulationNodes = new Map((existingSimulation.nodes() || []).map((node) => [node.id, node]))
+
+      const nextSimulationNodes = cy.nodes().toArray().map((cyNode) => {
+        const nodeId = cyNode.id()
+        const position = cyNode.position()
+        const previousState = previousNodeStateById.get(nodeId)
+        const existingNode = previousSimulationNodes.get(nodeId)
+
+        return {
+          id: nodeId,
+          x: position.x,
+          y: position.y,
+          vx: existingNode?.vx ?? previousState?.vx ?? 0,
+          vy: existingNode?.vy ?? previousState?.vy ?? 0,
+          collisionRadius: computeNodeCollisionRadius(nodeId, displaySettings),
+          chargeStrength: -380 - Math.min(340, getNodeConnectionCount(nodeId) * 18),
+        }
+      })
+
+      const nextSimulationLinks = cy.edges().toArray().map((cyEdge) => {
+        const sourceId = cyEdge.source().id()
+        const targetId = cyEdge.target().id()
+        const sourceDegree = getNodeConnectionCount(sourceId)
+        const targetDegree = getNodeConnectionCount(targetId)
+
+        return {
+          source: sourceId,
+          target: targetId,
+          distance: computeLinkTargetDistanceWithSettings(sourceId, targetId, displaySettings),
+          strength: 0.12 + Math.min(0.2, (sourceDegree + targetDegree) * 0.01),
+        }
+      })
+
+      existingSimulation
+        .nodes(nextSimulationNodes)
+        .force("charge", forceManyBody().strength((node) => node.chargeStrength).distanceMax(D3_MANY_BODY_DISTANCE_MAX))
+        .force(
+          "link",
+          forceLink(nextSimulationLinks)
+            .id((node) => node.id)
+            .distance((link) => link.distance)
+            .strength((link) => link.strength),
+        )
+        .force("center", forceCenter(viewportCenter.x, viewportCenter.y))
+        .force("centerX", forceX(viewportCenter.x).strength(D3_CENTER_STRENGTH))
+        .force("centerY", forceY(viewportCenter.y).strength(D3_CENTER_STRENGTH))
+        .force(
+          "collision",
+          forceCollide().radius((node) => node.collisionRadius).strength(D3_COLLIDE_STRENGTH).iterations(2),
+        )
+        .alpha(Math.max(existingSimulation.alpha(), alpha))
+        .alphaTarget(alphaTarget)
+        .restart()
+
+      forceNodeByIdRef.current = new Map(nextSimulationNodes.map((node) => [node.id, node]))
     }
 
     const reheatForceSimulation = ({ alpha = D3_ALPHA_REHEAT, alphaTarget = D3_DRAG_ALPHA_TARGET } = {}) => {
@@ -1574,9 +1699,8 @@ function GardenGraphView({
         return
       }
 
-      const opacity = computeNoteLabelOpacity(cy.zoom())
-      cy.nodes('node[type != "note"]').style("text-opacity", 1)
-      cy.nodes('node[type = "note"]').style("text-opacity", opacity)
+      const opacity = computeNoteLabelOpacity(cy.zoom() + 0.3)
+      cy.nodes().style("text-opacity", opacity)
     }
 
     pinNodeInSimulationRef.current = pinNodeInSimulation
@@ -1602,6 +1726,7 @@ function GardenGraphView({
         Boolean(focusedNodeIdRef.current) && notesVisibleForFocusRef.current,
         graphSettingsRef.current,
         noteMetadataByNodeIdRef.current,
+        null,
       ).reduce(
         (accumulator, element) => {
           if (element.data.source && element.data.target) {
@@ -1622,7 +1747,9 @@ function GardenGraphView({
       const previousPositionsByNodeId = captureNodePositionsById(cy)
 
       stopActiveLayout()
-      stopForceSimulation()
+      if (shouldFit) {
+        stopForceSimulation()
+      }
 
       cy.batch(() => {
         cy.edges().forEach((edge) => {
@@ -1694,10 +1821,6 @@ function GardenGraphView({
             activeLayoutRef.current = null
           }
 
-          arrangeFocusedNotesAroundTag(
-            cy,
-            Boolean(focusedNodeIdRef.current) && notesVisibleForFocusRef.current ? focusedNodeIdRef.current : null,
-          )
           startForceSimulation({ alpha: D3_ALPHA_REHEAT })
           updateNoteLabelOpacity()
         })
@@ -1709,12 +1832,7 @@ function GardenGraphView({
       cy.pan(viewportPan)
 
       const hasFocusNotesVisible = Boolean(focusedNodeIdRef.current) && notesVisibleForFocusRef.current
-      arrangeFocusedNotesAroundTag(
-        cy,
-        hasFocusNotesVisible ? focusedNodeIdRef.current : null,
-      )
-
-      startForceSimulation({ alpha: hasFocusNotesVisible ? D3_ALPHA_REHEAT : D3_ALPHA_INITIAL })
+      updateForceSimulation({ alpha: D3_ALPHA_REHEAT, alphaTarget: D3_IDLE_ALPHA_TARGET })
       updateNoteLabelOpacity()
     }
 
@@ -1846,10 +1964,7 @@ function GardenGraphView({
         return
       }
 
-      const previousFocusedNodeId = focusedNodeIdRef.current
-
-      if (previousFocusedNodeId === nodeData.id) {
-        focusedNodeIdRef.current = nodeData.id
+      if (focusedNodeIdRef.current === nodeData.id) {
         notesVisibleForFocusRef.current = !notesVisibleForFocusRef.current
       } else {
         focusedNodeIdRef.current = nodeData.id
@@ -1859,7 +1974,7 @@ function GardenGraphView({
       setFocusedNodeSummary(
         focusedNodeIdRef.current
           ? {
-              id: nodeData.id,
+              id: focusedNodeIdRef.current,
               label: nodeData.label,
               type: nodeData.type,
             }
@@ -1876,10 +1991,6 @@ function GardenGraphView({
         return
       }
 
-      arrangeFocusedNotesAroundTag(
-        cy,
-        Boolean(focusedNodeIdRef.current) && notesVisibleForFocusRef.current ? focusedNodeIdRef.current : null,
-      )
       startForceSimulation({ alpha: D3_ALPHA_INITIAL })
       updateNoteLabelOpacity()
     })
@@ -1904,7 +2015,7 @@ function GardenGraphView({
       cy.removeListener("zoom", updateNoteLabelOpacity)
       cy.destroy()
     }
-  }, [initialFocusPathLabels, initialFocusStack, isReadOnly, navigate, userId])
+  }, [isReadOnly, navigate, userId])
 
   const moveTargetOptions = deleteDialogState
     ? [...nodeById.values()]
@@ -1929,6 +2040,7 @@ function GardenGraphView({
           </span>
         </div>
       ) : null}
+      {/* Graph view is independent of search; search results appear in List view. */}
       <div
         ref={graphContainerRef}
         className="garden-graph-view__canvas"

@@ -5,7 +5,7 @@ import leafSvg from "../../assets/images/leaf.svg"
 import "../../styles/components/garden/list-view.css"
 import NoteCard from "../notes/NoteCard"
 import { useAuth } from "../../context/AuthContext"
-import { fetchNotes, fetchPublicUserNotes } from "../../utils/notes"
+import { searchGardenNotes } from "../../utils/notes"
 
 const DEFAULT_GRAPH_SETTINGS = {
   filters: {
@@ -28,7 +28,7 @@ function normalizeCare(value) {
   return String(value || "").trim().toLowerCase().replace(/\s+/g, "-")
 }
 
-function GardenListView({ userId = null, isReadOnly = false, graphSettings = DEFAULT_GRAPH_SETTINGS }) {
+function GardenListView({ userId = null, isReadOnly = false, graphSettings = DEFAULT_GRAPH_SETTINGS, searchQuery = "" }) {
   const navigate = useNavigate()
   const { authUser } = useAuth()
   const [notes, setNotes] = useState([])
@@ -43,13 +43,20 @@ function GardenListView({ userId = null, isReadOnly = false, graphSettings = DEF
         return
       }
 
+      const gardenOwnerId = userId || authUser?.id
+      if (!gardenOwnerId) {
+        return
+      }
+
       setIsLoading(true)
       setError("")
 
       try {
-        const fetchedNotes = userId
-          ? await fetchPublicUserNotes(userId, authUser.token)
-          : await fetchNotes(authUser.token)
+        const fetchedNotes = await searchGardenNotes(authUser.token, {
+          query: searchQuery,
+          userId: gardenOwnerId,
+        })
+
         if (isMounted) {
           setNotes(fetchedNotes)
         }
@@ -69,7 +76,7 @@ function GardenListView({ userId = null, isReadOnly = false, graphSettings = DEF
     return () => {
       isMounted = false
     }
-  }, [authUser?.token, userId])
+  }, [authUser?.id, authUser?.token, searchQuery, userId])
 
   const filteredNotes = useMemo(() => {
     const filters = graphSettings?.filters || {}
@@ -180,7 +187,7 @@ function GardenListView({ userId = null, isReadOnly = false, graphSettings = DEF
           />
         ))}
         {!isLoading && !error && filteredNotes.length === 0 ? (
-          <p className="garden-list-view__error">No notes match the selected filters.</p>
+          <p className="garden-list-view__error">No results found.</p>
         ) : null}
       </div>
     </div>

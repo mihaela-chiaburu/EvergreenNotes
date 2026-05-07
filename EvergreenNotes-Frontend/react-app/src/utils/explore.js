@@ -73,6 +73,14 @@ export async function fetchExploreGardens({ token, interest } = {}) {
   return apiRequest(`/api/gardens/explore${query}`, { token })
 }
 
+export async function searchExploreUsers({ token, query = "" } = {}) {
+  const params = new URLSearchParams({
+    query: typeof query === "string" ? query : "",
+  })
+
+  return apiRequest(`/api/search/users?${params.toString()}`, { token })
+}
+
 export async function fetchFollowingUsers(token) {
   if (!token) {
     return []

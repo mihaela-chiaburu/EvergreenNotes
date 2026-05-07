@@ -4,7 +4,7 @@ import CategoryCard from "./CategoryCard"
 import GardenCard from "./GardenCard"
 import Pagination from "./Pagination"
 import { useAuth } from "../../context/AuthContext"
-import { fetchExploreGardens, fetchFollowingUsers, mapExploreGarden } from "../../utils/explore"
+import { fetchFollowingUsers, mapExploreGarden, searchExploreUsers } from "../../utils/explore"
 import "../../styles/components/explore/explore-section.css"
 
 const TAB_OPTIONS = ["Trending", "New", "Following"]
@@ -22,7 +22,7 @@ function resolveGardenSizeState(noteCount) {
   return "fresh"
 }
 
-function ExploreSection({ isPublicView = false, filters = {} }) {
+function ExploreSection({ isPublicView = false, filters = {}, searchQuery = "" }) {
   const navigate = useNavigate()
   const { authUser } = useAuth()
   const [gardens, setGardens] = useState([])
@@ -43,7 +43,7 @@ function ExploreSection({ isPublicView = false, filters = {} }) {
 
       try {
         const [gardensPayload, followingPayload] = await Promise.all([
-          fetchExploreGardens({ token: authUser?.token }),
+          searchExploreUsers({ token: authUser?.token, query: searchQuery }),
           authUser?.token ? fetchFollowingUsers(authUser.token) : Promise.resolve([]),
         ])
 
@@ -74,7 +74,7 @@ function ExploreSection({ isPublicView = false, filters = {} }) {
     return () => {
       isMounted = false
     }
-  }, [authUser?.token])
+  }, [authUser?.token, searchQuery])
 
   const gardensByTab = useMemo(() => ({
     Trending: [...gardens].sort((firstGarden, secondGarden) => secondGarden.noteCount - firstGarden.noteCount),
@@ -227,7 +227,7 @@ function ExploreSection({ isPublicView = false, filters = {} }) {
                 />
               ))}
               {!isLoading && !error && paginatedGardens.length === 0 && (
-                <p className="explore-section__empty">No gardens found for this view.</p>
+                <p className="explore-section__empty">No results found.</p>
               )}
             </div>
           </div>
