@@ -3,6 +3,7 @@ using EvergreenNotes.Domain.Entities;
 using EvergreenNotes.Domain.Interfaces;
 using EvergreenNotes.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -22,6 +23,11 @@ namespace EvergreenNotes.Application.Services
 
         public async Task<NoteResponse> CreateNoteAsync(Guid userId, CreateNoteRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.Title))
+            {
+                throw new ValidationException("Title is required.");
+            }
+
             var note = new Note
             {
                 UserId = userId,
