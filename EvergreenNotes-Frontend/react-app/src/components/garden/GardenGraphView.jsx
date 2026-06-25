@@ -38,6 +38,8 @@ const ORBIT_MAIN_CLEARANCE = 26
 const ORBIT_MIN_NODE_SPACING = 34
 const ORBIT_NOTES_BASE_RADIUS = 130
 const DEFAULT_FALLBACK_TAG_NAME = "Uncategorized"
+const DEFAULT_SIMPLE_TAG_COLOR = "#7da37b"
+const DEFAULT_SIMPLE_NOTE_COLOR = "#8aa2c7"
 const EMPTY_FOCUS_STACK = []
 const EMPTY_FOCUS_PATH_LABELS = []
 const DEFAULT_GRAPH_SETTINGS = {
@@ -51,6 +53,7 @@ const DEFAULT_GRAPH_SETTINGS = {
     nodeSize: 50,
     labelFontSize: 16,
     showLabels: true,
+    useStylizedNodes: true,
   },
 }
 
@@ -102,6 +105,7 @@ function normalizeGraphSettings(settings) {
       nodeSize: clamp(Number(display.nodeSize) || DEFAULT_GRAPH_SETTINGS.display.nodeSize, 1, 100),
       labelFontSize: clamp(Number(display.labelFontSize) || DEFAULT_GRAPH_SETTINGS.display.labelFontSize, 8, 40),
       showLabels: display.showLabels !== false,
+      useStylizedNodes: display.useStylizedNodes !== false,
     },
   }
 }
@@ -207,16 +211,19 @@ function getNodeConnectionCount(nodeId) {
 }
 
 function computeNodeSize(node, displaySettings = DEFAULT_GRAPH_SETTINGS.display) {
-  const noteSize = 18 + (displaySettings.nodeSize / 100) * 36
-  const tagMinSize = 34 + (displaySettings.nodeSize / 100) * 56
-  const tagMaxSize = tagMinSize + 40
+  const noteMinSize = 10 + (displaySettings.nodeSize / 100) * 26
+  const noteMaxSize = noteMinSize + 350
+  const tagMinSize = 27 + (displaySettings.nodeSize / 100) * 52
+  const tagMaxSize = tagMinSize + 74
 
   if (node.type === "note") {
-    return noteSize
+    const boundedConnectionCount = Math.max(1, Math.min(getNodeConnectionCount(node.id), 16))
+    const ratio = (boundedConnectionCount - 1) / 15
+    return noteMinSize + ratio * (noteMaxSize - noteMinSize)
   }
 
-  const boundedConnectionCount = Math.max(1, Math.min(getNodeConnectionCount(node.id), 18))
-  const ratio = (boundedConnectionCount - 1) / 17
+  const boundedConnectionCount = Math.max(1, Math.min(getNodeConnectionCount(node.id), 24))
+  const ratio = (boundedConnectionCount - 1) / 23
   return tagMinSize + ratio * (tagMaxSize - tagMinSize)
 }
 
@@ -449,6 +456,7 @@ function buildElementsForGraph(
   graphSettings = DEFAULT_GRAPH_SETTINGS,
   noteMetadataByNodeId = new Map(),
   searchMatchedNoteNodeIds = null,
+  nodeColorById = new Map(),
 ) {
   const normalizedSettings = normalizeGraphSettings(graphSettings)
   const displaySettings = normalizedSettings.display
@@ -458,6 +466,11 @@ function buildElementsForGraph(
   const hasActiveFilters = visibility.length > 0 || noteStatus.length > 0 || careStatus.length > 0 || tags.length > 0 || hasSearchFilter
 
   const seedNodeIdSet = getSeedNodeIdSet()
+  const allTagIds = new Set(
+    [...nodeById.values()]
+      .filter((node) => node.type === "tag")
+      .map((node) => node.id),
+  )
   const allNoteIds = [...nodeById.values()].filter((node) => node.type === "note").map((node) => node.id)
 
   const noteMatchesFilters = (noteId) => {
@@ -528,7 +541,7 @@ function buildElementsForGraph(
   )
 
   const visibleTagIds = new Set(
-    [...seedNodeIdSet].filter((tagId) => {
+    [...(hasActiveFilters ? seedNodeIdSet : allTagIds)].filter((tagId) => {
       if (!hasActiveFilters) {
         return true
       }
@@ -582,28 +595,38 @@ function buildElementsForGraph(
   const nodes = [...visibleTagIds]
     .map((tagId) => nodeById.get(tagId))
     .filter(Boolean)
-    .map((node) => ({
-      data: {
-        id: node.id,
-        label: node.label,
-        type: node.type,
-        size: computeNodeSize(node, displaySettings),
-        labelFontSize: displaySettings.labelFontSize,
-        labelVisible: displaySettings.showLabels ? 1 : 0,
-        labelMarginY: Math.max(8, Math.round(displaySettings.labelFontSize * 1.2)),
-        sprite: node.type === "tag" ? getTagNodeSprite(node) : leafSvg,
-        depth: seedNodeIdSet.has(node.id) ? 0 : 1,
-        highlighted: highlightedTagIds.has(node.id) ? 1 : 0,
-        dimmed: dimmedTagIds.has(node.id) ? 1 : 0,
-        hiddenInExpanded: hiddenInExpandedTagIds.has(node.id) ? 1 : 0,
-      },
-    }))
+    .map((node) => {
+      const baseColor = nodeColorById.get(node.id) || DEFAULT_SIMPLE_TAG_COLOR
+      const borderColor = darkenHexColor(baseColor, 0.25)
+      return {
+        data: {
+          id: node.id,
+          label: node.label,
+          type: node.type,
+          size: computeNodeSize(node, displaySettings),
+          labelFontSize: displaySettings.labelFontSize,
+          labelVisible: displaySettings.showLabels ? 1 : 0,
+          labelMarginY: Math.max(8, Math.round(displaySettings.labelFontSize * 1.2)),
+          sprite: node.type === "tag" ? getTagNodeSprite(node) : leafSvg,
+          depth: seedNodeIdSet.has(node.id) ? 0 : 1,
+          stylized: displaySettings.useStylizedNodes ? 1 : 0,
+          fillColor: baseColor,
+          borderColor,
+          highlighted: highlightedTagIds.has(node.id) ? 1 : 0,
+          dimmed: dimmedTagIds.has(node.id) ? 1 : 0,
+          hiddenInExpanded: hiddenInExpandedTagIds.has(node.id) ? 1 : 0,
+        },
+      }
+    })
 
   visibleNoteIds.forEach((noteId) => {
     const noteNode = nodeById.get(noteId)
     if (!noteNode) {
       return
     }
+
+    const baseColor = nodeColorById.get(noteNode.id) || DEFAULT_SIMPLE_NOTE_COLOR
+    const borderColor = darkenHexColor(baseColor, 0.25)
 
     nodes.push({
       data: {
@@ -616,6 +639,9 @@ function buildElementsForGraph(
         labelMarginY: Math.max(8, Math.round((displaySettings.labelFontSize - 2) * 1.2)),
         sprite: leafSvg,
         depth: 2,
+        stylized: displaySettings.useStylizedNodes ? 1 : 0,
+        fillColor: baseColor,
+        borderColor,
         highlighted: focusTagId ? 1 : 0,
         dimmed: 0,
         hiddenInExpanded: 0,
@@ -708,6 +734,29 @@ function computeNoteLabelOpacity(zoomLevel) {
   return (zoomLevel - NOTE_LABEL_FADE_END_ZOOM) / (NOTE_LABEL_FADE_START_ZOOM - NOTE_LABEL_FADE_END_ZOOM)
 }
 
+function darkenHexColor(hexColor, amount = 0.2) {
+  const safeHex = String(hexColor || "").trim()
+  if (!safeHex) {
+    return "#3f4d42"
+  }
+
+  const normalized = safeHex.startsWith("#") ? safeHex.slice(1) : safeHex
+  const expanded = normalized.length === 3
+    ? normalized.split("").map((value) => value + value).join("")
+    : normalized
+
+  if (expanded.length !== 6) {
+    return "#3f4d42"
+  }
+
+  const numeric = Number.parseInt(expanded, 16)
+  const red = Math.max(0, Math.min(255, Math.round(((numeric >> 16) & 255) * (1 - amount))))
+  const green = Math.max(0, Math.min(255, Math.round(((numeric >> 8) & 255) * (1 - amount))))
+  const blue = Math.max(0, Math.min(255, Math.round((numeric & 255) * (1 - amount))))
+
+  return `#${[red, green, blue].map((value) => value.toString(16).padStart(2, "0")).join("")}`
+}
+
 function getViewportCenterPosition(cy) {
   const renderedCenter = {
     x: cy.width() / 2,
@@ -718,6 +767,39 @@ function getViewportCenterPosition(cy) {
     x: (renderedCenter.x - cy.pan().x) / cy.zoom(),
     y: (renderedCenter.y - cy.pan().y) / cy.zoom(),
   }
+}
+
+function centerGraphOnNode(cy, nodeId, { zoom = null, duration = 520 } = {}) {
+  if (!cy || !nodeId) {
+    return
+  }
+
+  const node = cy.getElementById(nodeId)
+  if (node.empty()) {
+    return
+  }
+
+  const targetZoom = typeof zoom === "number" ? clamp(zoom, cy.minZoom(), cy.maxZoom()) : cy.zoom()
+  const renderedCenter = {
+    x: cy.width() / 2,
+    y: cy.height() / 2,
+  }
+  const renderedNodePosition = node.renderedPosition()
+  const nextPan = {
+    x: renderedCenter.x - renderedNodePosition.x + cy.pan().x,
+    y: renderedCenter.y - renderedNodePosition.y + cy.pan().y,
+  }
+
+  cy.animate(
+    {
+      zoom: targetZoom,
+      pan: nextPan,
+    },
+    {
+      duration,
+      easing: "ease-in-out",
+    },
+  )
 }
 
 function getPrimaryTagIdForNote(noteId) {
@@ -802,6 +884,7 @@ function GardenGraphView({
   const forceNodeByIdRef = useRef(new Map())
   const forceNodeStateByIdRef = useRef(new Map())
   const activeLayoutRef = useRef(null)
+  const nodeColorByIdRef = useRef(new Map())
   const pinNodeInSimulationRef = useRef(null)
   const releaseNodeInSimulationRef = useRef(null)
   const pauseSimulationRef = useRef(null)
@@ -820,6 +903,7 @@ function GardenGraphView({
   const editingNodeIdRef = useRef(null)
   const [focusedNodeSummary, setFocusedNodeSummary] = useState(null)
   const navigate = useNavigate()
+  const displaySettings = resolveDisplaySettings(graphSettings)
 
   useEffect(() => {
     isMountedRef.current = true
@@ -1353,6 +1437,7 @@ function GardenGraphView({
         graphSettingsRef.current,
         noteMetadataByNodeIdRef.current,
         null,
+        nodeColorByIdRef.current,
       ),
       layout: {
         name: "circle",
@@ -1390,6 +1475,17 @@ function GardenGraphView({
             opacity: 1,
             "transition-property": "width height opacity",
             "transition-duration": "120ms",
+          },
+        },
+        {
+          selector: "node[stylized = 0]",
+          style: {
+            "background-opacity": 1,
+            "background-image": "none",
+            "background-color": "data(fillColor)",
+            "border-color": "data(borderColor)",
+            "border-width": 2,
+            shape: "ellipse",
           },
         },
         {
@@ -1727,6 +1823,7 @@ function GardenGraphView({
         graphSettingsRef.current,
         noteMetadataByNodeIdRef.current,
         null,
+        nodeColorByIdRef.current,
       ).reduce(
         (accumulator, element) => {
           if (element.data.source && element.data.target) {
@@ -1936,6 +2033,7 @@ function GardenGraphView({
       }
 
       const nodeData = event.target.data()
+      centerGraphOnNode(cy, nodeData.id, { duration: 520 })
 
       if (nodeData.type === "note") {
         const noteId = nodeData.id?.startsWith("note-") ? nodeData.id.slice(5) : null
@@ -2063,6 +2161,23 @@ function GardenGraphView({
             event.stopPropagation()
           }}
         >
+          {!displaySettings.useStylizedNodes ? (
+            <label className="garden-graph-view__context-color" aria-label="Choose node color">
+              <span>Node Color</span>
+              <input
+                type="color"
+                value={
+                  nodeColorByIdRef.current.get(contextMenuState.nodeId)
+                  || (contextMenuState.nodeType === "tag" ? DEFAULT_SIMPLE_TAG_COLOR : DEFAULT_SIMPLE_NOTE_COLOR)
+                }
+                onChange={(event) => {
+                  const nextColor = event.target.value
+                  nodeColorByIdRef.current.set(contextMenuState.nodeId, nextColor)
+                  syncGraphElementsRef.current?.({ shouldFit: false })
+                }}
+              />
+            </label>
+          ) : null}
           <button
             type="button"
             className="garden-graph-view__context-action"

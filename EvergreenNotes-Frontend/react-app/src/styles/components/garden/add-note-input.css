@@ -14,32 +14,57 @@
   width: min(500px, calc(100vw - 40px));
 }
 
-.add-note-input__type-wrapper {
+.add-note-input__type-toggle {
   display: inline-flex;
   align-items: center;
+  gap: 10px;
   margin-left: auto;
-  color: rgba(236, 245, 240, 0.86);
-  flex-shrink: 0;
-}
-
-.add-note-input__type-select {
-  border: 1px solid rgba(255, 255, 255, 0.38);
-  border-radius: 12px;
-  background: rgba(18, 42, 29, 0.42);
-  color: #eff7f1;
+  color: #f5f8fc;
+  border: 1px solid #2c3440;
+  border-radius: 10px;
+  background: rgba(6, 14, 25, 0.88);
   font-size: 14px;
-  padding: 7px 8px;
+  padding: 8px 12px;
   outline: none;
+  min-height: 34px;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+  box-sizing: border-box;
 }
 
-.add-note-input__type-select:focus {
+.add-note-input__type-toggle:focus {
   border-color: rgba(154, 231, 183, 0.74);
+  box-shadow: 0 0 0 2px rgba(154, 231, 183, 0.22);
 }
 
-.add-note-input__type-select option {
-  background: #153124;
-  color: #f0f8f2;
+.add-note-input__type-label {
   font-weight: 500;
+}
+
+.add-note-input__type-arrow {
+  width: 10px;
+  height: 6px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23f5f8fc' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 10px 6px;
+  opacity: 0.85;
+  transition: transform 0.2s ease;
+}
+
+.add-note-input__type-arrow--open {
+  transform: rotate(180deg);
+}
+
+.dropdown--note-type {
+  margin-left: auto;
+}
+
+.dropdown-menu--note-type {
+  top: auto;
+  bottom: calc(100% + 8px);
+  right: 0;
+  left: auto;
+  min-width: 140px;
 }
 
 .add-note-input__icon {

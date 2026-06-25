@@ -13,6 +13,7 @@ const DEFAULT_GRAPH_SETTINGS = {
     nodeSize: 50,
     labelFontSize: 16,
     showLabels: true,
+    useStylizedNodes: true,
   },
 }
 
@@ -37,6 +38,7 @@ function GraphSettingsPanel({
   const nodeSize = graphSettings?.display?.nodeSize ?? DEFAULT_GRAPH_SETTINGS.display.nodeSize
   const labelFontSize = graphSettings?.display?.labelFontSize ?? DEFAULT_GRAPH_SETTINGS.display.labelFontSize
   const showLabels = graphSettings?.display?.showLabels ?? DEFAULT_GRAPH_SETTINGS.display.showLabels
+  const useStylizedNodes = graphSettings?.display?.useStylizedNodes ?? DEFAULT_GRAPH_SETTINGS.display.useStylizedNodes
 
   const updateGraphSettings = (updater) => {
     if (typeof onGraphSettingsChange !== "function") {
@@ -374,6 +376,18 @@ function GraphSettingsPanel({
                   type="checkbox"
                   checked={showLabels}
                   onChange={() => updateDisplaySetting("showLabels", !showLabels)}
+                />
+                <span className="floating-control-panel__switch-track" />
+              </label>
+            </div>
+
+            <div className="floating-control-panel__switch-row">
+              <span>Stylized Nodes</span>
+              <label className="floating-control-panel__switch" aria-label="Toggle stylized nodes">
+                <input
+                  type="checkbox"
+                  checked={useStylizedNodes}
+                  onChange={() => updateDisplaySetting("useStylizedNodes", !useStylizedNodes)}
                 />
                 <span className="floating-control-panel__switch-track" />
               </label>

@@ -84,15 +84,6 @@ function NotePage() {
 	useDismiss({ refs: [statusMenuRef], isOpen: isStatusMenuOpen, onDismiss: () => setIsStatusMenuOpen(false) })
 
 	useEffect(() => {
-		if (!bodyTextareaRef.current) {
-			return
-		}
-
-		bodyTextareaRef.current.style.height = "auto"
-		bodyTextareaRef.current.style.height = `${bodyTextareaRef.current.scrollHeight}px`
-	}, [body])
-
-	useEffect(() => {
 		let isMounted = true
 
 		const loadNote = async () => {
@@ -338,7 +329,7 @@ function NotePage() {
 					/>
 					<NoteEditor
 						body={body}
-						onBodyChange={(event) => setBody(event.target.value)}
+						onBodyChange={setBody}
 						bodyRef={bodyTextareaRef}
 						readOnly={isEffectiveReadOnly}
 					/>

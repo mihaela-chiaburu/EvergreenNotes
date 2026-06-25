@@ -1,7 +1,8 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import "../../styles/components/garden/add-note-input.css"
 import Button from "../ui/Button"
 import Input from "../ui/Input"
+import { useDismiss } from "../../hooks/useDismiss"
 import { useAuth } from "../../context/AuthContext"
 import { createNote, deleteNote, replaceNoteTags } from "../../utils/notes"
 import { createTaxonomyTag } from "../../utils/taxonomy"
@@ -14,14 +15,18 @@ const CREATION_TYPE = {
 function AddNoteInput({ contextPathTags = [], onCreated }) {
   const [inputValue, setInputValue] = useState("")
   const [creationType, setCreationType] = useState(CREATION_TYPE.SEED)
+  const [isTypeMenuOpen, setIsTypeMenuOpen] = useState(false)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
   const { authUser } = useAuth()
+  const typeDropdownRef = useRef(null)
 
   const normalizedPathTags = contextPathTags.map((tag) => tag?.trim()).filter(Boolean)
   const focusedTagLabel = normalizedPathTags[normalizedPathTags.length - 1] || "My Garden"
   const pathLabel = normalizedPathTags.length ? focusedTagLabel : "My Garden (unfocused)"
+
+  useDismiss({ refs: [typeDropdownRef], isOpen: isTypeMenuOpen, onDismiss: () => setIsTypeMenuOpen(false) })
 
   const handleOpenConfirm = () => {
     const normalizedInput = inputValue.trim()
@@ -98,6 +103,12 @@ function AddNoteInput({ contextPathTags = [], onCreated }) {
 
   const inputPlaceholder = creationType === CREATION_TYPE.SEED ? "New Seed..." : "New Thought..."
   const actionLabel = creationType === CREATION_TYPE.SEED ? "Seed" : "Thought"
+  const typeLabel = creationType === CREATION_TYPE.SEED ? "Seed" : "Thought"
+
+  const handleSelectType = (nextType) => {
+    setCreationType(nextType)
+    setIsTypeMenuOpen(false)
+  }
 
   return (
     <>
@@ -119,18 +130,42 @@ function AddNoteInput({ contextPathTags = [], onCreated }) {
             }
           }}
         />
-        <label className="add-note-input__type-wrapper" htmlFor="add-note-input-type">
-          <select
-            id="add-note-input-type"
-            className="add-note-input__type-select"
-            value={creationType}
-            onChange={(event) => setCreationType(event.target.value)}
+        <div className="dropdown dropdown--note-type" ref={typeDropdownRef}>
+          <button
+            type="button"
+            className="add-note-input__type-toggle"
+            onClick={() => setIsTypeMenuOpen((prev) => !prev)}
+            aria-expanded={isTypeMenuOpen}
+            aria-haspopup="menu"
             disabled={isSubmitting}
           >
-            <option value={CREATION_TYPE.SEED}>Seed</option>
-            <option value={CREATION_TYPE.THOUGHT}>Thought</option>
-          </select>
-        </label>
+            <span className="add-note-input__type-label">{typeLabel}</span>
+            <span
+              className={`add-note-input__type-arrow${isTypeMenuOpen ? " add-note-input__type-arrow--open" : ""}`}
+              aria-hidden="true"
+            />
+          </button>
+          {isTypeMenuOpen ? (
+            <div className="dropdown-menu dropdown-menu--note-type" role="menu">
+              <button
+                type="button"
+                className="dropdown-menu__item"
+                role="menuitem"
+                onClick={() => handleSelectType(CREATION_TYPE.SEED)}
+              >
+                Seed
+              </button>
+              <button
+                type="button"
+                className="dropdown-menu__item"
+                role="menuitem"
+                onClick={() => handleSelectType(CREATION_TYPE.THOUGHT)}
+              >
+                Thought
+              </button>
+            </div>
+          ) : null}
+        </div>
         {error ? <p className="add-note-input__error">{error}</p> : null}
       </div>
 

@@ -7,13 +7,18 @@ import { useAuth } from "../context/AuthContext"
 
 function Layout({ children }) {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
-  const { authUser } = useAuth()
+  const { authUser, updateProfile } = useAuth()
 
   const handleOpenSettingsModal = () => {
     setIsSettingsModalOpen(true)
   }
 
   const handleCloseSettingsModal = () => {
+    setIsSettingsModalOpen(false)
+  }
+
+  const handleSaveProfile = (updates) => {
+    updateProfile(updates)
     setIsSettingsModalOpen(false)
   }
 
@@ -29,6 +34,9 @@ function Layout({ children }) {
       onClose={handleCloseSettingsModal}
       userName={authUser?.username || "User"}
       userEmail={authUser?.email || ""}
+      userBio={authUser?.bio || ""}
+      userAvatar={authUser?.avatarUrl || ""}
+      onSaveProfile={handleSaveProfile}
     />
     </div>
   )

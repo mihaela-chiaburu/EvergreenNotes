@@ -63,7 +63,7 @@ function Navbar({ onOpenSettingsModal }) {
   }
 
   const currentPath = location.pathname.replace(/\/+$/, "") || "/"
-  const isGardenSelected = currentPath === "/" || currentPath.startsWith("/garden")
+  const isGardenSelected = currentPath === "/garden" || currentPath.startsWith("/garden/")
   const isGardenContext = currentPath === "/" || currentPath.startsWith("/garden")
   const isExploreSelected = currentPath === "/explore"
   const isGardenCareSelected = currentPath === "/garden-care"
@@ -88,6 +88,8 @@ function Navbar({ onOpenSettingsModal }) {
     }
   }
 
+  const avatarSrc = authUser?.avatarUrl || avatar
+
   return (
     <nav className="navbar">
       <div className="navbar__links">
@@ -99,7 +101,7 @@ function Navbar({ onOpenSettingsModal }) {
             aria-expanded={isUserMenuOpen}
             aria-haspopup="menu"
           >
-            <img src={avatar} alt="user avatar" className="navbar__profile-image" />
+            <img src={avatarSrc} alt="user avatar" className="navbar__profile-image" />
             <p className="navbar__username">{authUser?.username || "User"}</p>
             <img
               src={arrow}

@@ -20,5 +20,6 @@ namespace EvergreenNotes.Domain.Interfaces
         Task<List<NoteResponse>> GetPublicNotesByUserIdAsync(Guid targetUserId, Guid? currentUserId, int page = 1, int pageSize = 100);
         Task<GardenCareQueueResponse> GetGardenCareQueueAsync(Guid userId);
         Task<CompleteReviewResponse> CompleteReviewAsync(Guid noteId, Guid userId);
+        Task<ReviewQuestionResponse> RegenerateReviewQuestionAsync(Guid noteId, Guid userId);
     }
 }

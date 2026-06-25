@@ -5,7 +5,7 @@ import StatsBar from "../components/garden-care/StatsBar"
 import GrowingCard from "../components/garden-care/GrowingCard"
 import ReflectionCard from "../components/garden-care/ReflectionCard"
 import { useAuth } from "../context/AuthContext"
-import { fetchGardenCareQueue } from "../utils/notes"
+import { fetchGardenCareQueue, regenerateReviewQuestion } from "../utils/notes"
 import "../styles/pages/garden-care.css"
 
 function formatDate(value) {
@@ -23,6 +23,7 @@ function GardenCarePage() {
   const [queue, setQueue] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
+  const [refreshingNotes, setRefreshingNotes] = useState({})
 
   useEffect(() => {
     let isMounted = true
@@ -104,6 +105,50 @@ function GardenCarePage() {
     })
   }
 
+  const handleRefreshQuestion = async (noteId) => {
+    if (!authUser?.token || !noteId) {
+      return
+    }
+
+    setRefreshingNotes((current) => ({
+      ...current,
+      [noteId]: true,
+    }))
+
+    try {
+      const payload = await regenerateReviewQuestion(authUser.token, noteId)
+      setQueue((currentQueue) => {
+        if (!currentQueue) {
+          return currentQueue
+        }
+
+        const refreshed = (currentQueue.readyForReflection ?? []).map((note) => {
+          if (note.noteId !== noteId) {
+            return note
+          }
+
+          return {
+            ...note,
+            question: payload.question,
+          }
+        })
+
+        return {
+          ...currentQueue,
+          readyForReflection: refreshed,
+        }
+      })
+    } catch (refreshError) {
+      setError(refreshError.message)
+    } finally {
+      setRefreshingNotes((current) => {
+        const next = { ...current }
+        delete next[noteId]
+        return next
+      })
+    }
+  }
+
   return (
     <Layout>
       <div className="garden-care-page">
@@ -124,6 +169,8 @@ function GardenCarePage() {
             prompt={card.question}
             lastReviewed={formatDate(card.lastReviewedAt)}
             onOpen={() => handleOpenDueNote(card)}
+            onRefresh={() => handleRefreshQuestion(card.noteId)}
+            isRefreshing={Boolean(refreshingNotes[card.noteId])}
           />
         ))}
 

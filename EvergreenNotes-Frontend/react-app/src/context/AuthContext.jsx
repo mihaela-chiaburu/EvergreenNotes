@@ -9,6 +9,8 @@ function mergeSessionWithMe(session, mePayload) {
     id: mePayload?.id ?? session.id,
     email: mePayload?.email ?? session.email ?? "",
     username: mePayload?.username ?? session.username ?? "",
+    avatarUrl: session.avatarUrl ?? mePayload?.avatarUrl ?? "",
+    bio: session.bio ?? mePayload?.bio ?? "",
   }
 }
 
@@ -64,12 +66,29 @@ export function AuthProvider({ children }) {
     setAuthUser(null)
   }
 
+  const updateProfile = (updates) => {
+    setAuthUser((currentUser) => {
+      if (!currentUser) {
+        return currentUser
+      }
+
+      const nextUser = {
+        ...currentUser,
+        ...updates,
+      }
+
+      saveAuthSession(nextUser)
+      return nextUser
+    })
+  }
+
   const value = useMemo(
     () => ({
       authUser,
       isAuthenticated: Boolean(authUser?.token),
       isAuthReady,
       establishSession,
+      updateProfile,
       logout,
     }),
     [authUser, isAuthReady],

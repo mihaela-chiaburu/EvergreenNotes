@@ -151,6 +151,48 @@
 	margin-top: 2px;
 }
 
+.settings-modal__avatar-row {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.settings-modal__avatar-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.settings-modal__avatar-input {
+	display: none;
+}
+
+.settings-modal__avatar-button {
+	width: fit-content;
+	padding: 8px 14px;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.55);
+	background: rgba(255, 255, 255, 0.08);
+	color: #ffffff;
+	font-size: 13px;
+	cursor: pointer;
+}
+
+.settings-modal__avatar-button:hover {
+	background: rgba(255, 255, 255, 0.16);
+}
+
+.settings-modal__avatar-note {
+	margin: 0;
+	color: rgba(255, 255, 255, 0.6);
+	font-size: 12px;
+}
+
+.settings-modal__actions {
+	display: flex;
+	justify-content: flex-end;
+}
+
 .settings-modal__avatar-placeholder {
 	width: 64px;
 	height: 64px;

@@ -272,6 +272,21 @@ namespace EvergreenNotes.Controllers
             }
         }
 
+        [HttpPost("{noteId}/review/question")]
+        public async Task<IActionResult> RegenerateReviewQuestion(Guid noteId)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var result = await _noteService.RegenerateReviewQuestionAsync(noteId, userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         private Guid GetCurrentUserId()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

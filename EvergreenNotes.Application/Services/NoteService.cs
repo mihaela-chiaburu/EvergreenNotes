@@ -475,6 +475,30 @@ namespace EvergreenNotes.Application.Services
             };
         }
 
+        public async Task<ReviewQuestionResponse> RegenerateReviewQuestionAsync(Guid noteId, Guid userId)
+        {
+            var note = await _db.Notes
+                .FirstOrDefaultAsync(n => n.Id == noteId && n.UserId == userId && !n.IsDeleted);
+
+            if (note == null)
+                throw new Exception("Note not found or access denied");
+
+            var question = await _reviewQuestionGenerator.GenerateQuestionAsync(note.Title, note.Content);
+            var generatedAt = DateTime.UtcNow;
+
+            note.CachedReviewQuestion = question;
+            note.CachedReviewQuestionGeneratedAt = generatedAt;
+            note.CachedReviewQuestionContentHash = ComputeContentHash(note.Title, note.Content);
+            await _db.SaveChangesAsync();
+
+            return new ReviewQuestionResponse
+            {
+                NoteId = note.Id,
+                Question = question,
+                GeneratedAt = generatedAt
+            };
+        }
+
         private void UpdatePlantState(Note note)
         {
             var daysSinceWatered = (DateTime.UtcNow - note.LastWateredAt).Days;

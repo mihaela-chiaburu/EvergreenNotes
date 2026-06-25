@@ -7,21 +7,65 @@ import Button from "../ui/Button"
 import avatarImage from "../../assets/images/avatar.jpg"
 import googleLogo from "../../assets/images/Logo-google.png"
 
-function SettingsModal({ isOpen, onClose, userName = "User", userEmail = "" }) {
+function SettingsModal({
+	isOpen,
+	onClose,
+	userName = "User",
+	userEmail = "",
+	userBio = "",
+	userAvatar = "",
+	onSaveProfile,
+}) {
 	const [activeTab, setActiveTab] = useState("general")
 	const [name, setName] = useState(userName)
-	const [bio, setBio] = useState("Growing quietly, one note at a time.")
+	const [bio, setBio] = useState(userBio)
 	const [email, setEmail] = useState(userEmail)
 	const [oldPassword, setOldPassword] = useState("")
 	const [newPassword, setNewPassword] = useState("")
+	const [avatarPreview, setAvatarPreview] = useState(userAvatar || avatarImage)
 
 	useEffect(() => {
+		if (!isOpen) {
+			return
+		}
+
 		setName(userName)
-	}, [userName])
-
-	useEffect(() => {
 		setEmail(userEmail)
-	}, [userEmail])
+		setBio(userBio)
+		setAvatarPreview(userAvatar || avatarImage)
+		setOldPassword("")
+		setNewPassword("")
+	}, [isOpen, userName, userEmail, userBio, userAvatar])
+
+	const handleAvatarChange = (event) => {
+		const file = event.target.files?.[0]
+		if (!file || !file.type.startsWith("image/") || file.size > 2 * 1024 * 1024) {
+			return
+		}
+
+		const reader = new FileReader()
+		reader.onload = () => {
+			if (typeof reader.result === "string") {
+				setAvatarPreview(reader.result)
+			}
+		}
+		reader.readAsDataURL(file)
+	}
+
+	const handleSaveProfile = () => {
+		if (!onSaveProfile) {
+			return
+		}
+
+		const trimmedName = name.trim()
+		const trimmedBio = bio.trim()
+		const normalizedAvatar = avatarPreview && avatarPreview !== avatarImage ? avatarPreview : ""
+		onSaveProfile({
+			username: trimmedName || userName,
+			bio: trimmedBio,
+			avatarUrl: normalizedAvatar,
+		})
+	}
 
 	return (
 		<ModalShell
@@ -45,7 +89,7 @@ function SettingsModal({ isOpen, onClose, userName = "User", userEmail = "" }) {
 
 				<div className="settings-modal__profile">
 					<img
-						src={avatarImage}
+						src={avatarPreview}
 						alt="User avatar"
 						className="settings-modal__profile-image"
 					/>
@@ -109,13 +153,34 @@ function SettingsModal({ isOpen, onClose, userName = "User", userEmail = "" }) {
 						<div className="settings-modal__field settings-modal__field--avatar">
 							<p className="settings-modal__label">Profile picture</p>
 							<p className="settings-modal__hint">Upload an image or pick an avatar</p>
-							<div className="settings-modal__avatar-placeholder" aria-hidden="true">
-								<img
-									src={avatarImage}
-									alt="Profile placeholder"
-									className="settings-modal__avatar-placeholder-image"
-								/>
+							<div className="settings-modal__avatar-row">
+								<div className="settings-modal__avatar-placeholder" aria-hidden="true">
+									<img
+										src={avatarPreview}
+										alt="Profile placeholder"
+										className="settings-modal__avatar-placeholder-image"
+									/>
+								</div>
+								<div className="settings-modal__avatar-actions">
+									<input
+										id="settings-avatar-upload"
+										type="file"
+										accept="image/*"
+										className="settings-modal__avatar-input"
+										onChange={handleAvatarChange}
+									/>
+									<label htmlFor="settings-avatar-upload" className="settings-modal__avatar-button">
+										Upload image
+									</label>
+									<p className="settings-modal__avatar-note">JPG or PNG, under 2MB.</p>
+								</div>
 							</div>
+						</div>
+
+						<div className="settings-modal__actions">
+							<Button type="button" variant="primary" onClick={handleSaveProfile}>
+								Save changes
+							</Button>
 						</div>
 					</div>
 				)}

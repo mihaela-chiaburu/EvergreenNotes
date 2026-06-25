@@ -215,6 +215,13 @@ export async function completeReview(token, noteId) {
   })
 }
 
+export async function regenerateReviewQuestion(token, noteId) {
+  return apiRequest(`/api/notes/${noteId}/review/question`, {
+    method: "POST",
+    token,
+  })
+}
+
 export async function replaceNoteTags(token, noteId, tags) {
   await apiRequest(`/api/notes/${noteId}/tags`, {
     method: "PUT",

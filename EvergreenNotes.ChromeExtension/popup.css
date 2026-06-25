@@ -94,3 +94,34 @@ body {
 .capture__status--error {
   color: #ffb6b6;
 }
+
+.capture__suggestions {
+  display: none;
+  margin-top: 6px;
+  border: 1px solid #385744;
+  border-radius: 8px;
+  background: #0d1911;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.capture__suggestions--visible {
+  display: block;
+}
+
+.capture__suggestion {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  background: transparent;
+  color: #effaf2;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.capture__suggestion:hover,
+.capture__suggestion:focus {
+  background: #1c3325;
+  outline: none;
+}

@@ -2,11 +2,6 @@
     width: 24px;
 }
 
-.reflection-card__dry-leaf-icon {
-    width: 60px;
-    transform: rotateY(180deg);
-}
-
 .reflection-card {
     width: 100%;
     display: flex;
@@ -41,12 +36,14 @@
     background-color: #afc1ad;
     border-radius: 18px;
     padding: 8px 12px;
+    width: 100%;
 }
 
 .reflection-card__idea p {
     margin: 0;
     font-size: 14px;
     color: black;
+    flex: 1;
 }
 
 .reflection-card__last-review {
@@ -62,5 +59,34 @@
 }
 
 .reflection-card__content {
-    width: min(100%, 600px);
+    width: 100%;
+}
+
+.reflection-card__refresh-button {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: none;
+    background: rgba(66, 88, 86, 0.65);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+}
+
+.reflection-card__refresh-button:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.reflection-card__refresh-button:focus-visible {
+    outline: 2px solid rgba(183, 241, 124, 0.6);
+    outline-offset: 2px;
+}
+
+.reflection-card__refresh-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
 }

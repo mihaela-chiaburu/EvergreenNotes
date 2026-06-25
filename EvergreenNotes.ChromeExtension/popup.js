@@ -13,10 +13,15 @@ const elements = {
   noteTitle: document.getElementById("noteTitle"),
   noteSource: document.getElementById("noteSource"),
   noteTags: document.getElementById("noteTags"),
+  tagSuggestions: document.getElementById("tagSuggestions"),
   noteContent: document.getElementById("noteContent"),
   saveButton: document.getElementById("saveButton"),
   statusMessage: document.getElementById("statusMessage"),
 }
+
+let capturedSourceThumbnail = null
+let tagSuggestionTimer = null
+let lastTagQuery = ""
 
 function setStatus(message, isError = false) {
   elements.statusMessage.textContent = message || ""
@@ -32,6 +37,33 @@ async function getActiveTab() {
   return tabs[0]
 }
 
+function getSourceTypeFromUrl(url) {
+  if (!url) {
+    return null
+  }
+
+  let hostname = ""
+  try {
+    hostname = new URL(url).hostname.toLowerCase()
+  } catch (error) {
+    return "article"
+  }
+
+  if (hostname.includes("youtube.com") || hostname.includes("youtu.be")) {
+    return "youtube"
+  }
+
+  if (hostname.includes("tiktok.com")) {
+    return "tiktok"
+  }
+
+  if (hostname.includes("instagram.com")) {
+    return "instagram"
+  }
+
+  return "article"
+}
+
 function parseTags(rawText) {
   return [...new Set(
     (rawText || "")
@@ -39,6 +71,57 @@ function parseTags(rawText) {
       .map((value) => value.trim().replace(/^#/, ""))
       .filter(Boolean),
   )]
+}
+
+function splitTagInput(rawText) {
+  const segments = (rawText || "").split(",")
+  const lastRaw = segments.pop() ?? ""
+  const existing = segments
+    .map((value) => value.trim())
+    .filter(Boolean)
+  return {
+    existing,
+    current: lastRaw.trim(),
+  }
+}
+
+function clearTagSuggestions() {
+  elements.tagSuggestions.innerHTML = ""
+  elements.tagSuggestions.classList.remove("capture__suggestions--visible")
+}
+
+function renderTagSuggestions(items) {
+  if (!items.length) {
+    clearTagSuggestions()
+    return
+  }
+
+  elements.tagSuggestions.innerHTML = ""
+  items.forEach((item) => {
+    const button = document.createElement("button")
+    button.type = "button"
+    button.className = "capture__suggestion"
+    button.textContent = item
+    button.addEventListener("mousedown", (event) => {
+      event.preventDefault()
+      applyTagSuggestion(item)
+    })
+    elements.tagSuggestions.appendChild(button)
+  })
+
+  elements.tagSuggestions.classList.add("capture__suggestions--visible")
+}
+
+function applyTagSuggestion(tagName) {
+  const { existing } = splitTagInput(elements.noteTags.value)
+  const normalizedExisting = new Set(existing.map((tag) => tag.toLowerCase()))
+  if (!normalizedExisting.has(tagName.toLowerCase())) {
+    existing.push(tagName)
+  }
+
+  elements.noteTags.value = existing.length ? `${existing.join(", ")}, ` : ""
+  clearTagSuggestions()
+  elements.noteTags.focus()
 }
 
 async function fetchJson(url, options = {}) {
@@ -72,27 +155,93 @@ async function clearToken() {
   await chrome.storage.local.remove(storageKeys.token)
 }
 
-async function hydrateFromYouTube() {
+async function injectContentExtractor(tabId) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ["content-extractor.js"],
+    })
+    return true
+  } catch (error) {
+    setStatus("Could not access this tab. Try refreshing the page.", true)
+    return false
+  }
+}
+
+async function hydrateFromActiveTab() {
   const tab = await getActiveTab()
   if (!tab?.id) {
     return
   }
 
-  const isYoutube = /^https:\/\/(www\.)?youtube\.com\//i.test(tab.url || "")
-  if (!isYoutube) {
-    setStatus("Open a YouTube video tab for auto-fill.")
+  const canInject = await injectContentExtractor(tab.id)
+  if (!canInject) {
     return
   }
 
-  const response = await chrome.tabs.sendMessage(tab.id, { type: "EXTRACT_YOUTUBE" }).catch(() => null)
+  const response = await chrome.tabs.sendMessage(tab.id, { type: "EXTRACT_CONTEXT" }).catch(() => null)
   if (!response?.ok || !response.payload) {
-    setStatus("Could not read video details from this tab.", true)
+    setStatus("Could not read details from this tab.", true)
     return
   }
 
   elements.noteTitle.value = response.payload.title || ""
   elements.noteSource.value = response.payload.sourceUrl || tab.url || ""
-  elements.noteTags.value = (response.payload.hashtags || []).join(", ")
+  capturedSourceThumbnail = response.payload.sourceThumbnail || null
+}
+
+async function fetchTagSuggestions(query) {
+  if (!query) {
+    return []
+  }
+
+  const apiBaseUrl = normalizeBaseUrl(elements.apiBaseUrl.value)
+  if (!apiBaseUrl) {
+    return []
+  }
+
+  const data = await chrome.storage.local.get([storageKeys.token])
+  const token = data[storageKeys.token]
+  if (!token) {
+    return []
+  }
+
+  const url = `${apiBaseUrl}/api/taxonomy/tags/search?q=${encodeURIComponent(query)}&limit=8`
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (!response.ok) {
+    return []
+  }
+
+  const body = await response.json().catch(() => ({}))
+  const items = body?.items || []
+  return items.map((item) => item.name || item.Name).filter(Boolean)
+}
+
+function scheduleTagSuggestions() {
+  if (tagSuggestionTimer) {
+    clearTimeout(tagSuggestionTimer)
+  }
+
+  tagSuggestionTimer = setTimeout(async () => {
+    const { current } = splitTagInput(elements.noteTags.value)
+    if (!current || current.length < 1) {
+      clearTagSuggestions()
+      return
+    }
+
+    if (current === lastTagQuery) {
+      return
+    }
+
+    lastTagQuery = current
+    const items = await fetchTagSuggestions(current)
+    renderTagSuggestions(items)
+  }, 200)
 }
 
 async function login() {
@@ -156,8 +305,8 @@ async function saveNote() {
         title,
         content,
         sourceUrl: sourceUrl || null,
-        sourceType: sourceUrl ? "youtube" : null,
-        sourceThumbnail: null,
+        sourceType: sourceUrl ? getSourceTypeFromUrl(sourceUrl) : null,
+        sourceThumbnail: capturedSourceThumbnail,
       }),
     })
 
@@ -179,7 +328,7 @@ async function saveNote() {
 
 async function bootstrap() {
   await readStorage()
-  await hydrateFromYouTube()
+  await hydrateFromActiveTab()
 
   elements.loginButton.addEventListener("click", login)
   elements.logoutButton.addEventListener("click", async () => {
@@ -188,6 +337,14 @@ async function bootstrap() {
   })
 
   elements.saveButton.addEventListener("click", saveNote)
+
+  elements.noteTags.addEventListener("input", scheduleTagSuggestions)
+  elements.noteTags.addEventListener("focus", scheduleTagSuggestions)
+  elements.noteTags.addEventListener("blur", () => {
+    setTimeout(() => {
+      clearTagSuggestions()
+    }, 120)
+  })
 
   elements.apiBaseUrl.addEventListener("blur", async () => {
     await saveStorage({ [storageKeys.apiBaseUrl]: normalizeBaseUrl(elements.apiBaseUrl.value) })

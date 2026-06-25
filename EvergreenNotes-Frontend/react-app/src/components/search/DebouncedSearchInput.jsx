@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import "../../styles/components/search/debounced-search-input.css"
 
 function DebouncedSearchInput({
@@ -11,6 +11,11 @@ function DebouncedSearchInput({
   inputClassName = "",
 }) {
   const [draftValue, setDraftValue] = useState(value)
+  const latestOnDebouncedChange = useRef(onDebouncedChange)
+
+  useEffect(() => {
+    latestOnDebouncedChange.current = onDebouncedChange
+  }, [onDebouncedChange])
 
   useEffect(() => {
     setDraftValue(value)
@@ -18,13 +23,13 @@ function DebouncedSearchInput({
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      onDebouncedChange?.(draftValue)
+      latestOnDebouncedChange.current?.(draftValue)
     }, debounceMs)
 
     return () => {
       window.clearTimeout(timeoutId)
     }
-  }, [debounceMs, draftValue, onDebouncedChange])
+  }, [debounceMs, draftValue])
 
   const handleClear = () => {
     setDraftValue("")

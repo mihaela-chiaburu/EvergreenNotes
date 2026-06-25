@@ -37,7 +37,8 @@
         <input id="noteSource" class="capture__input" type="url" />
 
         <label class="capture__label" for="noteTags">Tags (comma separated)</label>
-        <input id="noteTags" class="capture__input" type="text" placeholder="react, learning, javascript" />
+        <input id="noteTags" class="capture__input" type="text" placeholder="react, learning, javascript" autocomplete="off" />
+        <div id="tagSuggestions" class="capture__suggestions" role="listbox" aria-label="Tag suggestions"></div>
 
         <label class="capture__label" for="noteContent">Content</label>
         <textarea id="noteContent" class="capture__textarea" rows="7" placeholder="Write your note here..."></textarea>

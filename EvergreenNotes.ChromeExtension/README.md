@@ -1,13 +1,15 @@
 # EvergreenNotes Chrome Extension (Initial MVP)
 
-This extension captures YouTube context and saves notes directly into EvergreenNotes.
+This extension captures content context and saves notes directly into EvergreenNotes.
 
 ## Current capabilities
 
-- Auto-fills from active YouTube tab:
-  - Title -> video title
-  - Source -> current video URL
-  - Tags -> hashtags from title/description
+- Auto-fills from active tab on supported platforms:
+  - YouTube, TikTok, Instagram, and most article/news pages
+  - Title -> page or post title
+  - Source -> canonical URL (or current URL)
+  - Tags -> hashtags and keywords from metadata
+  - Content -> description or article snippet
 - Login against `POST /api/auth/login`
 - Save flow:
   1. `POST /api/notes`
@@ -65,10 +67,9 @@ Defined in `manifest.json`:
 - `storage`: persist API URL/token/email
 - `activeTab` and `tabs`: read active tab context
 - `host_permissions`:
-  - `https://www.youtube.com/*`
-  - `https://youtube.com/*`
   - `https://localhost:7010/*`
   - `http://localhost:5280/*`
+- `scripting`: inject capture logic into the active tab when popup opens
 
 ## Notes
 
